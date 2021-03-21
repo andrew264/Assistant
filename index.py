@@ -11,6 +11,7 @@ bot = commands.Bot(command_prefix='!')
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
+OWNERID = int(os.getenv('OWNER_ID'))
 
 client = discord.Client()
 
@@ -41,7 +42,7 @@ async def on_message(message):
         response = random.choice(hiMsgReplys)
         await message.channel.send(response)
     elif '!echo' in message.content.lower():
-        if message.author.id != 493025015445454868 :
+        if message.author.id != OWNERID :
             await message.reply("I am not your Assistant.")
         else:
             await message.channel.send(message.content.replace("!echo ", ""))
