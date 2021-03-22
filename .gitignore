@@ -3,3 +3,6 @@
 
 # Visual Studio 
 /.vs
+
+# Pycache
+/cogs/__pycache__
