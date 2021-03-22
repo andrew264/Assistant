@@ -9,9 +9,9 @@ class utils(commands.Cog):
 		self.client = client
 
 	# echo
-	@commands.command()
+	@commands.command(hidden=True)
 	async def echo(self,ctx,*,args):
-		if ctx.message.author.id != 493025015445454868 :
+		if ctx.author.id != ctx.guild.owner_id :
 			await ctx.reply("I am not your Assistant.")
 		else:
 			await ctx.send(args)
@@ -27,7 +27,7 @@ class utils(commands.Cog):
 	@has_permissions(manage_messages=True)
 	async def clear(self, ctx, amount=5):
 		await ctx.channel.purge(limit=amount+1)
-	@commands.command()
+	@commands.command(hidden=True)
 	@clear.error
 	async def clear_error(self, ctx, error):
 		if isinstance(error, commands.MissingPermissions):
