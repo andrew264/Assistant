@@ -27,7 +27,7 @@ async def on_ready():
 @client.command()
 async def echo(ctx, *, args):
 	if ctx.author.id != OWNERID :
-		await ctx.reply("I am not your Assistant.,")
+		await ctx.reply("I am not your Assistant.")
 	else:
 		await ctx.send(args)
 		await ctx.message.delete()
@@ -42,6 +42,10 @@ async def ping(ctx):
 @has_permissions(manage_messages=True)
 async def clear(ctx, amount=5):
 	await ctx.channel.purge(limit=amount+1)
+@clear.error
+async def clear_error(ctx, error):
+	if isinstance(error, commands.MissingPermissions):
+		await ctx.send('You have no Permission.')
 
 # Message Replies
 @client.listen('on_message')
