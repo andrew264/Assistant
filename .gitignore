@@ -6,3 +6,6 @@
 
 # Pycache
 /cogs/__pycache__
+
+# songs
+*.mp3
