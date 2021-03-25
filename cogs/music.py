@@ -38,7 +38,6 @@ class music(commands.Cog):
             'nocheckcertificate': True,
             'ignoreerrors': False,
             'logtostderr': False,
-            'quiet': True,
             'no_warnings': True,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
