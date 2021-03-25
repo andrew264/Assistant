@@ -9,3 +9,6 @@
 
 # songs
 *.mp3
+
+# include dialogues
+!/dialogues/*.mp3

@@ -8,18 +8,18 @@ class music(commands.Cog):
     def __init__(self,client):
         self.client = client
 
-    @commands.command(pass_context=True, brief="This will play a song .play [url]", aliases=['p'])
+    @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p'])
     async def play(self, ctx, url:str=''):
         print(f'Youtube Link: {url}')
-        song_there = os.path.isfile("song.mp3")
+        song_there = os.path.isfile('song.mp3')
         try:
             if song_there:
-                os.remove("song.mp3")
+                os.remove('song.mp3')
         except PermissionError:
             if ctx.voice_client.is_paused() is True:
                 return await ctx.voice_client.resume()
             else:
-                return await ctx.send("Wait for the current playing music to end or use the '.stop' command")
+                return await ctx.send('Wait for the current playing music to end or use the \'.stop\' command')
         print(f'Connecting to {ctx.message.author.voice.channel}')
         voiceChannel = ctx.message.author.voice.channel
         if not voiceChannel:
@@ -51,11 +51,11 @@ class music(commands.Cog):
         reply = await ctx.send('Loading...')
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        for file in os.listdir("./"):
-            if file.endswith(".mp3"):
+        for file in os.listdir('./'):
+            if file.endswith('.mp3'):
                 yt_title = file
-                os.rename(file, "song.mp3")
-        voice.play(discord.FFmpegPCMAudio("song.mp3"))
+                os.rename(file, 'song.mp3')
+        voice.play(discord.FFmpegPCMAudio('song.mp3'))
         await reply.edit(content=f'Playing: {yt_title[:-16]}')
 
 
