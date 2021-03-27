@@ -11,7 +11,7 @@ class utils(commands.Cog):
 	# echo
 	@commands.command(hidden=True)
 	async def echo(self,ctx,*,args):
-		if ctx.author.id != ctx.guild.owner_id :
+		if ctx.author.id != 493025015445454868 :
 			await ctx.reply("I am not your Assistant.")
 		else:
 			await ctx.send(args)

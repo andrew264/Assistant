@@ -55,7 +55,7 @@ class music(commands.Cog):
                 yt_title = file
                 os.rename(file, 'song.mp3')
         voice.play(discord.FFmpegPCMAudio('song.mp3'))
-        await reply.edit(content=f'Playing: {yt_title[:-16]}')
+        await reply.edit(content=f'Playing: `{yt_title[:-16]}`')
 
 
     @commands.has_permissions(manage_channels=True)

@@ -6,9 +6,13 @@
 
 # Pycache
 /cogs/__pycache__
+/__pycache__
 
 # songs
 *.mp3
 
 # include dialogues
 !/dialogues/*.mp3
+
+#ignore batch files
+*.bat

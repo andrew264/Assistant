@@ -15,7 +15,7 @@ class dialogues(commands.Cog):
 		dialogues = [os.path.splitext(filename)[0] for filename in os.listdir('./dialogues')]
 		if arg == 'list':
 			return await ctx.send(f'{dialogues}')
-		if arg == 'random':
+		if arg == 'random' or arg == 'rand':
 			x= random.randint(0,len(dialogues))
 
 			channel = ctx.message.author.voice.channel
