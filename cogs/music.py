@@ -1,25 +1,28 @@
 import discord
 from discord.ext import commands
 from discord.utils import get
-import youtube_dl
 import os
 from oldefs import check_urls
+from oldefs import yt_download
+from oldefs import spotify
+song_title=''
 
 class music(commands.Cog):
     def __init__(self,client):
         self.client = client
 
     @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p'])
-    async def play(self, ctx, url:str=''):
+    async def play(self, ctx,*,url:str=''):
+        global song_title
         if check_urls(url):
             return await ctx.send('Thats not a fucking song.')
-        print(f'Youtube Link: {url}')
         song_there = os.path.isfile('song.mp3')
         try:
             if song_there:
                 os.remove('song.mp3')
         except PermissionError:
             if ctx.voice_client.is_paused() is True:
+                await ctx.send(f'Resuming: `{song_title}`')
                 return await ctx.voice_client.resume()
             else:
                 return await ctx.send('Wait for the current playing music to end or use the \'.stop\' command')
@@ -35,28 +38,25 @@ class music(commands.Cog):
         else:
             voice = await voiceChannel.connect()
 
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'noplaylist': True,
-            'nocheckcertificate': True,
-            'ignoreerrors': False,
-            'logtostderr': False,
-            'no_warnings': True,
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-        }
         reply = await ctx.send('Loading...')
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        for file in os.listdir('./'):
-            if file.endswith('.mp3'):
-                yt_title = file
-                os.rename(file, 'song.mp3')
-        voice.play(discord.FFmpegPCMAudio('song.mp3'))
-        await reply.edit(content=f'Playing: `{yt_title[:-16]}`')
+        try:
+            yt_download(url)
+            for file in os.listdir('./'):
+                if file.endswith('.mp3'):
+                    song_title = ''
+                    song_title += file[:-16]
+                    os.rename(file, 'song.mp3')
+            voice.play(discord.FFmpegPCMAudio('song.mp3'))
+            await reply.edit(content=f'Playing: `{song_title}`')
+        except:
+            spotify(url)
+            for file in os.listdir('./'):
+                if file.endswith('.mp3'):
+                    song_title = ''
+                    song_title += file[:-4]
+                    os.rename(file, 'song.mp3')
+            voice.play(discord.FFmpegPCMAudio('song.mp3'))
+            await reply.edit(content=f'Playing: `{song_title}`')
 
     @commands.has_permissions(manage_channels=True)
     @commands.command()
@@ -80,7 +80,7 @@ class music(commands.Cog):
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_paused() is False:
                 ctx.voice_client.pause()
-                return await ctx.send('Paused.')
+                return await ctx.send(f'Paused: `{song_title}`')
 
 def setup(client):
 	client.add_cog(music(client))
