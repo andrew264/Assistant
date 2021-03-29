@@ -48,8 +48,6 @@ class music(commands.Cog):
                 'preferredquality': '192',
             }],
         }
-        if url == '':
-            return await ctx.send('Provide a Youtube URL to play.')
         reply = await ctx.send('Loading...')
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
