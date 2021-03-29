@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.utils import get
 import youtube_dl
 import os
+from oldefs import check_urls
 
 class music(commands.Cog):
     def __init__(self,client):
@@ -10,6 +11,8 @@ class music(commands.Cog):
 
     @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p'])
     async def play(self, ctx, url:str=''):
+        if check_urls(url):
+            return await ctx.send('Thats not a fucking song.')
         print(f'Youtube Link: {url}')
         song_there = os.path.isfile('song.mp3')
         try:
@@ -56,7 +59,6 @@ class music(commands.Cog):
                 os.rename(file, 'song.mp3')
         voice.play(discord.FFmpegPCMAudio('song.mp3'))
         await reply.edit(content=f'Playing: `{yt_title[:-16]}`')
-
 
     @commands.has_permissions(manage_channels=True)
     @commands.command()

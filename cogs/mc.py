@@ -4,7 +4,7 @@ import urllib.request
 import os
 import shutil
 
-from defs import checkIfProcessRunning
+from oldefs import checkIfProcessRunning
 
 from discord.ext.commands import has_permissions
 
