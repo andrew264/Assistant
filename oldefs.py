@@ -36,3 +36,8 @@ def spotify(url):
 	print('Searching in spotify...')
 	song=url.replace(' ','_')
 	system('spotdl -o D:\DiscordBOt\Assistant '+ f'{song}')
+
+def listToString(s):
+	s[0]=f'👉\t' + s[0]
+	str1='\n👉\t'
+	return (str1.join(s))
