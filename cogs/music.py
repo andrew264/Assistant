@@ -48,6 +48,7 @@ class music(commands.Cog):
                     os.rename(file, 'song.mp3')
             voice.play(discord.FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
+            await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{song_title}"))
         except:
             spotify(url)
             for file in os.listdir('./'):
@@ -57,6 +58,7 @@ class music(commands.Cog):
                     os.rename(file, 'song.mp3')
             voice.play(discord.FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
+            await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{song_title}"))
 
     @commands.has_permissions(manage_channels=True)
     @commands.command()
