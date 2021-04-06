@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from olreplies import *
 
 from discord.ext.commands import has_permissions
 
@@ -11,7 +12,7 @@ class utils(commands.Cog):
 	# echo
 	@commands.command(hidden=True)
 	async def echo(self,ctx,*,args):
-		if ctx.author.id != 493025015445454868 :
+		if ctx.author.id != OWNERID :
 			await ctx.reply("I am not your Assistant.")
 		else:
 			await ctx.send(args)
