@@ -1,10 +1,11 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.utils import get
 import os
 from oldefs import check_urls
 from oldefs import yt_download
 from oldefs import spotify
+import re 
 song_title=''
 
 class music(commands.Cog):
@@ -45,20 +46,30 @@ class music(commands.Cog):
                 if file.endswith('.mp3'):
                     song_title = ''
                     song_title += file[:-16]
+                    song_title = re.sub("[\(\[].*?[\)\]]", "", song_title)
                     os.rename(file, 'song.mp3')
             voice.play(discord.FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
-            await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{song_title}"))
+            music.status_set.start(self, ctx)
         except:
             spotify(url)
             for file in os.listdir('./'):
                 if file.endswith('.mp3'):
                     song_title = ''
                     song_title += file[:-4]
+                    song_title = re.sub("[\(\[].*?[\)\]]", "", song_title)
                     os.rename(file, 'song.mp3')
             voice.play(discord.FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
+            music.status_set.start(self, ctx)
+            
+    @tasks.loop(seconds = 5)
+    async def status_set(self, ctx):
+        if ctx.voice_client is not None and ctx.voice_client.is_playing() and song_title:
             await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{song_title}"))
+        else:
+            await self.client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name="my Homies."))
+            music.status_set.cancel()
 
     @commands.has_permissions(manage_channels=True)
     @commands.command()

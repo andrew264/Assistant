@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from olenv import *
 
 class ready(commands.Cog):
@@ -10,7 +10,7 @@ class ready(commands.Cog):
 	# Start
 	@commands.Cog.listener()
 	async def on_ready(self):
-		ready.status_reset.start(self)
+		await self.client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name="my Homies."))
 		for guild in self.client.guilds:
 			if guild.name == GUILD:
 				break
@@ -18,10 +18,6 @@ class ready(commands.Cog):
 			f'{self.client.user} is connected to the following guild:\n'
 			f'\t{guild.name}(id: {guild.id})'
 		)
-
-	@tasks.loop(minutes = 5)
-	async def status_reset(self):
-		await self.client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name="my Homies."))
 
 	# Unknown commands
 	@commands.Cog.listener()
