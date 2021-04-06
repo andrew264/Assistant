@@ -47,6 +47,7 @@ class music(commands.Cog):
                     song_title = ''
                     song_title += file[:-16]
                     song_title = re.sub("[\(\[].*?[\)\]]", "", song_title)
+                    print(f'Playing: {song_title}')
                     os.rename(file, 'song.mp3')
             voice.play(discord.FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
@@ -58,6 +59,7 @@ class music(commands.Cog):
                     song_title = ''
                     song_title += file[:-4]
                     song_title = re.sub("[\(\[].*?[\)\]]", "", song_title)
+                    print(f'Playing: {song_title}')
                     os.rename(file, 'song.mp3')
             voice.play(discord.FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
