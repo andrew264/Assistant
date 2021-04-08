@@ -3,7 +3,7 @@ import os
 from olenv import *
 
 from discord.ext import commands
-client = commands.Bot(command_prefix='.')
+client = commands.Bot(command_prefix=commands.when_mentioned_or('.'),description='Andrew\'s Assistant')
 
 @client.command(hidden=True)
 async def load(ctx, extension):
