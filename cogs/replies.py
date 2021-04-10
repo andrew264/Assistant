@@ -1,4 +1,4 @@
-import random
+from random import choice
 import discord
 from discord.ext import commands
 from olreplies import *
@@ -14,11 +14,11 @@ class replies(commands.Cog):
 		if message.author == self.client.user:
 			return
 		if any(word in message.content.lower().split() for word in hiMsgs):
-			response = random.choice(hiMsgReplys)
+			response = choice(hiMsgReplys)
 			await message.channel.send(response)
 			await self.client.process_commands(message)
 		elif any(word in message.content.lower().split() for word in byeMsgs):
-			response = random.choice(byeMsgReplys)
+			response = choice(byeMsgReplys)
 			await message.channel.send(response)
 			await self.client.process_commands(message)
 

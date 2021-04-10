@@ -1,12 +1,10 @@
 import discord
 from discord.ext import commands
-import urllib.request
-import os
-import shutil
+from urllib.request import urlopen
+from os import remove, system
+from shutil import copyfile, rmtree
 
 from oldefs import checkIfProcessRunning
-
-from discord.ext.commands import has_permissions
 
 class mc(commands.Cog):
 
@@ -15,10 +13,10 @@ class mc(commands.Cog):
 
 	# IP
 	@commands.command(pass_context=True, brief='Get Server IP')
-	@has_permissions(manage_messages=True)
+	@commands.has_permissions(manage_messages=True)
 	async def mcip(self, ctx):
 		if checkIfProcessRunning():
-			external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
+			external_ip = urlopen('https://ident.me').read().decode('utf8')
 			await ctx.send(f'{external_ip}:42069')
 		else: return await ctx.send('Server isn\'t Running.')
 	@commands.command(hidden=True)
@@ -36,32 +34,31 @@ class mc(commands.Cog):
 			await ctx.send('Server isn\'t Running.')
 
 	# startup server
-	@commands.command(pass_context=True, brief='Start Server. Required Arguments [vikki]')
-	@has_permissions(manage_messages=True)
+	@commands.command(pass_context=True, brief='Start Server.')
+	@commands.has_permissions(manage_messages=True)
 	async def mcstart(self,ctx,arg):
-		if arg == 'vikki':
-			if checkIfProcessRunning():
-				return await ctx.send('A Server is already running.')
-			else:
-				os.system("start cmd /K vikki.bat")
-				return await ctx.send('Server will start in 20 secs...')
+		if checkIfProcessRunning():
+			return await ctx.send('A Server is already running.')
+		else:
+			system("start cmd /K vikki.bat")
+			return await ctx.send('Server will start in 20 secs...')
 
 	# startup server
 	@commands.command(pass_context=True, brief='Create New Server. Required Arguments [SEED]')
-	@has_permissions(manage_messages=True)
+	@commands.has_permissions(manage_messages=True)
 	async def mcnew(self,ctx,arg):
 		if checkIfProcessRunning():
 			return await ctx.send('A Server is already running.')
 		try: 
-			shutil.rmtree('C:\\Users\\Andrew\\MCServer\\Speed\\world')
-			os.remove('C:\\Users\\Andrew\\MCServer\\Speed\\server.properties')
+			rmtree('C:\\Users\\Andrew\\MCServer\\Speed\\world')
+			remove('C:\\Users\\Andrew\\MCServer\\Speed\\server.properties')
 		except OSError as error: 
 			print('World folder doesn\'t exist.')
-		shutil.copyfile('C:\\Users\\Andrew\\MCServer\\Speed\\server.properties.bak','C:\\Users\\Andrew\\MCServer\\Speed\\server.properties')
+		copyfile('C:\\Users\\Andrew\\MCServer\\Speed\\server.properties.bak','C:\\Users\\Andrew\\MCServer\\Speed\\server.properties')
 		props= open("C:\\Users\\Andrew\\MCServer\\Speed\\server.properties", "a")
 		props.write(f'\nlevel-seed={arg}')
 		props.close()
-		os.system("start cmd /K newworld.bat")
+		system("start cmd /K newworld.bat")
 		return await ctx.send(f'Creating new world with seed: `{arg}`')
 
 
