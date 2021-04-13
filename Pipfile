@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 "discord.py" = {extras = ["voice"], version = "*"}
-spotdl = "*"
 youtube-dl = "*"
 urllib3 = "*"
 python-dotenv = "*"
