@@ -1,6 +1,5 @@
 from random import choice
-import discord
-from discord.ext import commands
+import discord.ext.commands as commands
 from olreplies import *
 
 class replies(commands.Cog):

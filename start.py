@@ -1,8 +1,8 @@
 import discord
-import os
+from os import listdir
 from olenv import *
 
-from discord.ext import commands
+import discord.ext.commands as commands
 client = commands.Bot(command_prefix=commands.when_mentioned_or('.'),description='Andrew\'s Assistant')
 
 @client.command(hidden=True)
@@ -48,7 +48,7 @@ async def reload(ctx, extension):
 		else:
 			await ctx.send('\N{PISTOL} U no Admin.')
 
-for filename in os.listdir('./cogs'):
+for filename in listdir('./cogs'):
 	if filename.endswith('.py'):
 		client.load_extension(f'cogs.{filename[:-3]}')
 

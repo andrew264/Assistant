@@ -1,9 +1,9 @@
 import discord
-from discord.ext import commands
+import discord.ext.commands as commands
 import os
 import random
 
-from  oldefs import listToString
+from  olmusic import listToString
 from discord.ext.commands import has_permissions
 
 class dialogues(commands.Cog):

@@ -1,7 +1,7 @@
-import discord
-from discord.ext import commands
+import discord.ext.commands as commands
 from olreplies import *
 from olenv import *
+from discord import Activity, ActivityType, Status
 
 class utils(commands.Cog):
 
@@ -40,26 +40,26 @@ class utils(commands.Cog):
 			await ctx.reply("You don't have permission")
 		else:
 			if state == 'idle':
-				A=discord.Status.idle
+				A=Status.idle
 			elif state == 'online':
-				A=discord.Status.online
+				A=Status.online
 			elif state == 'dnd':
-				A=discord.Status.dnd
+				A=Status.dnd
 			elif state == 'offline':
-				A=discord.Status.offline
+				A=Status.offline
 			else:
 				return await ctx.send(f'Invalid status `{state}`.')
 			if type == 'play':
-				B=discord.ActivityType.playing
+				B=ActivityType.playing
 			elif type == 'stream':
-				B=discord.ActivityType.streaming
+				B=ActivityType.streaming
 			elif type == 'listen':
-				B=discord.ActivityType.listening
+				B=ActivityType.listening
 			elif type == 'watch':
-				B=discord.ActivityType.watching
+				B=ActivityType.watching
 			else:
 				return await ctx.send(f'Invalid Activity Type `{type}`.')
-			await self.client.change_presence(status=A, activity=discord.Activity(type=B, name=name))
+			await self.client.change_presence(status=A, activity=Activity(type=B, name=name))
 			await ctx.send(f'Status set to `{state}` and `{type.title()}ing: {name}`')
 
 def setup(client):

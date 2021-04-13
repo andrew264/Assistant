@@ -1,5 +1,4 @@
-import discord
-from discord.ext import commands
+import discord.ext.commands as commands
 from urllib.request import urlopen
 from os import remove, system
 from shutil import copyfile, rmtree
@@ -36,7 +35,7 @@ class mc(commands.Cog):
 	# startup server
 	@commands.command(pass_context=True, brief='Start Server.')
 	@commands.has_permissions(manage_messages=True)
-	async def mcstart(self,ctx,arg):
+	async def mcstart(self,ctx):
 		if checkIfProcessRunning():
 			return await ctx.send('A Server is already running.')
 		else:

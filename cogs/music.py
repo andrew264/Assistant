@@ -1,11 +1,10 @@
-import discord
 from discord.ext import commands, tasks
 from discord.utils import get
-import os
-from oldefs import check_urls
-from oldefs import yt_download
-from oldefs import spotify
-import re 
+from discord import FFmpegPCMAudio, Activity, ActivityType, Status
+from os.path import isfile
+from os import remove, listdir, rename
+from olmusic import check_urls, yt_download, spotify
+from re import sub
 song_title=''
 
 class music(commands.Cog):
@@ -17,10 +16,10 @@ class music(commands.Cog):
         global song_title
         if check_urls(url):
             return await ctx.send('Thats not a fucking song.')
-        song_there = os.path.isfile('song.mp3')
+        song_there = isfile('song.mp3')
         try:
             if song_there:
-                os.remove('song.mp3')
+                remove('song.mp3')
         except PermissionError:
             if ctx.voice_client.is_paused() is True:
                 await ctx.send(f'Resuming: `{song_title}`')
@@ -42,35 +41,35 @@ class music(commands.Cog):
         reply = await ctx.send('Loading...')
         try:
             yt_download(url)
-            for file in os.listdir('./'):
+            for file in listdir('./'):
                 if file.endswith('.mp3'):
                     song_title = ''
                     song_title += file[:-16]
-                    song_title = re.sub("[\(\[].*?[\)\]]", "", song_title)
+                    song_title = sub("[\(\[].*?[\)\]]", "", song_title)
                     print(f'Playing: {song_title}')
-                    os.rename(file, 'song.mp3')
-            voice.play(discord.FFmpegPCMAudio('song.mp3'))
+                    rename(file, 'song.mp3')
+            voice.play(FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
             music.status_set.start(self, ctx)
         except:
             spotify(url)
-            for file in os.listdir('./'):
+            for file in listdir('./'):
                 if file.endswith('.mp3'):
                     song_title = ''
                     song_title += file[:-4]
-                    song_title = re.sub("[\(\[].*?[\)\]]", "", song_title)
+                    song_title = sub("[\(\[].*?[\)\]]", "", song_title)
                     print(f'Playing: {song_title}')
-                    os.rename(file, 'song.mp3')
-            voice.play(discord.FFmpegPCMAudio('song.mp3'))
+                    rename(file, 'song.mp3')
+            voice.play(FFmpegPCMAudio('song.mp3'))
             await reply.edit(content=f'Playing: `{song_title}`')
             music.status_set.start(self, ctx)
             
     @tasks.loop(seconds = 5)
     async def status_set(self, ctx):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() and song_title:
-            await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=f"{song_title}"))
+            await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=f"{song_title}"))
         else:
-            await self.client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name="my Homies."))
+            await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
             music.status_set.cancel()
 
     @commands.has_permissions(manage_channels=True)

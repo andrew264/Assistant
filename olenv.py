@@ -1,6 +1,6 @@
-import os
+from os import getenv
 from dotenv import load_dotenv
 load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-OWNERID = int(os.getenv('OWNER_ID'))
-GUILD = os.getenv('DISCORD_GUILD')
+TOKEN = getenv('DISCORD_TOKEN')
+OWNERID = int(getenv('OWNER_ID'))
+GUILD = getenv('DISCORD_GUILD')

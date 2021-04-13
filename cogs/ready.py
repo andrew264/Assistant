@@ -1,5 +1,5 @@
-import discord
-from discord.ext import commands
+from discord import Activity, ActivityType, Status
+import discord.ext.commands as commands
 from olenv import *
 
 class ready(commands.Cog):
@@ -10,7 +10,7 @@ class ready(commands.Cog):
 	# Start
 	@commands.Cog.listener()
 	async def on_ready(self):
-		await self.client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name="my Homies."))
+		await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
 		for guild in self.client.guilds:
 			if guild.name == GUILD:
 				break
