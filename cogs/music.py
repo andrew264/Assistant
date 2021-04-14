@@ -1,7 +1,9 @@
 from discord.ext import commands, tasks
 from discord.utils import get
 from discord import FFmpegPCMAudio, Activity, ActivityType, Status
+from discord import Embed
 from olmusic import check_urls
+import time
 import youtube_dl.YoutubeDL as YDL
 ydl_opts = {
     'noplaylist': True,
@@ -43,16 +45,26 @@ class music(commands.Cog):
             return await ctx.send('Wait for the current playing music to end or use the \'.stop\' command')
   
         print(f'Connecting to {ctx.message.author.voice.channel}')
-        reply = await ctx.send('Loading...')
         with YDL(ydl_opts) as ydl:
             try:
                 song_info = ydl.extract_info(url, download=False)
             except:
                 song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
-            songurl=song_info["formats"][0]["url"]
+            song_url=song_info["formats"][0]["url"]
             song_title = song_info.get('title', None)
-        voice.play(FFmpegPCMAudio(songurl, **FFMPEG_OPTIONS))
-        await reply.edit(content=f'Playing: `{song_title}`')
+            song_thumbnail = song_info.get("thumbnail")
+            song_webpage = song_info.get("webpage_url")
+            song_rating = round(song_info.get("average_rating"),2)
+            song_length = time.strftime('%M:%S', time.gmtime(song_info.get("duration")))
+        voice.play(FFmpegPCMAudio(song_url, **FFMPEG_OPTIONS))
+        # Embed
+        embed=Embed(title="", color=0xff0000)
+        embed.set_thumbnail(url=f'{song_thumbnail}')
+        embed.set_author(name=f'Playing: {song_title}', url=song_webpage, icon_url='')
+        embed.add_field(name="Duration:", value=song_length, inline=True)
+        embed.add_field(name="Requested by:", value=ctx.message.author.display_name, inline=True)
+        embed.add_field(name="Song Rating:", value=f'{song_rating}/5', inline=True)
+        await ctx.send(embed=embed)
         music.status_set.start(self, ctx)
             
     @tasks.loop(seconds = 5)
