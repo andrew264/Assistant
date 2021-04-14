@@ -18,13 +18,18 @@ class music(commands.Cog):
     def __init__(self,client):
         self.client = client
 
-    @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p'])
+    @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p','P'])
     async def play(self, ctx,*,url:str=''):
         global song_title
         
         # Check if author in VC
         if ctx.author.voice is None or ctx.author.voice.channel is None:
             return await ctx.send("You are not connected to a voice channel.")
+        # Join da VC
+        voice = get(self.client.voice_clients, guild=ctx.guild)
+        voiceChannel = ctx.message.author.voice.channel
+        if voice == None:
+            voice = await voiceChannel.connect()
         # Check da url for bad stuff
         if check_urls(url):
             return await ctx.send('Thats not a fucking song.')
@@ -33,13 +38,6 @@ class music(commands.Cog):
             await ctx.send(f'Resuming: `{song_title}`')
             music.status_set.start(self, ctx)
             return await ctx.voice_client.resume()
-        # Join/Move to vc
-        voice = get(self.client.voice_clients, guild=ctx.guild)
-        voiceChannel = ctx.message.author.voice.channel
-        if voice and voice.is_connected():
-            await voice.move_to(voiceChannel)
-        else:
-            voice = await voiceChannel.connect()
         # If is_playing gtfo
         if voice and voice.is_playing() is True:
             return await ctx.send('Wait for the current playing music to end or use the \'.stop\' command')
@@ -75,8 +73,7 @@ class music(commands.Cog):
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
             music.status_set.cancel()
 
-    @commands.has_permissions(manage_channels=True)
-    @commands.command()
+    @commands.command(aliases=['dc'])
     async def stop(self, ctx):
         if ctx.message.author.voice is None:
             return await ctx.send('You must be is same VC as the bot.')
