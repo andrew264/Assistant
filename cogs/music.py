@@ -1,9 +1,9 @@
 from discord.ext import commands, tasks
 from discord.utils import get
-from discord import FFmpegPCMAudio, Activity, ActivityType, Status
-from discord import Embed
+from discord import FFmpegPCMAudio, Activity, ActivityType, Status, Embed
 from olmusic import check_urls
 import time
+import asyncio
 import youtube_dl.YoutubeDL as YDL
 ydl_opts = {
     'noplaylist': True,
@@ -13,6 +13,7 @@ ydl_opts = {
 }
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 song_title=''
+song_list=[]
 
 class music(commands.Cog):
     def __init__(self,client):
@@ -72,6 +73,41 @@ class music(commands.Cog):
         else:
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
             music.status_set.cancel()
+
+    @commands.command(aliases=['q'])
+    async def queue(self, ctx, *, arg):
+        global song_list
+        with YDL(ydl_opts) as ydl:
+            try:
+                song_info = ydl.extract_info(arg, download=False)
+            except:
+                song_info = ydl.extract_info(f'ytsearch:{arg}', download=False)['entries'][0]
+            song_list.append(song_info.get("webpage_url"))
+            print(song_list)
+            await ctx.send('Added to Queue.')
+            music.play_from_queue.start(self, ctx)
+
+    @tasks.loop(seconds = 5)
+    async def play_from_queue(self, ctx):
+        global song_list
+        voice = get(self.client.voice_clients, guild=ctx.guild)
+        voiceChannel = ctx.message.author.voice.channel
+        if voice == None:
+            voice = await voiceChannel.connect()
+        with YDL(ydl_opts) as ydl:
+            song_info = ydl.extract_info(song_list[0], download=False)
+            song_url=song_info["formats"][0]["url"]
+            duration = song_info.get("duration")
+            song_title = song_info.get('title', None)
+        voice.play(FFmpegPCMAudio(song_url, **FFMPEG_OPTIONS))
+        await ctx.send(f'Playing: {song_title}')
+        await asyncio.sleep(duration)
+        song_list.pop(0)
+        print(song_list)
+        if not song_list:
+            music.play_from_queue.cancel()
+            print('Queue Stopped.')
+
 
     @commands.command(aliases=['dc'])
     async def stop(self, ctx):
