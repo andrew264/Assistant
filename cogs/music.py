@@ -46,7 +46,6 @@ class music(commands.Cog):
             song_list.append(song_info.get("webpage_url"))
             song_title = song_info.get('title', None)
             song_title_list.append(song_title)
-            print(song_title_list)
             await ctx.send(f'Adding {song_title} to Queue.')
             if music.play_from_queue.is_running() is False:
                 music.play_from_queue.start(self, ctx)
@@ -61,7 +60,10 @@ class music(commands.Cog):
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
-        await ctx.send(song_title_list)
+        embed=Embed(title="Songs in Queue",colour=0xffa31a)
+        for i in range(len(song_title_list)):
+            embed.add_field(name=song_title_list[i],value='\u200b', inline=False)
+        await ctx.send(embed=embed)
 
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
@@ -96,8 +98,9 @@ class music(commands.Cog):
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
             await asyncio.sleep(duration)
-            song_list.pop(0)
-            song_title_list.pop(0)
+            if song_list:
+                song_list.pop(0)
+                song_title_list.pop(0)
         else: 
             music.play_from_queue.cancel()
 

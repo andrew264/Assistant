@@ -1,5 +1,5 @@
 def check_urls(url):
-	badstuff=['dQw4w9WgXcQ','eYq7WapuDLU', 'enjoy enjami', 'enjami', 'rick roll', 'never gonna give you up'] #songs i don't like
+	badstuff=['dQw4w9WgXcQ','eYq7WapuDLU', 'enjoy enjami', 'enjaami', 'rick roll', 'never gonna give you up'] #songs i don't like
 	for badurl in badstuff:
 		if badurl in url:
 			return True
