@@ -20,6 +20,12 @@ class replies(commands.Cog):
 			response = choice(byeMsgReplys)
 			await message.channel.send(response)
 			await self.client.process_commands(message)
+		elif any(word in message.content.lower().split() for word in yeahMsgs):
+			response = choice(yeahMsgReplys)
+			await message.channel.send(response)
+			await self.client.process_commands(message)
+
+
 
 def setup(client):
 	client.add_cog(replies(client))

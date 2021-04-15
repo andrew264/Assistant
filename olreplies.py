@@ -1,6 +1,6 @@
 hiMsgs = [
 	'hi', 'hello', 'allo', 'anyone', 'irukiya' ,'helo', 'halo', 'alo', 'yo', 'hey', 'howdy', 'welcome', 'bonjour'
-			]
+	]
 
 hiMsgReplys = [
 	'https://media1.tenor.com/images/1735ddc5b87d28dd7f6230bd44d7f4e5/tenor.gif?itemid=10231284',
@@ -11,13 +11,20 @@ hiMsgReplys = [
 	'https://media1.tenor.com/images/175c66cf1f6f740302e6cdfc90cdbfbb/tenor.gif?itemid=10519859',
 	'https://media1.tenor.com/images/fee43b7ecea92ead3c4f3a17d9d94a8d/tenor.gif?itemid=12425836',
 	'sollu daw', 'enna da aachi', 'yes tell me', 'mmm', 'hi da'
-]
+	]
 
 byeMsgs = [
 	'bye', 'kelamburen', 'poitu varen', 'poren', 'adios', 'goodbye'
-]
+	]
 
 byeMsgReplys = [
 	'https://media1.tenor.com/images/c18583dcf6fb22fcf54eb401e18d97d7/tenor.gif?itemid=11772987',
 	'bye da'
-]
+	]
+
+yeahMsgs = [ 'yeah', 'boi' , 'boii']
+yeahMsgReplys = [
+	'https://media1.tenor.com/images/a7cdeb1036b54acce7c624f999989a1e/tenor.gif?itemid=17305845',
+	'https://media1.tenor.com/images/f35c5a5b72f78a56c7680873206a3fbf/tenor.gif?itemid=6042030',
+	'https://tenor.com/view/nodding-yeah-boy-longest-yeah-boy-man-beard-gif-7733818'
+	]
