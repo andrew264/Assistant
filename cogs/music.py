@@ -20,6 +20,7 @@ class music(commands.Cog):
     def __init__(self,client):
         self.client = client
 
+    #Play
     @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p','P'])
     async def play(self, ctx,*,url:str=''):
         global song_list, song_title_list
@@ -31,11 +32,14 @@ class music(commands.Cog):
         # Check da url for bad stuff
         if check_urls(url):
             return await ctx.send('Thats not a fucking song.')
+
         # If player is_paused resume...
         if url=='' and ctx.voice_client.is_paused() is True:
-            await ctx.send(f'Resuming: `{song_title}`')
+            embed=Embed(title='Resumed:',colour=0x4169e1)
+            embed.add_field(name=song_title_list[0],value='\u200b')
+            await ctx.send(embed=embed)
             music.status_set.start(self, ctx)
-            return await ctx.voice_client.resume()
+            return ctx.voice_client.resume()
 
         #find vid url and add to list
         with YDL(ydl_opts) as ydl:
@@ -50,6 +54,7 @@ class music(commands.Cog):
             if music.play_from_queue.is_running() is False:
                 music.play_from_queue.start(self, ctx)
 
+    #Status Update
     @tasks.loop(seconds = 5)
     async def status_set(self, ctx):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() and song_title:
@@ -58,13 +63,21 @@ class music(commands.Cog):
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
             music.status_set.cancel()
 
+    #Queue
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
-        embed=Embed(title="Songs in Queue",colour=0xffa31a)
-        for i in range(len(song_title_list)):
-            embed.add_field(name=song_title_list[i],value='\u200b', inline=False)
-        await ctx.send(embed=embed)
+        if len(song_title_list)==0:
+            await ctx.send('Queue is Empty.')
+        else:
+            embed=Embed(title="Songs in Queue",colour=0xffa31a)
+            embed.add_field(name='Now Playing',value=f'{song_title_list[0]}', inline=False)
+            if len(song_title_list)>1:
+                embed.add_field(name='Next in Queue',value=f'1. {song_title_list[1]}', inline=False)
+                for i in range(2,len(song_title_list)):
+                    embed.add_field(name='\u200b',value=f'{i}. {song_title_list[i]}', inline=False)
+            await ctx.send(embed=embed)
 
+    #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
         global song_list, song_title, song_title_list
@@ -73,6 +86,7 @@ class music(commands.Cog):
         voiceChannel = ctx.message.author.voice.channel
         if voice == None:
             voice = await voiceChannel.connect()
+
         # Begin search
         if song_list:
             with YDL(ydl_opts) as ydl:
@@ -86,7 +100,6 @@ class music(commands.Cog):
                 song_length = time.strftime('%M:%S', time.gmtime(song_info.get("duration")))
                 # in sec
                 duration = song_info.get("duration")
-            voice.play(FFmpegPCMAudio(song_url, **FFMPEG_OPTIONS))
             # Embed
             embed=Embed(title="", color=0xff0000)
             embed.set_thumbnail(url=f'{song_thumbnail}')
@@ -97,14 +110,22 @@ class music(commands.Cog):
             await ctx.send(embed=embed)
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
+            voice.play(FFmpegPCMAudio(song_url, **FFMPEG_OPTIONS))
             await asyncio.sleep(duration)
+            # pop [0] from lists
             if song_list:
                 song_list.pop(0)
                 song_title_list.pop(0)
+            
         else: 
             music.play_from_queue.cancel()
 
+    #Skip
+    @commands.command()
+    async def skip(self, ctx):
+        pass
 
+    #Stop
     @commands.command(aliases=['dc'])
     async def stop(self, ctx):
         global song_list, song_title_list
@@ -117,9 +138,12 @@ class music(commands.Cog):
                 ctx.voice_client.stop()
                 song_list.clear()
                 song_title_list.clear()
-                return await ctx.send('Stopped.') ,await ctx.voice_client.disconnect()
+                if music.play_from_queue.is_running() is True:
+                    music.play_from_queue.cancel()
+                return await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
             return await ctx.send('No audio is being played.')
 
+    #Pause
     @commands.command()
     async def pause(self, ctx):
         if ctx.message.author.voice is None:
@@ -128,8 +152,11 @@ class music(commands.Cog):
             return await ctx.send('Bot is not connect to VC.')
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_paused() is False:
-                ctx.voice_client.pause()
-                return await ctx.send(f'Paused: `{song_title}`')
+                pass
+                #ctx.voice_client.pause()
+                #embed=Embed(title='Paused:',colour=0x4169e1)
+                #embed.add_field(name=song_title,value='\u200b')
+                #return await ctx.send(embed=embed)
 
 def setup(client):
 	client.add_cog(music(client))
