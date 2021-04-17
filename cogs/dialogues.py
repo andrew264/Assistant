@@ -11,7 +11,7 @@ class dialogues(commands.Cog):
 	def __init__(self,client):
 		self.client = client
 
-	@commands.command(brief='This will play a Dialogue.', aliases=['d'])
+	@commands.command(aliases=['d'])
 	async def dialogues(self,ctx,*,arg):
 		dialogues = [os.path.splitext(filename)[0] for filename in os.listdir('./dialogues')]
 		if arg == 'list':

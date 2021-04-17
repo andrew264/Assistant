@@ -11,7 +11,7 @@ class mc(commands.Cog):
 		self.client = client
 
 	# IP
-	@commands.command(pass_context=True, brief='Get Server IP')
+	@commands.command(pass_context=True)
 	@commands.has_permissions(manage_messages=True)
 	async def mcip(self, ctx):
 		if checkIfProcessRunning():
@@ -25,7 +25,7 @@ class mc(commands.Cog):
 			await ctx.send('You have no Permission(s).')
 
 	# check server is running
-	@commands.command(pass_context=True, brief='Check Server Status.')
+	@commands.command(pass_context=True)
 	async def mcstatus(self,ctx):
 		if checkIfProcessRunning():
 			await ctx.send('Server is Running.')
@@ -33,7 +33,7 @@ class mc(commands.Cog):
 			await ctx.send('Server isn\'t Running.')
 
 	# startup server
-	@commands.command(pass_context=True, brief='Start Server.')
+	@commands.command(pass_context=True)
 	@commands.has_permissions(manage_messages=True)
 	async def mcstart(self,ctx):
 		if checkIfProcessRunning():
@@ -43,7 +43,7 @@ class mc(commands.Cog):
 			return await ctx.send('Server will start in 20 secs...')
 
 	# startup server
-	@commands.command(pass_context=True, brief='Create New Server. Required Arguments [SEED]')
+	@commands.command(pass_context=True)
 	@commands.has_permissions(manage_messages=True)
 	async def mcnew(self,ctx,arg):
 		if checkIfProcessRunning():

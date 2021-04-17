@@ -1,5 +1,4 @@
 import discord.ext.commands as commands
-from olreplies import *
 from olenv import *
 from discord import Activity, ActivityType, Status
 

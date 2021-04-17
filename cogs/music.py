@@ -21,7 +21,7 @@ class music(commands.Cog):
         self.client = client
 
     #Play
-    @commands.command(pass_context=True, brief='This will play a song .play [url]', aliases=['p','P'])
+    @commands.command(pass_context=True, aliases=['p','P'])
     async def play(self, ctx,*,url:str=''):
         global song_list, song_title_list
         
