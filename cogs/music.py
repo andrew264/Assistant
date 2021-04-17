@@ -80,7 +80,7 @@ class music(commands.Cog):
     #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
-        global song_list, song_title, song_title_list
+        global song_list, song_title, song_title_list, duration
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)
         voiceChannel = ctx.message.author.voice.channel
@@ -111,7 +111,10 @@ class music(commands.Cog):
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
             voice.play(FFmpegPCMAudio(song_url, **FFMPEG_OPTIONS))
-            await asyncio.sleep(duration)
+            # counting down song duration 
+            while duration>1:
+                await asyncio.sleep(1)
+                duration=duration-1
             # pop [0] from lists
             if song_list:
                 song_list.pop(0)
@@ -152,11 +155,15 @@ class music(commands.Cog):
             return await ctx.send('Bot is not connect to VC.')
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_paused() is False:
-                pass
-                #ctx.voice_client.pause()
-                #embed=Embed(title='Paused:',colour=0x4169e1)
-                #embed.add_field(name=song_title,value='\u200b')
-                #return await ctx.send(embed=embed)
+                ctx.voice_client.pause()
+                embed=Embed(title='Paused:',colour=0x4169e1)
+                embed.add_field(name=song_title,value='\u200b')
+                await ctx.send(embed=embed)
+                # we addin 1 every second to wait :p
+                global duration
+                while ctx.voice_client.is_paused():
+                    duration=duration+1
+                    await asyncio.sleep(1)
 
 def setup(client):
 	client.add_cog(music(client))
