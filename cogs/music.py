@@ -125,8 +125,30 @@ class music(commands.Cog):
 
     #Skip
     @commands.command()
-    async def skip(self, ctx):
-        pass
+    async def skip(self, ctx, arg=0):
+        global song_list, song_title_list, duration
+        if ctx.message.author.voice is None:
+            return await ctx.send('You must be is same VC as the bot.')
+        if ctx.voice_client is None:
+            return await ctx.send('Bot is not connect to VC.')
+        if ctx.message.author.voice is not None and ctx.voice_client is not None:
+            if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
+                embed=Embed(title='Removed',colour=0xff7f50)
+                if arg>0 and arg<len(song_list):
+                    embed.add_field(name=f'{song_title_list[arg]} from Queue.',value='\u200b')
+                    await ctx.send(embed=embed)
+                    song_list.pop(arg)
+                    song_title_list.pop(arg)
+                elif arg==0:
+                    if len(song_title_list):
+                        embed.add_field(name=f'{song_title_list[arg]} from Queue.',value='\u200b')
+                        ctx.voice_client.stop()
+                        duration = 1
+                        await ctx.send(embed=embed)
+                    else:
+                        embed.add_field(name='Nothing',value=':p')
+                        await ctx.send(embed=embed)
+        else: await ctx.send('Queue is Empty')
 
     #Stop
     @commands.command(aliases=['dc'])
