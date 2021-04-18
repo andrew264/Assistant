@@ -16,11 +16,12 @@ class help(commands.Cog):
             await ctx.send(embed=embed)
         elif args=='music':
             embed=Embed(title='Music Commands',colour=0x00cd00,description='I can play musics too.')
-            embed.add_field(name='Play',value='`.play|.p` [**Title**|**URL**]',inline=False)
-            embed.add_field(name='Pause',value='`.pause` to pause the song',inline=False)
-            embed.add_field(name='Stop',value='`.stop` to stop the song',inline=False)
-            embed.add_field(name='Skip',value='`.skip` or `.skip <song#>` to skip songs',inline=False)
-            embed.add_field(name='Queue',value='`.queue|.q` to list the songs in Queue',inline=False)
+            embed.add_field(name='Play',value='`.play|.p` [**Title**|**URL**]',inline=True)
+            embed.add_field(name='Pause',value='`.pause` to pause the song',inline=True)
+            embed.add_field(name='Now Playing',value='`.np` to get current song',inline=True)
+            embed.add_field(name='Stop',value='`.stop` to stop the song',inline=True)
+            embed.add_field(name='Skip',value='`.skip` or `.skip <song#>` to skip songs',inline=True)
+            embed.add_field(name='Queue',value='`.queue|.q` to list the songs in Queue',inline=True)
             await ctx.send(embed=embed)
         elif args=='mc' or args=='minecraft':
             embed=Embed(title='Minecraft',colour=0x00cd00,description='Minecraft related stuff')

@@ -1,8 +1,9 @@
 from discord.ext import commands, tasks
 from discord.utils import get
-from discord import FFmpegPCMAudio, Activity, ActivityType, Status, Embed
-from olmusic import check_urls
+from discord import FFmpegOpusAudio, Activity, ActivityType, Status, Embed
+from olmusic import check_urls, human_format
 import time
+from datetime import datetime
 import asyncio
 import youtube_dl.YoutubeDL as YDL
 ydl_opts = {
@@ -80,7 +81,7 @@ class music(commands.Cog):
     #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
-        global song_list, song_title, song_title_list, duration
+        global song_list, song_title, song_title_list, duration, song_insec, song_length, song_thumbnail, song_webpage, song_views, song_likes, song_date
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)
         voiceChannel = ctx.message.author.voice.channel
@@ -96,8 +97,12 @@ class music(commands.Cog):
                 song_thumbnail = song_info.get("thumbnail")
                 song_webpage = song_info.get("webpage_url")
                 song_rating = round(song_info.get("average_rating"),2)
+                song_views = song_info.get('view_count')
+                song_likes = song_info.get('like_count')
+                song_date = datetime.strptime(song_info.get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y')
                 # in mm:ss
-                song_length = time.strftime('%M:%S', time.gmtime(song_info.get("duration")))
+                song_insec = song_info.get("duration")
+                song_length = time.strftime('%M:%S', time.gmtime(song_insec))
                 # in sec
                 duration = song_info.get("duration")
             # Embed
@@ -110,7 +115,7 @@ class music(commands.Cog):
             await ctx.send(embed=embed)
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
-            voice.play(FFmpegPCMAudio(song_url, **FFMPEG_OPTIONS))
+            voice.play(FFmpegOpusAudio(song_url, **FFMPEG_OPTIONS))
             # counting down song duration 
             while duration>1:
                 await asyncio.sleep(1)
@@ -186,6 +191,23 @@ class music(commands.Cog):
                 while ctx.voice_client.is_paused():
                     duration=duration+1
                     await asyncio.sleep(1)
+
+    #Now PLaying
+    @commands.command()
+    async def np(self, ctx):
+        percentile=30-round((duration/song_insec)*30)
+        bar='──────────────────────────────'
+        progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
+        song_on = time.strftime('%M:%S', time.gmtime(song_insec-duration))
+        embed=Embed(title='Duration:',color=0x7fff00)
+        embed.set_thumbnail(url=f'{song_thumbnail}')
+        embed.set_author(name=f'{song_title}', url=song_webpage, icon_url='')
+        embed.add_field(name=f'{song_on} {progbar} {song_length}',value='\u200b',inline=False)
+        embed.add_field(name="Views:", value=f'{human_format(song_views)}', inline=True)
+        embed.add_field(name="Likes:", value=f'{human_format(song_likes)}', inline=True)
+        embed.add_field(name="Uploaded on:", value=f'{song_date}', inline=True)
+        await ctx.send(embed=embed)
+        pass
 
 def setup(client):
 	client.add_cog(music(client))
