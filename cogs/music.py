@@ -16,6 +16,7 @@ FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconne
 song_title=''
 song_list=[]
 song_title_list=[]
+looper=False
 
 class music(commands.Cog):
     def __init__(self,client):
@@ -121,7 +122,12 @@ class music(commands.Cog):
                 await asyncio.sleep(1)
                 duration=duration-1
             # pop [0] from lists
-            if song_list:
+            if song_list and looper:
+                song_list.append(song_list[0])
+                song_title_list.append(song_title_list[0])
+                song_list.pop(0)
+                song_title_list.pop(0)
+            elif song_list and not looper:
                 song_list.pop(0)
                 song_title_list.pop(0)
             
@@ -158,7 +164,7 @@ class music(commands.Cog):
     #Stop
     @commands.command(aliases=['dc'])
     async def stop(self, ctx):
-        global song_list, song_title_list
+        global song_list, song_title_list, looper
         if ctx.message.author.voice is None:
             return await ctx.send('You must be is same VC as the bot.')
         if ctx.voice_client is None:
@@ -170,6 +176,7 @@ class music(commands.Cog):
                 song_title_list.clear()
                 if music.play_from_queue.is_running() is True:
                     music.play_from_queue.cancel()
+                looper=False
                 return await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
             return await ctx.send('No audio is being played.')
 
@@ -191,6 +198,24 @@ class music(commands.Cog):
                 while ctx.voice_client.is_paused():
                     duration=duration+1
                     await asyncio.sleep(1)
+
+    #Loop
+    @commands.command()
+    async def loop(self, ctx):
+        if ctx.message.author.voice is None:
+            return await ctx.send('You must be is same VC as the bot.')
+        if ctx.voice_client is None:
+            return await ctx.send('Bot is not connect to VC.')
+        if ctx.message.author.voice is not None and ctx.voice_client is not None:
+            global looper
+            if looper:
+                looper=False
+                embed=Embed(title='Loop Disabled.',colour=0xda70d6)
+            else:
+                looper=True
+                embed=Embed(title='Loop Enabled.',colour=0x800080)
+            await ctx.send(embed=embed)
+
 
     #Now PLaying
     @commands.command()

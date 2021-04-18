@@ -22,6 +22,7 @@ class help(commands.Cog):
             embed.add_field(name='Stop',value='`.stop` to stop the song',inline=True)
             embed.add_field(name='Skip',value='`.skip` or `.skip <song#>` to skip songs',inline=True)
             embed.add_field(name='Queue',value='`.queue|.q` to list the songs in Queue',inline=True)
+            embed.add_field(name='Loop',value='`.loop` to loop all songs in Queue',inline=True)
             await ctx.send(embed=embed)
         elif args=='mc' or args=='minecraft':
             embed=Embed(title='Minecraft',colour=0x00cd00,description='Minecraft related stuff')
