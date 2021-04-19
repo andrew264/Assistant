@@ -1,6 +1,6 @@
 import discord.ext.commands as commands
 from olenv import *
-from discord import Activity, ActivityType, Status
+from discord import Activity, ActivityType, Status, User
 
 class utils(commands.Cog):
 
@@ -60,6 +60,18 @@ class utils(commands.Cog):
 				return await ctx.send(f'Invalid Activity Type `{type}`.')
 			await self.client.change_presence(status=A, activity=Activity(type=B, name=name))
 			await ctx.send(f'Status set to `{state}` and `{type.title()}ing: {name}`')
+
+	# Slide into dms
+	@commands.command(pass_context = True)
+	async def dm(self, ctx, user: User, *, msg:str):
+		if ctx.author.id != OWNERID :
+			await ctx.reply("I am not your Assistant.")
+		else:
+			channel = await user.create_dm()
+			try:
+				await channel.send(msg)
+			except Exception: 
+				await ctx.send(f'{user} is gei')
 
 def setup(client):
 	client.add_cog(utils(client))
