@@ -15,7 +15,7 @@ async def load(ctx, extension):
 		await ctx.send('{}: {}'.format(type(e).__name__, e))
 	else:
 		if ctx.message.author.id == OWNERID :
-			await ctx.send('\N{OK HAND SIGN}')
+			await ctx.message.add_reaction('👌')
 		else:
 			await ctx.send('\N{PISTOL} U no Admin.')
 
@@ -29,7 +29,7 @@ async def unload(ctx, extension):
 		await ctx.send('{}: {}'.format(type(e).__name__, e))
 	else:
 		if ctx.message.author.id == OWNERID :
-			await ctx.send('\N{OK HAND SIGN}')
+			await ctx.message.add_reaction('👌')
 		else:
 			await ctx.send('\N{PISTOL} U no Admin.')
 
@@ -44,7 +44,7 @@ async def reload(ctx, extension):
 		await ctx.send('{}: {}'.format(type(e).__name__, e))
 	else:
 		if ctx.message.author.id == OWNERID :
-			await ctx.send('\N{OK HAND SIGN}')
+			await ctx.message.add_reaction('👌')
 		else:
 			await ctx.send('\N{PISTOL} U no Admin.')
 

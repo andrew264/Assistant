@@ -39,8 +39,9 @@ class music(commands.Cog):
         if url=='' and ctx.voice_client.is_paused() is True:
             embed=Embed(title='Resumed:',colour=0x4169e1)
             embed.add_field(name=song_title_list[0],value='\u200b')
-            await ctx.send(embed=embed)
+            await ctx.send(embed=embed, delete_after=30)
             music.status_set.start(self, ctx)
+            await ctx.message.delete()
             return ctx.voice_client.resume()
 
         #find vid url and add to list
@@ -52,7 +53,7 @@ class music(commands.Cog):
             song_list.append(song_info.get("webpage_url"))
             song_title = song_info.get('title', None)
             song_title_list.append(song_title)
-            await ctx.send(f'Adding {song_title} to Queue.')
+            await ctx.send(f'Adding {song_title} to Queue.', delete_after=60)
             if music.play_from_queue.is_running() is False:
                 music.play_from_queue.start(self, ctx)
 
@@ -77,7 +78,8 @@ class music(commands.Cog):
                 embed.add_field(name='Next in Queue',value=f'1. {song_title_list[1]}', inline=False)
                 for i in range(2,len(song_title_list)):
                     embed.add_field(name='\u200b',value=f'{i}. {song_title_list[i]}', inline=False)
-            await ctx.send(embed=embed)
+            await ctx.message.delete()
+            await ctx.send(embed=embed, delete_after=120)
 
     #Play from Queue
     @tasks.loop(seconds = 1)
@@ -113,7 +115,7 @@ class music(commands.Cog):
             embed.add_field(name="Duration:", value=song_length, inline=True)
             embed.add_field(name="Requested by:", value=ctx.message.author.display_name, inline=True)
             embed.add_field(name="Song Rating:", value=f'{song_rating}/5', inline=True)
-            await ctx.send(embed=embed)
+            await ctx.send(embed=embed, delete_after=60)
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
             voice.play(FFmpegOpusAudio(song_url, **FFMPEG_OPTIONS))
@@ -145,9 +147,10 @@ class music(commands.Cog):
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
                 embed=Embed(title='Removed',colour=0xff7f50)
+                await ctx.message.delete()
                 if arg>0 and arg<len(song_list):
                     embed.add_field(name=f'{song_title_list[arg]} from Queue.',value='\u200b')
-                    await ctx.send(embed=embed)
+                    await ctx.send(embed=embed, delete_after=30)
                     song_list.pop(arg)
                     song_title_list.pop(arg)
                 elif arg==0:
@@ -155,10 +158,10 @@ class music(commands.Cog):
                         embed.add_field(name=f'{song_title_list[arg]} from Queue.',value='\u200b')
                         ctx.voice_client.stop()
                         duration = 1
-                        await ctx.send(embed=embed)
+                        await ctx.send(embed=embed, delete_after=30)
                     else:
                         embed.add_field(name='Nothing',value=':p')
-                        await ctx.send(embed=embed)
+                        await ctx.send(embed=embed, delete_after=30)
         else: await ctx.send('Queue is Empty')
 
     #Stop
@@ -192,7 +195,8 @@ class music(commands.Cog):
                 ctx.voice_client.pause()
                 embed=Embed(title='Paused:',colour=0x4169e1)
                 embed.add_field(name=song_title,value='\u200b')
-                await ctx.send(embed=embed)
+                await ctx.send(embed=embed, delete_after=60)
+                await ctx.message.delete()
                 # we addin 1 every second to wait :p
                 global duration
                 while ctx.voice_client.is_paused():
@@ -214,8 +218,9 @@ class music(commands.Cog):
             else:
                 looper=True
                 embed=Embed(title='Loop Enabled.',colour=0x800080)
-            await ctx.send(embed=embed)
-
+            await ctx.send(embed=embed, delete_after=60)
+            await asyncio.sleep(30)
+            await ctx.message.delete()
 
     #Now PLaying
     @commands.command()
@@ -224,6 +229,7 @@ class music(commands.Cog):
         bar='──────────────────────────────'
         progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
         song_on = time.strftime('%M:%S', time.gmtime(song_insec-duration))
+        await ctx.message.delete()
         embed=Embed(title='Duration:',color=0x7fff00)
         embed.set_thumbnail(url=f'{song_thumbnail}')
         embed.set_author(name=f'{song_title}', url=song_webpage, icon_url='')
@@ -231,7 +237,7 @@ class music(commands.Cog):
         embed.add_field(name="Views:", value=f'{human_format(song_views)}', inline=True)
         embed.add_field(name="Likes:", value=f'{human_format(song_likes)}', inline=True)
         embed.add_field(name="Uploaded on:", value=f'{song_date}', inline=True)
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, delete_after=60)
         pass
 
 def setup(client):
