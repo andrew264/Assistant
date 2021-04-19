@@ -60,6 +60,5 @@ class mc(commands.Cog):
 		system("start cmd /K newworld.bat")
 		return await ctx.send(f'Creating new world with seed: `{arg}`')
 
-
 def setup(client):
 	client.add_cog(mc(client))

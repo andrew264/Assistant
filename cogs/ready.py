@@ -1,6 +1,6 @@
 from discord import Activity, ActivityType, Status
 import discord.ext.commands as commands
-from olenv import *
+from olenv import GUILD
 
 class ready(commands.Cog):
 

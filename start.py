@@ -1,6 +1,6 @@
 import discord
 from os import listdir
-from olenv import *
+from olenv import OWNERID, TOKEN
 
 import discord.ext.commands as commands
 client = commands.Bot(command_prefix=commands.when_mentioned_or('.'),description='Andrew\'s Assistant',help_command=None)

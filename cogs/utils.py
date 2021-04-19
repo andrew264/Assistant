@@ -1,5 +1,5 @@
 import discord.ext.commands as commands
-from olenv import *
+from olenv import OWNERID
 from discord import Activity, ActivityType, Status, User
 
 class utils(commands.Cog):
