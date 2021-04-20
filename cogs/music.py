@@ -13,9 +13,21 @@ ydl_opts = {
     'format': 'bestaudio/best',
 }
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-song_title=''
-song_list=[]
-song_title_list=[]
+
+song_webpage_urls=[]
+song_titles=[]
+song_urls=[]
+song_thumbnails=[]
+song_ratings=[]
+song_views=[]
+song_likes=[]
+song_dates=[]
+song_insec=[]
+song_lengths=[]
+song_reqby=[]
+
+master_list=[song_webpage_urls,song_titles,song_urls,song_thumbnails,song_ratings,song_views,song_likes,song_dates,song_insec,song_lengths,song_reqby]
+
 looper=False
 
 class music(commands.Cog):
@@ -25,7 +37,7 @@ class music(commands.Cog):
     #Play
     @commands.command(pass_context=True, aliases=['p','P'])
     async def play(self, ctx,*,url:str=''):
-        global song_list, song_title_list
+        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby
         
         # Check if author in VC
         if ctx.author.voice is None or ctx.author.voice.channel is None:
@@ -50,18 +62,27 @@ class music(commands.Cog):
                 song_info = ydl.extract_info(url, download=False)
             except:
                 song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
-            song_list.append(song_info.get("webpage_url"))
-            song_title = song_info.get('title', None)
-            song_title_list.append(song_title)
-            await ctx.send(f'Adding {song_title} to Queue.', delete_after=60)
+            song_webpage_urls.append(song_info.get("webpage_url"))
+            song_titles.append(song_info.get('title', None))
+            song_urls.append(song_info["formats"][0]["url"])
+            song_thumbnails.append(song_info.get("thumbnail"))
+            song_ratings.append(round(song_info.get("average_rating"),2))
+            song_views.append(song_info.get('view_count'))
+            song_likes.append(song_info.get('like_count'))
+            song_dates.append(datetime.strptime(song_info.get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y'))
+            song_insec.append(song_info.get("duration"))
+            song_lengths.append(time.strftime('%M:%S', time.gmtime(song_info.get("duration"))))
+            song_reqby.append(ctx.message.author.display_name)
+            # added to queue
+            await ctx.send(f'Adding {song_titles[len(song_titles)-1]} to Queue.', delete_after=60)
             if music.play_from_queue.is_running() is False:
                 music.play_from_queue.start(self, ctx)
 
     #Status Update
     @tasks.loop(seconds = 5)
     async def status_set(self, ctx):
-        if ctx.voice_client is not None and ctx.voice_client.is_playing() and song_title:
-            await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=f"{song_title}"))
+        if ctx.voice_client is not None and ctx.voice_client.is_playing() and song_titles:
+            await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=f"{song_titles[0]}"))
         else:
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
             music.status_set.cancel()
@@ -69,77 +90,64 @@ class music(commands.Cog):
     #Queue
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
-        if len(song_title_list)==0:
+        if len(song_titles)==0:
             await ctx.send('Queue is Empty.')
         else:
             embed=Embed(title="Songs in Queue",colour=0xffa31a)
-            embed.add_field(name='Now Playing',value=f'{song_title_list[0]}', inline=False)
-            if len(song_title_list)>1:
-                embed.add_field(name='Next in Queue',value=f'1. {song_title_list[1]}', inline=False)
-                for i in range(2,len(song_title_list)):
-                    embed.add_field(name='\u200b',value=f'{i}. {song_title_list[i]}', inline=False)
+            embed.add_field(name='Now Playing',value=f'{song_titles[0]} (Requested by {song_reqby[0]})', inline=False)
+            if len(song_titles)>1:
+                embed.add_field(name='Next in Queue',value=f'1. {song_titles[1]} (Requested by {song_reqby[1]})', inline=False)
+                for i in range(2,len(song_titles)):
+                    embed.add_field(name='\u200b',value=f'{i}. {song_titles[i]} (Requested by {song_reqby[i]})', inline=False)
             await ctx.message.delete()
             await ctx.send(embed=embed, delete_after=120)
 
     #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
-        global song_list, song_title, song_title_list, duration, song_insec, song_length, song_thumbnail, song_webpage, song_views, song_likes, song_date
+        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)
         voiceChannel = ctx.message.author.voice.channel
         if voice == None:
             voice = await voiceChannel.connect()
 
-        # Begin search
-        if song_list:
-            with YDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(song_list[0], download=False)
-                song_url=song_info["formats"][0]["url"]
-                song_title = song_info.get('title', None)
-                song_thumbnail = song_info.get("thumbnail")
-                song_webpage = song_info.get("webpage_url")
-                song_rating = round(song_info.get("average_rating"),2)
-                song_views = song_info.get('view_count')
-                song_likes = song_info.get('like_count')
-                song_date = datetime.strptime(song_info.get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y')
-                # in mm:ss
-                song_insec = song_info.get("duration")
-                song_length = time.strftime('%M:%S', time.gmtime(song_insec))
-                # in sec
-                duration = song_info.get("duration")
-            # Embed
+        # Embed
+        if song_titles:
             embed=Embed(title="", color=0xff0000)
-            embed.set_thumbnail(url=f'{song_thumbnail}')
-            embed.set_author(name=f'Playing: {song_title}', url=song_webpage, icon_url='')
-            embed.add_field(name="Duration:", value=song_length, inline=True)
-            embed.add_field(name="Requested by:", value=ctx.message.author.display_name, inline=True)
-            embed.add_field(name="Song Rating:", value=f'{song_rating}/5', inline=True)
+            embed.set_thumbnail(url=f'{song_thumbnails[0]}')
+            embed.set_author(name=f'Playing: {song_titles[0]}', url=song_webpage_urls[0], icon_url='')
+            embed.add_field(name="Duration:", value=song_lengths[0], inline=True)
+            embed.add_field(name="Requested by:", value=song_reqby[0], inline=True)
+            embed.add_field(name="Song Rating:", value=f'{song_ratings[0]}/5', inline=True)
             await ctx.send(embed=embed, delete_after=60)
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
-            voice.play(FFmpegOpusAudio(song_url, **FFMPEG_OPTIONS))
+            voice.play(FFmpegOpusAudio(song_urls[0], **FFMPEG_OPTIONS))
             # counting down song duration 
+            # da timer
+            global duration
+            duration = song_insec[0]
             while duration>1:
                 await asyncio.sleep(1)
                 duration=duration-1
             # pop [0] from lists
-            if song_list and looper:
-                song_list.append(song_list[0])
-                song_title_list.append(song_title_list[0])
-                song_list.pop(0)
-                song_title_list.pop(0)
-            elif song_list and not looper:
-                song_list.pop(0)
-                song_title_list.pop(0)
-            
+            if song_titles and looper:
+                #add to end of list and removing first one
+                for i in master_list:
+                    i.append(i[0])
+                    i.pop(0)
+            elif song_titles and not looper:
+                # remove first one
+                for i in master_list:
+                    i.pop(0)
         else: 
             music.play_from_queue.cancel()
 
     #Skip
     @commands.command()
     async def skip(self, ctx, arg=0):
-        global song_list, song_title_list, duration
+        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby, duration
         if ctx.message.author.voice is None:
             return await ctx.send('You must be is same VC as the bot.')
         if ctx.voice_client is None:
@@ -148,14 +156,14 @@ class music(commands.Cog):
             if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
                 embed=Embed(title='Removed',colour=0xff7f50)
                 await ctx.message.delete()
-                if arg>0 and arg<len(song_list):
-                    embed.add_field(name=f'{song_title_list[arg]} from Queue.',value='\u200b')
+                if arg>0 and arg<len(song_titles):
+                    embed.add_field(name=f'{song_titles[arg]} from Queue.',value=f'by {ctx.message.author.display_name}')
                     await ctx.send(embed=embed, delete_after=30)
-                    song_list.pop(arg)
-                    song_title_list.pop(arg)
+                    for i in master_list:
+                        i.pop(arg)
                 elif arg==0:
-                    if len(song_title_list):
-                        embed.add_field(name=f'{song_title_list[arg]} from Queue.',value='\u200b')
+                    if len(song_titles):
+                        embed.add_field(name=f'{song_titles[arg]} from Queue.',value=f'by {ctx.message.author.display_name}')
                         ctx.voice_client.stop()
                         duration = 1
                         await ctx.send(embed=embed, delete_after=30)
@@ -167,7 +175,7 @@ class music(commands.Cog):
     #Stop
     @commands.command(aliases=['dc'])
     async def stop(self, ctx):
-        global song_list, song_title_list, looper
+        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby, looper
         if ctx.message.author.voice is None:
             return await ctx.send('You must be is same VC as the bot.')
         if ctx.voice_client is None:
@@ -175,8 +183,9 @@ class music(commands.Cog):
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
                 ctx.voice_client.stop()
-                song_list.clear()
-                song_title_list.clear()
+                # clean all list
+                for i in master_list:
+                    i.clear()
                 if music.play_from_queue.is_running() is True:
                     music.play_from_queue.cancel()
                 looper=False
@@ -194,7 +203,7 @@ class music(commands.Cog):
             if ctx.voice_client.is_paused() is False:
                 ctx.voice_client.pause()
                 embed=Embed(title='Paused:',colour=0x4169e1)
-                embed.add_field(name=song_title,value='\u200b')
+                embed.add_field(name=song_titles[0],value='\u200b')
                 await ctx.send(embed=embed, delete_after=60)
                 await ctx.message.delete()
                 # we addin 1 every second to wait :p
@@ -225,20 +234,23 @@ class music(commands.Cog):
     #Now PLaying
     @commands.command()
     async def np(self, ctx):
-        percentile=30-round((duration/song_insec)*30)
-        bar='──────────────────────────────'
-        progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
-        song_on = time.strftime('%M:%S', time.gmtime(song_insec-duration))
-        await ctx.message.delete()
-        embed=Embed(title='Duration:',color=0x7fff00)
-        embed.set_thumbnail(url=f'{song_thumbnail}')
-        embed.set_author(name=f'{song_title}', url=song_webpage, icon_url='')
-        embed.add_field(name=f'{song_on} {progbar} {song_length}',value='\u200b',inline=False)
-        embed.add_field(name="Views:", value=f'{human_format(song_views)}', inline=True)
-        embed.add_field(name="Likes:", value=f'{human_format(song_likes)}', inline=True)
-        embed.add_field(name="Uploaded on:", value=f'{song_date}', inline=True)
-        await ctx.send(embed=embed, delete_after=60)
-        pass
+        if song_titles:
+            global duration
+            percentile=30-round((duration/song_insec[0])*30)
+            bar='──────────────────────────────'
+            progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
+            song_on = time.strftime('%M:%S', time.gmtime(song_insec[0]-duration))
+            await ctx.message.delete()
+            embed=Embed(color=0x7fff00)
+            embed.set_thumbnail(url=f'{song_thumbnails[0]}')
+            embed.set_author(name=f'{song_titles[0]}', url=song_webpage_urls[0], icon_url='')
+            embed.add_field(name=f'{song_on} {progbar} {song_lengths[0]}',value='\u200b',inline=False)
+            embed.add_field(name="Views:", value=f'{human_format(song_views[0])}', inline=True)
+            embed.add_field(name="Likes:", value=f'{human_format(song_likes[0])}', inline=True)
+            embed.add_field(name="Uploaded on:", value=f'{song_dates[0]}', inline=True)
+            await ctx.send(embed=embed, delete_after=60)
+        else:
+            await ctx.send('Queue is Empty', delete_after=30)
 
 def setup(client):
 	client.add_cog(music(client))
