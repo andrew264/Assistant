@@ -43,6 +43,14 @@ class music(commands.Cog):
         if ctx.author.voice is None or ctx.author.voice.channel is None:
             return await ctx.send("You are not connected to a voice channel.")
 
+        # Join VC
+        voice = get(self.client.voice_clients, guild=ctx.guild)
+        if voice and voice.is_connected():
+            pass
+        elif voice==None:
+            voiceChannel = ctx.message.author.voice.channel
+            voice = await voiceChannel.connect()
+
         # Check da url for bad stuff
         if check_urls(url):
             return await ctx.send('Thats not a fucking song.')
@@ -106,11 +114,6 @@ class music(commands.Cog):
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
         global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby
-        # Join VC
-        voice = get(self.client.voice_clients, guild=ctx.guild)
-        voiceChannel = ctx.message.author.voice.channel
-        if voice == None:
-            voice = await voiceChannel.connect()
 
         # Embed
         if song_titles:
@@ -123,6 +126,7 @@ class music(commands.Cog):
             await ctx.send(embed=embed, delete_after=60)
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
+            voice = get(self.client.voice_clients, guild=ctx.guild)
             voice.play(FFmpegOpusAudio(song_urls[0], **FFMPEG_OPTIONS))
             # counting down song duration 
             # da timer
