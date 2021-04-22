@@ -43,18 +43,6 @@ class music(commands.Cog):
         if ctx.author.voice is None or ctx.author.voice.channel is None:
             return await ctx.send("You are not connected to a voice channel.")
 
-        # Join VC
-        voice = get(self.client.voice_clients, guild=ctx.guild)
-        if voice and voice.is_connected():
-            pass
-        elif voice==None:
-            voiceChannel = ctx.message.author.voice.channel
-            voice = await voiceChannel.connect()
-
-        # Check da url for bad stuff
-        if check_urls(url):
-            return await ctx.send('Thats not a fucking song.')
-
         # If player is_paused resume...
         if url=='' and ctx.voice_client.is_paused() is True:
             embed=Embed(title='Resumed:',colour=0x4169e1)
@@ -70,6 +58,9 @@ class music(commands.Cog):
                 song_info = ydl.extract_info(url, download=False)
             except:
                 song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
+            # Check da url for bad stuff
+            if check_urls(song_info.get("webpage_url")):
+                return await ctx.reply('Thats not a fucking song.')
             song_webpage_urls.append(song_info.get("webpage_url"))
             song_titles.append(song_info.get('title', None))
             song_urls.append(song_info["formats"][0]["url"])
@@ -81,10 +72,17 @@ class music(commands.Cog):
             song_insec.append(song_info.get("duration"))
             song_lengths.append(time.strftime('%M:%S', time.gmtime(song_info.get("duration"))))
             song_reqby.append(ctx.message.author.display_name)
-            # added to queue
-            await ctx.send(f'Adding {song_titles[len(song_titles)-1]} to Queue.', delete_after=60)
-            if music.play_from_queue.is_running() is False:
-                music.play_from_queue.start(self, ctx)
+        # Join VC
+        voice = get(self.client.voice_clients, guild=ctx.guild)
+        if voice and voice.is_connected():
+            pass
+        elif voice==None:
+            voiceChannel = ctx.message.author.voice.channel
+            voice = await voiceChannel.connect()
+        # added to queue
+        await ctx.send(f'Adding {song_titles[len(song_titles)-1]} to Queue.', delete_after=60)
+        if music.play_from_queue.is_running() is False:
+            music.play_from_queue.start(self, ctx)
 
     #Status Update
     @tasks.loop(seconds = 5)

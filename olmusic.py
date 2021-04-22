@@ -1,7 +1,8 @@
 def check_urls(url):
-	badstuff=['dQw4w9WgXcQ','eYq7WapuDLU', 'enjami', 'enjaami', 'rick roll', 'never gonna give'] #songs i don't like
-	if any(word in url.lower().split() for word in badstuff):
-		return True
+	badstuff=['dQw4w9WgXcQ','eYq7WapuDLU'] #songs i don't like
+	for i in badstuff:
+		if i in url:
+		    return True
 
 def human_format(num):
     num = float('{:.3g}'.format(num))
