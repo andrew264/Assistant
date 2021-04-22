@@ -58,7 +58,7 @@ class music(commands.Cog):
                 song_info = ydl.extract_info(url, download=False)
             except:
                 song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
-            # Check da url for bad stuff
+            # Check for bad stuff
             if check_urls(song_info.get("webpage_url")):
                 return await ctx.reply('Thats not a fucking song.')
             song_webpage_urls.append(song_info.get("webpage_url"))
@@ -79,8 +79,8 @@ class music(commands.Cog):
         elif voice==None:
             voiceChannel = ctx.message.author.voice.channel
             voice = await voiceChannel.connect()
-        # added to queue
-        await ctx.send(f'Adding {song_titles[len(song_titles)-1]} to Queue.', delete_after=60)
+        # add to queue
+        await ctx.send(f'Adding {song_titles[len(song_titles)-1]} to Queue.', delete_after=90)
         if music.play_from_queue.is_running() is False:
             music.play_from_queue.start(self, ctx)
 
@@ -106,13 +106,12 @@ class music(commands.Cog):
                 for i in range(2,len(song_titles)):
                     embed.add_field(name='\u200b',value=f'{i}. {song_titles[i]} (Requested by {song_reqby[i]})', inline=False)
             await ctx.message.delete()
-            await ctx.send(embed=embed, delete_after=120)
+            await ctx.send(embed=embed, delete_after=180)
 
     #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
         global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby
-
         # Embed
         if song_titles:
             embed=Embed(title="", color=0xff0000)
@@ -121,26 +120,23 @@ class music(commands.Cog):
             embed.add_field(name="Duration:", value=song_lengths[0], inline=True)
             embed.add_field(name="Requested by:", value=song_reqby[0], inline=True)
             embed.add_field(name="Song Rating:", value=f'{song_ratings[0]}/5', inline=True)
-            await ctx.send(embed=embed, delete_after=60)
+            await ctx.send(embed=embed, delete_after=120)
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
             voice = get(self.client.voice_clients, guild=ctx.guild)
             voice.play(FFmpegOpusAudio(song_urls[0], **FFMPEG_OPTIONS))
-            # counting down song duration 
             # da timer
             global duration
             duration = song_insec[0]
             while duration>1:
                 await asyncio.sleep(1)
                 duration=duration-1
-            # pop [0] from lists
+            # list deletus
             if song_titles and looper:
-                #add to end of list and removing first one
                 for i in master_list:
                     i.append(i[0])
                     i.pop(0)
             elif song_titles and not looper:
-                # remove first one
                 for i in master_list:
                     i.pop(0)
         else: 
@@ -160,7 +156,7 @@ class music(commands.Cog):
                 await ctx.message.delete()
                 if arg>0 and arg<len(song_titles):
                     embed.add_field(name=f'{song_titles[arg]} from Queue.',value=f'by {ctx.message.author.display_name}')
-                    await ctx.send(embed=embed, delete_after=30)
+                    await ctx.send(embed=embed, delete_after=60)
                     for i in master_list:
                         i.pop(arg)
                 elif arg==0:
@@ -168,7 +164,7 @@ class music(commands.Cog):
                         embed.add_field(name=f'{song_titles[arg]} from Queue.',value=f'by {ctx.message.author.display_name}')
                         ctx.voice_client.stop()
                         duration = 1
-                        await ctx.send(embed=embed, delete_after=30)
+                        await ctx.send(embed=embed, delete_after=60)
                     else:
                         embed.add_field(name='Nothing',value=':p')
                         await ctx.send(embed=embed, delete_after=30)
@@ -185,7 +181,7 @@ class music(commands.Cog):
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
                 ctx.voice_client.stop()
-                # clean all list
+                # clean all lists
                 for i in master_list:
                     i.clear()
                 if music.play_from_queue.is_running() is True:
@@ -251,8 +247,12 @@ class music(commands.Cog):
             embed.add_field(name="Likes:", value=f'{human_format(song_likes[0])}', inline=True)
             embed.add_field(name="Uploaded on:", value=f'{song_dates[0]}', inline=True)
             await ctx.send(embed=embed, delete_after=60)
+            await asyncio.sleep(30)
+            await ctx.message.delete()
         else:
-            await ctx.send('Queue is Empty', delete_after=30)
+            await ctx.reply('Queue is Empty', delete_after=30)
+            await asyncio.sleep(30)
+            await ctx.message.delete()
 
 def setup(client):
 	client.add_cog(music(client))

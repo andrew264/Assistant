@@ -1,10 +1,10 @@
-import discord
+from discord import FFmpegPCMAudio
 import discord.ext.commands as commands
+from discord.utils import get
 import os
 import random
 
 from  olmusic import listToString
-from discord.ext.commands import has_permissions
 
 class dialogues(commands.Cog):
 
@@ -13,32 +13,30 @@ class dialogues(commands.Cog):
 
 	@commands.command(aliases=['d'])
 	async def dialogues(self,ctx,*,arg):
+		# Join VC
+		voice = get(self.client.voice_clients, guild=ctx.guild)
+		if voice and voice.is_connected():
+			pass
+		elif voice==None:
+			voiceChannel = ctx.message.author.voice.channel
+			voice = await voiceChannel.connect()
+		if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
+			return
+		# scan all dialogues
 		dialogues = [os.path.splitext(filename)[0] for filename in os.listdir('./dialogues')]
 		if arg == 'list':
 			Names=[no_name.replace('_',' ') for no_name in dialogues]
 			return await ctx.send(f'{listToString(Names)}')
-		if arg == 'random' or arg == 'rand':
+		elif arg == 'random' or arg == 'rand':
 			x= random.randint(0,len(dialogues))
-
-			channel = ctx.message.author.voice.channel
-			if ctx.voice_client:
-				await ctx.voice_client.disconnect()
-			voice = await channel.connect()
-			source = discord.FFmpegPCMAudio(f'dialogues/{dialogues[x]}.mp3')
-			player = voice.play(source)
+			voice.play(FFmpegPCMAudio(f'dialogues/{dialogues[x]}.mp3'))
 			name=dialogues[x].replace('_',' ')
 			return await ctx.send(f'Playing: `{name}`')
-
-		if (ctx.author.voice):
+		elif arg:
 			name=arg.replace(' ','_')
 			if name not in dialogues:
 				return await ctx.send(f'`{arg}` not found.')
-			channel = ctx.message.author.voice.channel
-			if ctx.voice_client:
-				await ctx.voice_client.disconnect()
-			voice = await channel.connect()
-			source = discord.FFmpegPCMAudio(f'dialogues/{name}.mp3')
-			player = voice.play(source)
+			voice.play(FFmpegPCMAudio(f'dialogues/{name}.mp3'))
 			return await ctx.send(f'Playing: `{arg}`')
 
 def setup(client):
