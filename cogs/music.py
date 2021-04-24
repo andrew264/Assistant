@@ -80,9 +80,11 @@ class music(commands.Cog):
             voiceChannel = ctx.message.author.voice.channel
             voice = await voiceChannel.connect()
         # add to queue
-        await ctx.send(f'Adding {song_titles[len(song_titles)-1]} to Queue.', delete_after=90)
+        await ctx.send(f'Adding `{song_titles[len(song_titles)-1]}` to Queue.', delete_after=30)
         if music.play_from_queue.is_running() is False:
             music.play_from_queue.start(self, ctx)
+        await asyncio.sleep(25)
+        await ctx.message.delete()
 
     #Status Update
     @tasks.loop(seconds = 5)
@@ -120,7 +122,7 @@ class music(commands.Cog):
             embed.add_field(name="Duration:", value=song_lengths[0], inline=True)
             embed.add_field(name="Requested by:", value=song_reqby[0], inline=True)
             embed.add_field(name="Song Rating:", value=f'{song_ratings[0]}/5', inline=True)
-            await ctx.send(embed=embed, delete_after=120)
+            await ctx.send(embed=embed, delete_after=song_insec[0])
             if music.status_set.is_running() is False:
                 music.status_set.start(self, ctx)
             voice = get(self.client.voice_clients, guild=ctx.guild)
@@ -140,6 +142,8 @@ class music(commands.Cog):
                 for i in master_list:
                     i.pop(0)
         else: 
+            await asyncio.sleep(5)
+            await ctx.voice_client.disconnect()
             music.play_from_queue.cancel()
 
     #Skip
