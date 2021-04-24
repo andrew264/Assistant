@@ -31,10 +31,6 @@ class help(commands.Cog):
             embed.add_field(name='Create New Server',value='`.mcnew [SEED]` to create a new server',inline=False)
             embed.add_field(name='Get IP Address',value='`.mcip` to get ip address',inline=False)
             await ctx.send(embed=embed)
-        elif args=='d' or args=='dialogue':
-            embed=Embed(title='Dialogues',colour=0x00cd00,description='Some Dialogues lol')
-            embed.add_field(name='Dialogues',value='`.d [list|rand|name]` list, play random, play specfic ones')
-            await ctx.send(embed=embed)
         elif args=='misc':
             embed=Embed(title='Misc',colour=0x00cd00,description='Even more commands')
             embed.add_field(name='Delete Messages',value='`.clear [No.ofMessages]` to delete messages',inline=False)
