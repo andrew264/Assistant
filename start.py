@@ -1,4 +1,3 @@
-import discord
 from os import listdir
 from olenv import OWNERID, TOKEN
 

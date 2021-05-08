@@ -48,7 +48,7 @@ class music(commands.Cog):
             embed=Embed(title='Resumed:',colour=0x4169e1)
             embed.add_field(name=song_title_list[0],value='\u200b')
             await ctx.send(embed=embed, delete_after=30)
-            music.status_set.start(self, ctx)
+            await music.status_set(self, ctx)
             await ctx.message.delete()
             return ctx.voice_client.resume()
 
@@ -87,13 +87,11 @@ class music(commands.Cog):
         await ctx.message.delete()
 
     #Status Update
-    @tasks.loop(seconds = 5)
     async def status_set(self, ctx):
-        if ctx.voice_client is not None and ctx.voice_client.is_playing() and song_titles:
+        if ctx.voice_client is not None and song_titles:
             await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=f"{song_titles[0]}"))
         else:
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
-            music.status_set.cancel()
 
     #Queue
     @commands.command(aliases=['q'])
@@ -123,8 +121,7 @@ class music(commands.Cog):
             embed.add_field(name="Requested by:", value=song_reqby[0], inline=True)
             embed.add_field(name="Song Rating:", value=f'{song_ratings[0]}/5', inline=True)
             await ctx.send(embed=embed, delete_after=song_insec[0])
-            if music.status_set.is_running() is False:
-                music.status_set.start(self, ctx)
+            await music.status_set(self, ctx)
             voice = get(self.client.voice_clients, guild=ctx.guild)
             voice.play(FFmpegOpusAudio(song_urls[0], **FFMPEG_OPTIONS))
             # da timer
@@ -145,6 +142,7 @@ class music(commands.Cog):
             await asyncio.sleep(5)
             await ctx.voice_client.disconnect()
             music.play_from_queue.cancel()
+            await music.status_set(self, ctx)
 
     #Skip
     @commands.command()
@@ -169,13 +167,14 @@ class music(commands.Cog):
                         ctx.voice_client.stop()
                         duration = 1
                         await ctx.send(embed=embed, delete_after=60)
+                        await music.status_set(self, ctx)
                     else:
                         embed.add_field(name='Nothing',value=':p')
                         await ctx.send(embed=embed, delete_after=30)
         else: await ctx.send('Queue is Empty')
 
     #Stop
-    @commands.command(aliases=['dc'])
+    @commands.command(aliases=['dc', 'kelambu'])
     async def stop(self, ctx):
         global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby, looper
         if ctx.message.author.voice is None:
@@ -190,8 +189,9 @@ class music(commands.Cog):
                     i.clear()
                 if music.play_from_queue.is_running() is True:
                     music.play_from_queue.cancel()
+                await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
+                await music.status_set(self, ctx)
                 looper=False
-                return await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
             return await ctx.send('No audio is being played.')
 
     #Pause
@@ -250,7 +250,7 @@ class music(commands.Cog):
             embed.add_field(name="Views:", value=f'{human_format(song_views[0])}', inline=True)
             embed.add_field(name="Likes:", value=f'{human_format(song_likes[0])}', inline=True)
             embed.add_field(name="Uploaded on:", value=f'{song_dates[0]}', inline=True)
-            await ctx.send(embed=embed, delete_after=60)
+            await ctx.send(embed=embed, delete_after=duration)
             await asyncio.sleep(30)
             await ctx.message.delete()
         else:
