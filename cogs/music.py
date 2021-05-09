@@ -90,7 +90,7 @@ class music(commands.Cog):
     #Status Update
     async def status_set(self, ctx):
         if ctx.voice_client is not None and song_titles:
-            await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=f"{song_titles[0]}"))
+            await self.client.change_presence(activity=Activity(type=ActivityType.streaming, name=song_titles[0], details=song_lengths[0], platform='YouTube', url=song_webpage_urls[0]))
         else:
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
 
@@ -130,7 +130,7 @@ class music(commands.Cog):
             # da timer
             global duration
             duration = song_insec[0]
-            while duration>1:
+            while duration>0:
                 await asyncio.sleep(1)
                 duration=duration-1
             # list deletus
