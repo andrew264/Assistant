@@ -1,6 +1,6 @@
 from discord.ext import commands, tasks
 from discord.utils import get
-from discord import FFmpegOpusAudio, Activity, ActivityType, Status, Embed
+from discord import FFmpegPCMAudio, PCMVolumeTransformer, Activity, ActivityType, Status, Embed
 from olmusic import check_urls, human_format
 import time
 from datetime import datetime
@@ -25,6 +25,7 @@ song_dates=[]
 song_insec=[]
 song_lengths=[]
 song_reqby=[]
+fvol=0.69420
 
 master_list=[song_webpage_urls,song_titles,song_urls,song_thumbnails,song_ratings,song_views,song_likes,song_dates,song_insec,song_lengths,song_reqby]
 
@@ -111,7 +112,7 @@ class music(commands.Cog):
     #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
-        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby
+        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby, fvol
         # Embed
         if song_titles:
             embed=Embed(title="", color=0xff0000)
@@ -123,7 +124,9 @@ class music(commands.Cog):
             await ctx.send(embed=embed, delete_after=song_insec[0])
             await music.status_set(self, ctx)
             voice = get(self.client.voice_clients, guild=ctx.guild)
-            voice.play(FFmpegOpusAudio(song_urls[0], **FFMPEG_OPTIONS))
+            voice.play(FFmpegPCMAudio(song_urls[0], **FFMPEG_OPTIONS))
+            voice.source=PCMVolumeTransformer(voice.source)
+            voice.source.volume = fvol
             # da timer
             global duration
             duration = song_insec[0]
@@ -139,10 +142,11 @@ class music(commands.Cog):
                 for i in master_list:
                     i.pop(0)
         else: 
-            await asyncio.sleep(5)
+            fvol=0.69420
+            await music.status_set(self, ctx)
+            await asyncio.sleep(9)
             await ctx.voice_client.disconnect()
             music.play_from_queue.cancel()
-            await music.status_set(self, ctx)
 
     #Skip
     @commands.command()
@@ -176,7 +180,7 @@ class music(commands.Cog):
     #Stop
     @commands.command(aliases=['dc', 'kelambu'])
     async def stop(self, ctx):
-        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby, looper
+        global song_webpage_urls, song_titles, song_urls, song_thumbnails, song_ratings, song_views, song_likes, song_dates, song_insec, song_lengths, song_reqby, looper, fvol
         if ctx.message.author.voice is None:
             return await ctx.send('You must be is same VC as the bot.')
         if ctx.voice_client is None:
@@ -192,6 +196,7 @@ class music(commands.Cog):
                 await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
                 await music.status_set(self, ctx)
                 looper=False
+                fvol=0.69420
             return await ctx.send('No audio is being played.')
 
     #Pause
@@ -257,6 +262,24 @@ class music(commands.Cog):
             await ctx.reply('Queue is Empty', delete_after=30)
             await asyncio.sleep(30)
             await ctx.message.delete()
+
+    #Volume
+    @commands.command(aliases=['vol','v'])
+    async def volume(self, ctx, volu:int=None):
+        global fvol
+        if ctx.voice_client is None or ctx.message.author.voice is None:
+            return await ctx.send('BRUH no.')
+        if volu is None:
+            await ctx.send(f'Volume: {round(fvol*100)}%', delete_after=30)
+            await asyncio.sleep(5)
+            return await ctx.message.delete()
+        elif volu>0 and volu<=100:
+            fvol=round(volu)/100
+            ctx.voice_client.source.volume=fvol
+            await ctx.send(f'Volume is set to {round(fvol*100)}%', delete_after=30)
+            await asyncio.sleep(5)
+            return await ctx.message.delete()
+        else: await ctx.send("Set Volume between 1 and 100.", delete_after=30)
 
 def setup(client):
 	client.add_cog(music(client))
