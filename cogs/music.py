@@ -47,7 +47,7 @@ class music(commands.Cog):
         # If player is_paused resume...
         if url=='' and ctx.voice_client.is_paused() is True:
             embed=Embed(title='Resumed:',colour=0x4169e1)
-            embed.add_field(name=song_title_list[0],value='\u200b')
+            embed.add_field(name=song_titles[0],value='\u200b')
             await ctx.send(embed=embed, delete_after=30)
             await music.status_set(self, ctx)
             await ctx.message.delete()
@@ -139,7 +139,7 @@ class music(commands.Cog):
                 for i in master_list:
                     i.pop(0)
         else: 
-            fvol=0.69420
+            fvol=0.25
             await music.status_set(self, ctx)
             await asyncio.sleep(9)
             await ctx.voice_client.disconnect()
@@ -166,7 +166,7 @@ class music(commands.Cog):
                     if len(song_titles):
                         embed.add_field(name=f'{song_titles[arg]} from Queue.',value=f'by {ctx.message.author.display_name}')
                         ctx.voice_client.stop()
-                        duration = 1
+                        duration = 0
                         await ctx.send(embed=embed, delete_after=60)
                         await music.status_set(self, ctx)
                     else:
@@ -193,7 +193,7 @@ class music(commands.Cog):
                 await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
                 await music.status_set(self, ctx)
                 looper=False
-                fvol=0.69420
+                fvol=0.25
             return await ctx.send('No audio is being played.')
 
     #Pause
