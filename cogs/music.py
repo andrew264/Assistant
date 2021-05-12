@@ -55,10 +55,7 @@ class music(commands.Cog):
 
         #find vid url and add to list
         with YDL(ydl_opts) as ydl:
-            try:
-                song_info = ydl.extract_info(url, download=False)
-            except:
-                song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
+            song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
             # Check for bad stuff
             if check_urls(song_info.get("webpage_url")):
                 return await ctx.reply('Thats not a fucking song.')
