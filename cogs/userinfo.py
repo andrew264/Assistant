@@ -26,6 +26,5 @@ class userinfo(commands.Cog):
 		embed.set_footer(text=f'User ID: {user.id}')
 		return await ctx.send(embed=embed)
 
-
 def setup(client):
 	client.add_cog(userinfo(client))
