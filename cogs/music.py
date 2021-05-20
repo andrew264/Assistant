@@ -1,7 +1,7 @@
 from discord.ext import commands, tasks
 from discord.utils import get
 from discord import FFmpegPCMAudio, PCMVolumeTransformer, Activity, ActivityType, Status, Embed
-from olmusic import check_urls, human_format
+from olmusic import human_format
 import time
 from datetime import datetime
 import asyncio
@@ -56,9 +56,6 @@ class music(commands.Cog):
         #find vid url and add to list
         with YDL(ydl_opts) as ydl:
             song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
-            # Check for bad stuff
-            if check_urls(song_info.get("webpage_url")):
-                return await ctx.reply('Thats not a fucking song.')
             song_webpage_urls.append(song_info.get("webpage_url"))
             song_titles.append(song_info.get('title', None))
             song_urls.append(song_info["formats"][0]["url"])
@@ -227,7 +224,7 @@ class music(commands.Cog):
             global looper
             if looper:
                 looper=False
-                embed=Embed(title='Loop Disabled.',colour=0xda70d6)
+                embed=Embed(title='Loop Disabled.',colour=0x1abc9c)
             else:
                 looper=True
                 embed=Embed(title='Loop Enabled.',colour=0x800080)
@@ -245,7 +242,7 @@ class music(commands.Cog):
             progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
             song_on = time.strftime('%M:%S', time.gmtime(song_insec[0]-duration))
             await ctx.message.delete()
-            embed=Embed(color=0x7fff00)
+            embed=Embed(color=0xeb459e)
             embed.set_thumbnail(url=f'{song_thumbnails[0]}')
             embed.set_author(name=f'{song_titles[0]}', url=song_webpage_urls[0], icon_url='')
             embed.add_field(name=f'{song_on} {progbar} {song_lengths[0]}',value='\u200b',inline=False)
@@ -253,11 +250,9 @@ class music(commands.Cog):
             embed.add_field(name="Likes:", value=f'{human_format(song_likes[0])}', inline=True)
             embed.add_field(name="Uploaded on:", value=f'{song_dates[0]}', inline=True)
             await ctx.send(embed=embed, delete_after=duration)
-            await asyncio.sleep(30)
             await ctx.message.delete()
         else:
             await ctx.reply('Queue is Empty', delete_after=30)
-            await asyncio.sleep(30)
             await ctx.message.delete()
 
     #Volume

@@ -1,9 +1,3 @@
-def check_urls(url):
-	badstuff=['dQw4w9WgXcQ','eYq7WapuDLU'] #songs i don't like
-	for i in badstuff:
-		if i in url:
-		    return True
-
 def human_format(num):
     num = float('{:.3g}'.format(num))
     magnitude = 0

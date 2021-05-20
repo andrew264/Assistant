@@ -11,7 +11,7 @@ async def load(ctx, extension):
 			client.load_extension(f'cogs.{extension}')
 	except Exception as e:
 		await ctx.send('\N{PISTOL}')
-		await ctx.send('{}: {}'.format(type(e).__name__, e))
+		await ctx.send(f'{type(e).__name__}: {e}')
 	else:
 		if ctx.message.author.id == OWNERID :
 			await ctx.message.add_reaction('👌')
@@ -25,7 +25,7 @@ async def unload(ctx, extension):
 			client.unload_extension(f'cogs.{extension}')
 	except Exception as e:
 		await ctx.send('\N{PISTOL}')
-		await ctx.send('{}: {}'.format(type(e).__name__, e))
+		await ctx.send(f'{type(e).__name__}: {e}')
 	else:
 		if ctx.message.author.id == OWNERID :
 			await ctx.message.add_reaction('👌')
@@ -40,7 +40,7 @@ async def reload(ctx, extension):
 			client.load_extension(f'cogs.{extension}')
 	except Exception as e:
 		await ctx.send('\N{PISTOL}')
-		await ctx.send('{}: {}'.format(type(e).__name__, e))
+		await ctx.send(f'{type(e).__name__}: {e}')
 	else:
 		if ctx.message.author.id == OWNERID :
 			await ctx.message.add_reaction('👌')
