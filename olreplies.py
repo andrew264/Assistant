@@ -1,5 +1,5 @@
 hiMsgs = [
-	'hi', 'hello', 'allo', 'anyone', 'irukiya' ,'helo', 'halo', 'alo', 'yo', 'hey', 'howdy', 'welcome', 'bonjour', 'hola'
+	'hi', 'hello', 'allo', 'anyone', 'irukiya' ,'helo', 'halo', 'alo', 'yo', 'hey', 'howdy', 'welcome', 'bonjour', 'hola', 'hii', 'hiii', 'hlo'
 	]
 
 hiMsgReplys = [
