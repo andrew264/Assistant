@@ -2,7 +2,7 @@ from os import listdir
 from olenv import OWNERID, TOKEN
 
 import discord.ext.commands as commands
-client = commands.Bot(command_prefix=commands.when_mentioned_or('.'),description='Andrew\'s Assistant',help_command=None)
+client = commands.Bot(command_prefix=commands.when_mentioned_or('.','+'),description='Andrew\'s Assistant',help_command=None)
 
 @client.command(hidden=True)
 async def load(ctx, extension):

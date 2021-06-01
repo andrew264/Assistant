@@ -191,7 +191,7 @@ class music(commands.Cog):
                 await music.status_set(self, ctx)
                 looper=False
                 fvol=0.25
-            return await ctx.send('No audio is being played.')
+            return await ctx.send('Thanks for Listening btw.')
 
     #Pause
     @commands.command()
