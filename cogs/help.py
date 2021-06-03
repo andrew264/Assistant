@@ -11,6 +11,7 @@ class help(commands.Cog):
             embed=Embed(title='Help',colour=0x00cd00,description="Use `.help [module]` to get even more help")
             embed.add_field(name='music',value='yep i can play music too',inline=False)
             embed.add_field(name='minecraft',value='Switch on server & get IP address',inline=False)
+            embed.add_field(name='tts',value='Text To Speech',inline=False)
             embed.add_field(name='misc',value='Even more Commands',inline=False)
             await ctx.send(embed=embed)
         elif args=='music':
@@ -36,6 +37,10 @@ class help(commands.Cog):
             embed.add_field(name='Delete Messages',value='`.clear [No.ofMessages]` to delete messages',inline=False)
             embed.add_field(name='Ping',value='`.ping` to get bot latency',inline=False)
             embed.add_field(name='User Info',value='`.whois <user>` to get User Info',inline=False)
+            await ctx.send(embed=embed)
+        elif args=='tts':
+            embed=Embed(title='Text To Speech',colour=0x00cd00,description='I can speak.')
+            embed.add_field(name='Speak',value='`.tts <message>` add ! before messages for extra madness',inline=False)
             await ctx.send(embed=embed)
         else:
             await ctx.send('I don\'t know what you are talking about.')

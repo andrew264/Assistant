@@ -23,7 +23,7 @@ class ready(commands.Cog):
 	@commands.Cog.listener()
 	async def on_command_error(self, ctx, error):
 		if isinstance(error, commands.CommandNotFound):
-			await ctx.send('Unknown command used.')
+			pass
 
 def setup(client):
 	client.add_cog(ready(client))
