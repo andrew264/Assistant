@@ -8,3 +8,6 @@
 
 #ignore batch files
 *.bat
+
+# ignore tts files
+*.mp3
