@@ -11,6 +11,8 @@ class texttospeech(commands.Cog):
 
 	@commands.command()
 	async def tts(self, ctx, *, string:str=''):
+		if ctx.author.voice is None or ctx.author.voice.channel is None:
+			return await ctx.send("You are not connected to a voice channel.")
 		voice = get(self.client.voice_clients, guild=ctx.guild)
 		if voice and voice.is_connected():
 			pass
@@ -24,8 +26,16 @@ class texttospeech(commands.Cog):
 					os.remove("1.mp3")
 			except PermissionError:
 				await ctx.send('Hol Up')
-			nick = re.sub(r'[^A-Za-z0-9 ]+', '', ctx.message.author.nick)
-			tts = gTTS(f'{nick} says {string}', lang='en')
+			if ctx.message.author.nick:
+				name = re.sub(r'[^A-Za-z0-9 ]+', '', ctx.message.author.nick)
+			else:
+				name = re.sub(r'[^A-Za-z0-9 ]+', '', ctx.message.author.name)
+			if string.startswith('!'):
+				lang = 'ja'
+			else:
+				lang = 'en'
+			new_str = re.sub(r'[^A-Za-z0-9 ]+', '', string)
+			tts = gTTS(f'{name} says {new_str}', lang=lang)
 			tts.save('1.mp3')
 			voice.play(FFmpegPCMAudio(f'1.mp3'))
 
