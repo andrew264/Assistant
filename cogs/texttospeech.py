@@ -9,7 +9,7 @@ class texttospeech(commands.Cog):
 	def __init__(self,client):
 		self.client = client
 
-	@commands.command()
+	@commands.command(aliases=['TTS'])
 	async def tts(self, ctx, *, string:str=''):
 		if ctx.author.voice is None or ctx.author.voice.channel is None:
 			return await ctx.send("You are not connected to a voice channel.")
@@ -32,6 +32,8 @@ class texttospeech(commands.Cog):
 				name = re.sub(r'[^A-Za-z0-9 ]+', '', ctx.message.author.name)
 			if string.startswith('!'):
 				lang = 'ja'
+			if string.startswith('?'):
+				lang = 'ta'
 			else:
 				lang = 'en'
 			new_str = re.sub(r'[^A-Za-z0-9 ]+', '', string)

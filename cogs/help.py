@@ -40,7 +40,7 @@ class help(commands.Cog):
             await ctx.send(embed=embed)
         elif args=='tts':
             embed=Embed(title='Text To Speech',colour=0x00cd00,description='I can speak.')
-            embed.add_field(name='Speak',value='`.tts <message>` add ! before messages for extra madness',inline=False)
+            embed.add_field(name='Speak',value='`.tts <message>` add ! or ? before messages for extra madness',inline=False)
             await ctx.send(embed=embed)
         else:
             await ctx.send('I don\'t know what you are talking about.')
