@@ -1,7 +1,6 @@
-from os import getenv
+import os
 from dotenv import load_dotenv
 load_dotenv()
-TOKEN = getenv('DISCORD_TOKEN')
-OWNERID = int(getenv('OWNER_ID'))
-GUILD = getenv('DISCORD_GUILD')
-DM_Channel = int(getenv('DM_CHANNEL_ID'))
+TOKEN = os.getenv('DISCORD_TOKEN')
+OWNERID = int(os.getenv('OWNER_ID'))
+DM_Channel = int(os.getenv('DM_CHANNEL_ID'))
