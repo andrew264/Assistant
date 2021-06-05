@@ -1,6 +1,6 @@
 import discord.ext.commands as commands
 from olenv import OWNERID
-from discord import Activity, ActivityType, Status, User
+from discord import Activity, ActivityType, Status, User, Member
 
 class utils(commands.Cog):
 
@@ -15,6 +15,17 @@ class utils(commands.Cog):
 		else:
 			await ctx.send(args)
 			await ctx.message.delete()
+
+	# Nickname
+	@commands.command(hidden=True,aliases=['nick'])
+	async def nickname(self,ctx, member: Member, *, new_nick):
+		if ctx.author.guild_permissions.administrator or ctx.author.id == OWNERID :
+			await ctx.message.delete()
+			old_nick = member.display_name
+			await member.edit(nick=new_nick)
+			await ctx.send(f'{old_nick} ---> {new_nick}')
+		else:
+			await ctx.reply("https://media1.tenor.com/images/7bc1dffdde74316e94dcbe421cf2f260/tenor.gif?itemid=8850963")
 
 	# ping
 	@commands.command()
