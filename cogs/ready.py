@@ -12,7 +12,7 @@ class ready(commands.Cog):
 		await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
 		print(f'{self.client.user} is connected to the following guild:\n')
 		for guild in self.client.guilds:
-			print(f'\t{guild.name}(id: {guild.id})')
+			print(f'\t{guild.name} (ID: {guild.id}) (Member Count: {guild.member_count})')
 
 	# Unknown commands
 	@commands.Cog.listener()
