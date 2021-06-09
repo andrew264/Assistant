@@ -5,7 +5,7 @@ from discord import Intents
 
 description = """ Andrew's Assistant """
 
-intents = Intents.default()
+intents = Intents.all()
 intents.members = True
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or('.','+'),description=description,intents=intents,help_command=None)
