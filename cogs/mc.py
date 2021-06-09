@@ -14,10 +14,10 @@ class mc(commands.Cog):
 	@commands.command(pass_context=True)
 	@commands.has_permissions(manage_messages=True)
 	async def mcip(self, ctx):
-		if checkIfProcessRunning():
+		#if checkIfProcessRunning():
 			external_ip = urlopen('https://ident.me').read().decode('utf8')
 			await ctx.send(f'{external_ip}:42069')
-		else: return await ctx.send('Server isn\'t Running.')
+		#else: return await ctx.send('Server isn\'t Running.')
 	@commands.command(hidden=True)
 	@mcip.error
 	async def mcip_error(self, ctx, error):
