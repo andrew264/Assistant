@@ -8,7 +8,7 @@ description = """ Andrew's Assistant """
 intents = Intents.all()
 intents.members = True
 
-client = commands.Bot(command_prefix=commands.when_mentioned_or('.','+'),description=description,intents=intents,help_command=None)
+client = commands.Bot(command_prefix=commands.when_mentioned_or('.'),description=description,intents=intents,help_command=None)
 
 @client.command(hidden=True)
 async def load(ctx, extension):
