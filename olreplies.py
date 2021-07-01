@@ -1,5 +1,5 @@
 hiMsgs = [
-	'hi', 'hello', 'allo', 'anyone', 'irukiya' ,'helo', 'halo', 'alo', 'yo', 'hey', 'howdy', 'welcome', 'bonjour', 'hola', 'hii', 'hiii', 'hlo'
+	'hi', 'hello', 'allo', 'anyone', 'irukiya' ,'helo', 'halo', 'alo', 'yo', 'hey', 'howdy', 'welcome', 'bonjour', 'hola', 'hii', 'hiii', 'hlo', 'hai'
 	]
 
 hiMsgReplys = [
@@ -14,7 +14,7 @@ hiMsgReplys = [
 	]
 
 byeMsgs = [
-	'bye', 'kelamburen', 'poitu varen', 'poren', 'adios', 'goodbye'
+	'bye', 'kelamburen', 'poitu varen', 'poren', 'adios', 'goodbye', 'night', 'gn'
 	]
 
 byeMsgReplys = [
