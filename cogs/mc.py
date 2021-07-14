@@ -21,10 +21,10 @@ class mc(commands.Cog):
 			await ctx.send('You have no Permission(s).')
 
 	# startup server
-	@commands.command(pass_context=True)
+	@commands.command(pass_context=True, aliases=['minecraft', 'startserver'])
 	@commands.has_permissions(manage_messages=True)
 	async def mcstart(self,ctx):
-		system("start cmd /K vikki.bat")
+		system("start cmd /K 17.bat")
 		return await ctx.send('Server will start in 20 secs...')
 
 	# startup server
