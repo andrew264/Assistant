@@ -6,7 +6,6 @@ from datetime import datetime
 import asyncio
 import youtube_dl.YoutubeDL as YDL
 ydl_opts = {
-    'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
     'format': 'bestaudio/best',
@@ -24,8 +23,8 @@ def human_format(num):
 class music(commands.Cog):
     def __init__(self,client):
         self.client = client
-        self.fvol=0.25
-        self.looper=False
+        self.fvol = 0.25
+        self.looper = False
         self.song_webpage_urls = []
         self.song_titles=[]
         self.song_urls=[]
@@ -60,18 +59,25 @@ class music(commands.Cog):
         async with ctx.typing():
             #find vid url and add to list
             with YDL(ydl_opts) as ydl:
-                song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
-                self.song_webpage_urls.append(song_info.get("webpage_url"))
-                self.song_titles.append(song_info.get('title', None))
-                self.song_urls.append(song_info["formats"][0]["url"])
-                self.song_thumbnails.append(song_info.get("thumbnail"))
-                self.song_ratings.append(round(song_info.get("average_rating"),2))
-                self.song_views.append(song_info.get('view_count'))
-                self.song_likes.append(song_info.get('like_count'))
-                self.song_dates.append(datetime.strptime(song_info.get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y'))
-                self.song_insec.append(song_info.get("duration"))
-                self.song_lengths.append(time.strftime('%M:%S', time.gmtime(song_info.get("duration"))))
-                self.song_reqby.append(ctx.message.author.display_name)
+                if 'playlist' in url:
+                    song_info = ydl.extract_info(f'{url}', download=False)['entries']
+                    self.entries = len(song_info)
+                    await ctx.send(f"Adding `{self.entries} SONGS` to Queue.", delete_after=30)
+                else:
+                    song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
+                    self.entries = 1
+                for i in range(0, self.entries):
+                    self.song_webpage_urls.append(song_info[i].get("webpage_url"))
+                    self.song_titles.append(song_info[i].get('title', None))
+                    self.song_urls.append(song_info[i]["formats"][0]["url"])
+                    self.song_thumbnails.append(song_info[i].get("thumbnail"))
+                    self.song_ratings.append(round(song_info[i].get("average_rating"),2))
+                    self.song_views.append(song_info[i].get('view_count'))
+                    self.song_likes.append(song_info[i].get('like_count'))
+                    self.song_dates.append(datetime.strptime(song_info[i].get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y'))
+                    self.song_insec.append(song_info[i].get("duration"))
+                    self.song_lengths.append(time.strftime('%M:%S', time.gmtime(song_info[i].get("duration"))))
+                    self.song_reqby.append(ctx.message.author.display_name)
             # Join VC
             voice = get(self.client.voice_clients, guild=ctx.guild)
             if voice and voice.is_connected():
@@ -220,7 +226,6 @@ class music(commands.Cog):
         if ctx.voice_client is None:
             return await ctx.send('Bot is not connect to VC.')
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
-            global looper
             if self.looper:
                 self.looper=False
                 embed=Embed(title='Loop Disabled.',colour=0x1abc9c)
