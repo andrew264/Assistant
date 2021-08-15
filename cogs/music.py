@@ -1,7 +1,6 @@
 from discord.ext import commands, tasks
 from discord.utils import get
 from discord import FFmpegPCMAudio, PCMVolumeTransformer, Activity, ActivityType, Status, Embed
-from olmusic import human_format
 import time
 from datetime import datetime
 import asyncio
@@ -13,6 +12,14 @@ ydl_opts = {
     'format': 'bestaudio/best',
 }
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+
+def human_format(num):
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 class music(commands.Cog):
     def __init__(self,client):
