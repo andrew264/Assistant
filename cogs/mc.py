@@ -1,9 +1,11 @@
 import discord.ext.commands as commands
 from discord import Embed
-from urllib.request import urlopen
 from aiohttp import ClientSession
 from os import system
 from mcstatus import MinecraftServer
+from typing import Optional
+from asyncio import sleep
+from shutil import copyfile
 
 class mc(commands.Cog):
 
@@ -25,7 +27,7 @@ class mc(commands.Cog):
 				self.online=False
 
 	# startup server
-	@commands.command(pass_context=True, aliases=['minecraft', 'startserver', 'MCSTART', 'start'])
+	@commands.command(pass_context=True, aliases=['minecraft', 'startserver', 'start'])
 	@commands.has_permissions(manage_messages=True)
 	async def mcstart(self, ctx):
 		async with ctx.typing():
@@ -37,7 +39,7 @@ class mc(commands.Cog):
 				return await ctx.send('Server will start in 20 secs...')
 
 	# server status
-	@commands.command(aliases=['MCIP', 'ip', 'IP', 'stat', 'STAT', 'mc'])
+	@commands.command(aliases=['ip', 'stat', 'mcip'])
 	@commands.has_permissions(manage_messages=True)
 	async def mcstatus(self, ctx):
 		async with ctx.typing():
@@ -52,6 +54,25 @@ class mc(commands.Cog):
 			embed.set_author(name='Minecraft Status', icon_url='https://cdn.discordapp.com/attachments/821765711848407091/878266221584322560/minecraft.png')
 			embed.set_footer(text=f'Requested by: {ctx.message.author.display_name}')
 			await ctx.send(embed=embed)
+
+	@commands.command(aliases=['newserver', 'createserver'])
+	@commands.has_permissions(manage_messages=True)
+	async def mcnew(self, ctx, *, seed: Optional[int]):
+		async with ctx.typing():
+			await mc.serverstat(self)
+			if self.online is False:
+				msg = await ctx.send('Creating NEW WORLD...')
+				system("start cmd /K cleanworld.bat")
+				await sleep(2)
+				copyfile('C:\\Users\\Andrew\\MCServer\\Speed\\server.properties.bak','C:\\Users\\Andrew\\MCServer\\Speed\\server.properties')
+				if seed is not None:
+					props= open("C:\\Users\\Andrew\\MCServer\\Speed\\server.properties", "a")
+					props.write(f'\nlevel-seed={seed}')
+					props.close()
+				await sleep(2)
+				await msg.edit(content='Starting NEW WORLD...')
+				system("start cmd /K createworld.bat")
+			else: return await ctx.send('Server is already up and running...')
 
 def setup(client):
 	client.add_cog(mc(client))
