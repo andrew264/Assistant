@@ -40,7 +40,7 @@ class music(commands.Cog):
 
 
     #Play
-    @commands.command(pass_context=True, aliases=['p','P'])
+    @commands.command(pass_context=True, aliases=['p'])
     async def play(self, ctx,*,url:str=''):
 
         # Check if author in VC
@@ -219,7 +219,7 @@ class music(commands.Cog):
                     await asyncio.sleep(1)
 
     #Loop
-    @commands.command()
+    @commands.command(aliases=['repeat'])
     async def loop(self, ctx):
         if ctx.message.author.voice is None:
             return await ctx.send('You must be is same VC as the bot.')
@@ -237,7 +237,7 @@ class music(commands.Cog):
             await ctx.message.delete()
 
     #Now PLaying
-    @commands.command()
+    @commands.command(aliases=['nowplaying'])
     async def np(self, ctx):
         if self.song_titles:
             percentile=30-round((self.duration/self.song_insec[0])*30)

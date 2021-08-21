@@ -9,7 +9,7 @@ class texttospeech(commands.Cog):
 	def __init__(self,client):
 		self.client = client
 
-	@commands.command(aliases=['TTS'])
+	@commands.command(aliases=['speak'])
 	async def tts(self, ctx, *, string:str=''):
 		if ctx.author.voice is None or ctx.author.voice.channel is None:
 			return await ctx.send("You are not connected to a voice channel.")

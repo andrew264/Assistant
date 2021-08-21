@@ -5,7 +5,7 @@ class help(commands.Cog):
     def __init__(self,client):
         self.client = client
 
-    @commands.command(aliases=['h'])
+    @commands.command(aliases=['h', 'welp'])
     async def help(self, ctx, args=''):
         if args=='':
             embed=Embed(title='Help',colour=0x00cd00,description="Use `.help [module]` to get even more help")
@@ -28,7 +28,6 @@ class help(commands.Cog):
         elif args=='mc' or args=='minecraft':
             embed=Embed(title='Minecraft',colour=0x00cd00,description='Minecraft related stuff')
             embed.add_field(name='Start Server',value='`.mcstart` to start the server',inline=False)
-            embed.add_field(name='Server Status',value='`.mcstatus` to get server status',inline=False)
             embed.add_field(name='Create New Server',value='`.mcnew [SEED]` to create a new server',inline=False)
             embed.add_field(name='Get IP Address',value='`.mcip` to get ip address',inline=False)
             await ctx.send(embed=embed)
