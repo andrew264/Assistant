@@ -21,7 +21,7 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 class video_info:
-    def __init__(self, link: str):
+    def __init__(self, link: str, author:str):
         with YDL(ydl_opts) as ydl:
             YT_extract = ydl.extract_info(link, download=False)
             self.Title:str = (YT_extract.get("title", None))
@@ -34,27 +34,14 @@ class video_info:
             self.UploadDate:str = (datetime.strptime(YT_extract.get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y'))
             self.Duration:int = (YT_extract.get("duration"))
             self.FDuration:str = (time.strftime('%M:%S', time.gmtime(YT_extract.get("duration"))))
-
-class TitleList:
-    def __init__(self, url_list):
-        self.Titles = []
-        with YDL(ydl_opts) as ydl:
-            if isinstance(url_list, str):
-                YT_extract = ydl.extract_info(url_list, download=False)
-                self.Titles.append(YT_extract.get("title", None))
-            else:
-                for i in range(len(url_list)):
-                    YT_extract = ydl.extract_info(url_list[i], download=False)
-                    self.Titles.append(YT_extract.get("title", None))
+            self.Author:str = author
 
 class music(commands.Cog):
     def __init__(self,client):
         self.client = client
         self.fvol = 0.25
         self.looper = False
-        self.song_webpage_urls = []
-        self.song_reqby=[]
-        self.master_list=[self.song_webpage_urls,self.song_reqby]
+        self.obj = []
 
     #Play
     @commands.command(pass_context=True, aliases=['p'])
@@ -66,12 +53,11 @@ class music(commands.Cog):
 
         # If player is_paused resume...
         if url is None:
-            if self.song_webpage_urls !=[] and ctx.voice_client.is_paused() is True:
+            if self.obj !=[] and ctx.voice_client.is_paused() is True:
                 async with ctx.typing():
                     ctx.voice_client.resume()
-                    Resume = TitleList(self.song_webpage_urls[0])
                     embed=Embed(title='Resumed:',colour=0x4169e1)
-                    embed.add_field(name=Resume.Titles[0],value='\u200b')
+                    embed.add_field(name=self.obj[0].Title,value='\u200b')
                     await ctx.send(embed=embed, delete_after=self.duration)
                     return await music.status_set(self, ctx)
             else: return await ctx.send('Queue is Empty.', delete_after = 60)
@@ -89,76 +75,70 @@ class music(commands.Cog):
             with YDL(ydl_opts) as ydl:
                 if 'playlist' in url:
                     song_info = ydl.extract_info(f'{url}', download=False)['entries']
-                    self.entries = len(song_info)
-                    await ctx.send(f"Adding `{self.entries} SONGS` to Queue.")
+                    entries = len(song_info)
+                    await ctx.send(f"Adding `{entries} SONGS` to Queue.")
                 else:
                     song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
-                    self.entries = 1
-                for i in range(0, self.entries):
-                    self.song_webpage_urls.append(song_info[i].get("webpage_url"))
-                    self.song_reqby.append(ctx.message.author.display_name)
+                    entries = 1
+                for i in range(0, len(song_info)):
+                    link = song_info[i].get("webpage_url")
+                    self.obj.append(video_info(link, ctx.message.author.display_name))
 
-            if 'playlist' not in url:
-                Play = TitleList(self.song_webpage_urls[len(self.song_webpage_urls)-1])
-                await ctx.send(f'Adding `{Play.Titles[0]}` to Queue.')
+            if entries == 1:
+                await ctx.send(f'Adding `{self.obj[len(self.obj)-1].Title}` to Queue.')
 
         if music.play_from_queue.is_running() is False:
             music.play_from_queue.start(self, ctx)
 
     #Status Update
     async def status_set(self, ctx):
-        if ctx.voice_client is not None and self.song_webpage_urls:
-            State = TitleList(self.song_webpage_urls[0])
-            await self.client.change_presence(activity=Activity(type=ActivityType.streaming, name=State.Titles[0], platform='YouTube', url=self.song_webpage_urls[0]))
+        if ctx.voice_client is not None and self.obj:
+            await self.client.change_presence(activity=Activity(type=ActivityType.streaming, name=self.obj[0].Title, platform='YouTube', url=self.obj[0].pURL))
         else:
             await self.client.change_presence(status=Status.idle, activity=Activity(type=ActivityType.watching, name="my Homies."))
 
     #Queue
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
-        if len(self.song_webpage_urls)==0:
+        if len(self.obj)==0:
             await ctx.send('Queue is Empty.')
         else:
             async with ctx.typing():
-                song = TitleList(self.song_webpage_urls)
-            embed=Embed(title="Songs in Queue",colour=0xffa31a)
-            embed.add_field(name='Now Playing',value=f'{song.Titles[0]} (Requested by {self.song_reqby[0]})', inline=False)
-            if len(self.song_webpage_urls)>1:
-                embed.add_field(name='Next in Queue',value=f'1. {song.Titles[1]} (Requested by {self.song_reqby[1]})', inline=False)
-                for i in range(2,len(self.song_webpage_urls)):
-                    embed.add_field(name='\u200b',value=f'{i}. {song.Titles[i]} (Requested by {self.song_reqby[i]})', inline=False)
-            await ctx.send(embed=embed, delete_after=300)
+                embed=Embed(title="Songs in Queue",colour=0xffa31a)
+                embed.add_field(name='Now Playing',value=f'{self.obj[0].Title} (Requested by {self.obj[0].Author})', inline=False)
+                if len(self.obj)>1:
+                    embed.add_field(name='Next in Queue',value=f'1. {self.obj[1].Title} (Requested by {self.obj[1].Author})', inline=False)
+                    for i in range(2,len(self.obj)):
+                        embed.add_field(name='\u200b',value=f'{i}. {self.obj[i].Title} (Requested by {self.obj[i].Author})', inline=False)
+                return await ctx.send(embed=embed, delete_after=300)
 
     #Play from Queue
     @tasks.loop(seconds = 1)
     async def play_from_queue(self, ctx):
         # Embed
-        if self.song_webpage_urls:
-            PfQueue = video_info(self.song_webpage_urls[0])
+        if self.obj:
             embed=Embed(title="", color=0xff0000)
-            embed.set_thumbnail(url=f'{PfQueue.Thumbnail}')
-            embed.set_author(name=f'Playing: {PfQueue.Title}', url=PfQueue.pURL, icon_url='')
-            embed.add_field(name="Duration:", value=PfQueue.FDuration, inline=True)
-            embed.add_field(name="Requested by:", value=self.song_reqby[0], inline=True)
-            embed.add_field(name="Song Rating:", value=f'{PfQueue.Rating}/5', inline=True)
-            await ctx.send(embed=embed, delete_after=PfQueue.Duration)
+            embed.set_thumbnail(url=f'{self.obj[0].Thumbnail}')
+            embed.set_author(name=f'Playing: {self.obj[0].Title}', url=self.obj[0].pURL, icon_url='')
+            embed.add_field(name="Duration:", value=self.obj[0].FDuration, inline=True)
+            embed.add_field(name="Requested by:", value=self.obj[0].Author, inline=True)
+            embed.add_field(name="Song Rating:", value=f'{self.obj[0].Rating}/5', inline=True)
+            await ctx.send(embed=embed, delete_after=self.obj[0].Duration)
             await music.status_set(self, ctx)
             voice = get(self.client.voice_clients, guild=ctx.guild)
-            voice.play(FFmpegPCMAudio(PfQueue.URL, **FFMPEG_OPTIONS))
+            voice.play(FFmpegPCMAudio(self.obj[0].URL, **FFMPEG_OPTIONS))
             voice.source=PCMVolumeTransformer(voice.source)
             voice.source.volume = self.fvol
-            self.duration = PfQueue.Duration
+            self.duration = self.obj[0].Duration
             while self.duration>0:
                 await asyncio.sleep(1)
                 self.duration=self.duration-1
-            # list deletus
-            if self.song_webpage_urls and self.looper:
-                for i in self.master_list:
-                    i.append(i[0])
-                    i.pop(0)
-            elif self.song_webpage_urls and not self.looper:
-                for i in self.master_list:
-                    i.pop(0)
+            # song ends here
+            if self.obj and self.looper:
+                self.obj.append(self.obj[0])
+                self.obj.pop(0)
+            elif self.obj and not self.looper:
+                self.obj.pop(0)
         else: 
             self.fvol=0.25
             await music.status_set(self, ctx)
@@ -173,26 +153,21 @@ class music(commands.Cog):
             return await ctx.send('You must be is same VC as the bot.')
         if ctx.voice_client is None:
             return await ctx.send('Bot is not connect to VC.')
-        if ctx.message.author.voice is not None and ctx.voice_client is not None and self.song_webpage_urls:
+        if ctx.message.author.voice is not None and ctx.voice_client is not None and self.obj:
             if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
                 embed=Embed(title='Removed',colour=0xff7f50)
-                async with ctx.typing():
-                    Skip = TitleList(self.song_webpage_urls[arg])
-                if arg>0 and arg<len(self.song_webpage_urls):
-                    embed.add_field(name=f'{Skip.Titles[0]} from Queue.',value=f'by {ctx.message.author.display_name}')
+                embed.add_field(name=f'{self.obj[arg].Title} from Queue.',value=f'by {ctx.message.author.display_name}')
+                if arg>0 and arg<len(self.obj):
                     await ctx.send(embed=embed, delete_after=60)
-                    for i in self.master_list:
-                        i.pop(arg)
+                    self.obj.pop(arg)
                 elif arg==0:
-                    if len(self.song_webpage_urls):
-                        embed.add_field(name=f'{Skip.Titles[0]} from Queue.',value=f'by {ctx.message.author.display_name}')
-                        ctx.voice_client.stop()
-                        self.duration = 0
-                        await ctx.send(embed=embed, delete_after=60)
-                        await music.status_set(self, ctx)
-                    else:
-                        embed.add_field(name='Nothing',value=':p')
-                        await ctx.send(embed=embed, delete_after=120)
+                    ctx.voice_client.stop()
+                    self.duration = 0
+                    await ctx.send(embed=embed, delete_after=60)
+                    await music.status_set(self, ctx)
+                else:
+                    embed.add_field(name='Nothing',value=':p')
+                    await ctx.send(embed=embed, delete_after=30)
         else: await ctx.send('Queue is Empty')
 
     #Stop
@@ -205,11 +180,10 @@ class music(commands.Cog):
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True or ctx.voice_client is not None:
                 ctx.voice_client.stop()
-                # clean all lists
-                for i in self.master_list:
-                    i.clear()
                 if music.play_from_queue.is_running() is True:
                     music.play_from_queue.cancel()
+                # clean list
+                self.obj.clear()
                 await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
                 await music.status_set(self, ctx)
                 self.looper=False
@@ -226,10 +200,8 @@ class music(commands.Cog):
         if ctx.message.author.voice is not None and ctx.voice_client is not None:
             if ctx.voice_client.is_paused() is False:
                 ctx.voice_client.pause()
-                async with ctx.typing():
-                    Pause = TitleList(self.song_webpage_urls[0])
                 embed=Embed(title='Paused:',colour=0x4169e1)
-                embed.add_field(name=Pause.Titles[0],value='\u200b')
+                embed.add_field(name=self.obj[0].Title,value='\u200b')
                 await ctx.send(embed=embed, delete_after=180)
                 # we addin 1 every second to wait :p
                 while ctx.voice_client.is_paused():
@@ -255,19 +227,18 @@ class music(commands.Cog):
     #Now PLaying
     @commands.command(aliases=['nowplaying'])
     async def np(self, ctx):
-        if self.song_webpage_urls:
-            NowPlaying = video_info(self.song_webpage_urls[0])
-            percentile=20-round((self.duration/NowPlaying.Duration)*20)
+        if self.obj:
+            percentile=20-round((self.duration/self.obj[0].Duration)*20)
             bar='────────────────────'
             progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
-            song_on = time.strftime('%M:%S', time.gmtime(NowPlaying.Duration-self.duration))
+            song_on = time.strftime('%M:%S', time.gmtime(self.obj[0].Duration-self.duration))
             embed=Embed(color=0xeb459e)
-            embed.set_thumbnail(url=f'{NowPlaying.Thumbnail}')
-            embed.set_author(name=f'{NowPlaying.Title}', url=NowPlaying.pURL, icon_url='')
-            embed.add_field(name=f'{song_on} {progbar} {NowPlaying.FDuration}',value='\u200b',inline=False)
-            embed.add_field(name="Views:", value=f'{human_format(NowPlaying.Views)}', inline=True)
-            embed.add_field(name="Likes:", value=f'{human_format(NowPlaying.Likes)}', inline=True)
-            embed.add_field(name="Uploaded on:", value=f'{NowPlaying.UploadDate}', inline=True)
+            embed.set_thumbnail(url=f'{self.obj[0].Thumbnail}')
+            embed.set_author(name=f'{self.obj[0].Title}', url=self.obj[0].pURL, icon_url='')
+            embed.add_field(name=f'{song_on} {progbar} {self.obj[0].FDuration}',value='\u200b',inline=False)
+            embed.add_field(name="Views:", value=f'{human_format(self.obj[0].Views)}', inline=True)
+            embed.add_field(name="Likes:", value=f'{human_format(self.obj[0].Likes)}', inline=True)
+            embed.add_field(name="Uploaded on:", value=f'{self.obj[0].UploadDate}', inline=True)
             await ctx.send(embed=embed, delete_after=self.duration)
         else:
             await ctx.reply('Queue is Empty', delete_after=30)
