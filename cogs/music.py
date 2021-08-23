@@ -1,6 +1,6 @@
 from discord.ext import commands, tasks
 from discord.utils import get
-from discord import FFmpegPCMAudio, PCMVolumeTransformer, Activity, ActivityType, Status, Embed
+from discord import FFmpegOpusAudio, Activity, ActivityType, Status, Embed
 import time
 from datetime import datetime
 import asyncio
@@ -40,7 +40,6 @@ class video_info:
 class music(commands.Cog):
     def __init__(self,client):
         self.client = client
-        self.fvol = 0.25
         self.looper = False
         self.obj = []
 
@@ -130,21 +129,19 @@ class music(commands.Cog):
             await ctx.send(embed=embed, delete_after=self.obj[0].Duration)
             await music.status_set(self, ctx)
             voice = get(self.client.voice_clients, guild=ctx.guild)
-            voice.play(FFmpegPCMAudio(self.obj[0].URL, **FFMPEG_OPTIONS))
-            voice.source=PCMVolumeTransformer(voice.source)
-            voice.source.volume = self.fvol
+            voice.play(FFmpegOpusAudio(self.obj[0].URL, bitrate=192, **FFMPEG_OPTIONS))
             self.duration = self.obj[0].Duration
             while self.duration>0:
                 await asyncio.sleep(1)
                 self.duration=self.duration-1
+            ctx.voice_client.stop()
             # song ends here
             if self.obj and self.looper:
                 self.obj.append(self.obj[0])
                 self.obj.pop(0)
             elif self.obj and not self.looper:
                 self.obj.pop(0)
-        else: 
-            self.fvol=0.25
+        else:
             await music.status_set(self, ctx)
             await asyncio.sleep(30)
             await ctx.voice_client.disconnect()
@@ -191,7 +188,6 @@ class music(commands.Cog):
                 await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
                 await music.status_set(self, ctx)
                 self.looper=False
-                self.fvol=0.25
             return await ctx.send('Thanks for Listening btw.')
 
     #Pause
@@ -247,19 +243,6 @@ class music(commands.Cog):
         else:
             await ctx.reply('Queue is Empty', delete_after=30)
             await ctx.message.delete()
-
-    #Volume
-    @commands.command(aliases=['vol','v'])
-    async def volume(self, ctx, volu:int=None):
-        if ctx.voice_client is None or ctx.message.author.voice is None:
-            return await ctx.send('BRUH no.')
-        if volu is None:
-            return await ctx.send(f'Volume: {round(self.fvol*100)}%', delete_after=300)
-        elif volu>0 and volu<=100:
-            self.fvol=round(volu)/100
-            ctx.voice_client.source.volume=self.fvol
-            return await ctx.send(f'Volume is set to {round(self.fvol*100)}%', delete_after=300)
-        else: await ctx.send("Set Volume between 1 and 100.", delete_after=30)
 
 def setup(client):
 	client.add_cog(music(client))
