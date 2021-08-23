@@ -4,6 +4,7 @@ from discord import FFmpegPCMAudio, PCMVolumeTransformer, Activity, ActivityType
 import time
 from datetime import datetime
 import asyncio
+import re
 import youtube_dl.YoutubeDL as YDL
 ydl_opts = {
     'quiet': True,
@@ -11,6 +12,8 @@ ydl_opts = {
     'format': 'bestaudio/best',
 }
 FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+vid_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$", re.IGNORECASE)
+playlist_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com)\/(playlist).+$", re.IGNORECASE)
 
 def human_format(num):
     num = float('{:.3g}'.format(num))
@@ -21,9 +24,7 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 class video_info:
-    def __init__(self, link: str, author:str):
-        with YDL(ydl_opts) as ydl:
-            YT_extract = ydl.extract_info(link, download=False)
+    def __init__(self, YT_extract, author:str):
             self.Title:str = (YT_extract.get("title", None))
             self.pURL:str = (YT_extract.get("webpage_url"))
             self.URL:str = (YT_extract["formats"][0]["url"])
@@ -73,22 +74,25 @@ class music(commands.Cog):
         async with ctx.typing():
             #find vid url and add to list
             with YDL(ydl_opts) as ydl:
-                if 'playlist' in url:
-                    song_info = ydl.extract_info(f'{url}', download=False)['entries']
+                if re.match(playlist_url_regex, url) is not None:
+                    song_info = ydl.extract_info(url, download=False)['entries']
                     entries = len(song_info)
-                    await ctx.send(f"Adding `{entries} SONGS` to Queue.")
+                elif re.match(vid_url_regex, url) is not None:
+                    song_info = []
+                    song_info.append(ydl.extract_info(url, download=False))
                 else:
                     song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
-                    entries = 1
-                for i in range(0, len(song_info)):
-                    link = song_info[i].get("webpage_url")
-                    self.obj.append(video_info(link, ctx.message.author.display_name))
 
-            if entries == 1:
-                await ctx.send(f'Adding `{self.obj[len(self.obj)-1].Title}` to Queue.')
+            self.obj.append(video_info(song_info[0], ctx.message.author.display_name))
 
         if music.play_from_queue.is_running() is False:
             music.play_from_queue.start(self, ctx)
+
+        if re.match(playlist_url_regex, url) is not None:
+            await ctx.send(f"Adding `{entries} SONGS` to Queue.")
+            for i in range(1,len(song_info)):
+                self.obj.append(video_info(song_info[i], ctx.message.author.display_name))
+        else: await ctx.send(f'Adding `{self.obj[len(self.obj)-1].Title}` to Queue.')
 
     #Status Update
     async def status_set(self, ctx):
