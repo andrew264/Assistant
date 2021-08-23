@@ -109,11 +109,11 @@ class music(commands.Cog):
         else:
             async with ctx.typing():
                 embed=Embed(title="Songs in Queue",colour=0xffa31a)
-                embed.add_field(name='Now Playing',value=f'{self.obj[0].Title} (Requested by {self.obj[0].Author})', inline=False)
+                embed.add_field(name='Now Playing',value=f'[{self.obj[0].Title}]({self.obj[0].pURL}) (Requested by {self.obj[0].Author})', inline=False)
                 if len(self.obj)>1:
-                    embed.add_field(name='Next in Queue',value=f'1. {self.obj[1].Title} (Requested by {self.obj[1].Author})', inline=False)
+                    embed.add_field(name='Next in Queue',value=f'1. [{self.obj[1].Title}]({self.obj[1].pURL}) (Requested by {self.obj[1].Author})', inline=False)
                     for i in range(2,len(self.obj)):
-                        embed.add_field(name='\u200b',value=f'{i}. {self.obj[i].Title} (Requested by {self.obj[i].Author})', inline=False)
+                        embed.add_field(name='\u200b',value=f'{i}. [{self.obj[i].Title}]({self.obj[i].pURL}) (Requested by {self.obj[i].Author})', inline=False)
                 return await ctx.send(embed=embed, delete_after=300)
 
     #Play from Queue
