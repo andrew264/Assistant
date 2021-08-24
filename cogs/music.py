@@ -43,16 +43,28 @@ class music(commands.Cog):
         self.looper = False
         self.obj = []
 
+    def YTDl(self, url):
+        with YDL(ydl_opts) as ydl:
+            if re.match(playlist_url_regex, url) is not None:
+                song_info = ydl.extract_info(url, download=False)['entries']
+                self.entries = len(song_info)
+            elif re.match(vid_url_regex, url) is not None:
+                song_info = []
+                song_info.append(ydl.extract_info(url, download=False))
+            else:
+                song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
+        return song_info
+
     #Play
     @commands.command(pass_context=True, aliases=['p'])
-    async def play(self, ctx,*,url:str=None):
+    async def play(self, ctx,*,query:str=None):
 
         # Check if author in VC
         if ctx.author.voice is None or ctx.author.voice.channel is None:
             return await ctx.send("You are not connected to a voice channel.")
 
         # If player is_paused resume...
-        if url is None:
+        if query is None:
             if self.obj !=[] and ctx.voice_client.is_paused() is True:
                 async with ctx.typing():
                     ctx.voice_client.resume()
@@ -71,24 +83,16 @@ class music(commands.Cog):
             voice = await voiceChannel.connect()
 
         async with ctx.typing():
-            #find vid url and add to list
-            with YDL(ydl_opts) as ydl:
-                if re.match(playlist_url_regex, url) is not None:
-                    song_info = ydl.extract_info(url, download=False)['entries']
-                    entries = len(song_info)
-                elif re.match(vid_url_regex, url) is not None:
-                    song_info = []
-                    song_info.append(ydl.extract_info(url, download=False))
-                else:
-                    song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
+            loop = asyncio.get_event_loop()
+            song_info = await loop.run_in_executor(None, music.YTDl, self, query)
 
             self.obj.append(video_info(song_info[0], ctx.message.author.display_name))
 
         if music.play_from_queue.is_running() is False:
             music.play_from_queue.start(self, ctx)
 
-        if re.match(playlist_url_regex, url) is not None:
-            await ctx.send(f"Adding `{entries} SONGS` to Queue.")
+        if re.match(playlist_url_regex, query) is not None:
+            await ctx.send(f"Adding `{self.entries} SONGS` to Queue.")
             for i in range(1,len(song_info)):
                 self.obj.append(video_info(song_info[i], ctx.message.author.display_name))
         else: await ctx.send(f'Adding `{self.obj[len(self.obj)-1].Title}` to Queue.')
