@@ -1,6 +1,7 @@
 import discord.ext.commands as commands
 from olenv import OWNERID
-from discord import Activity, ActivityType, Status, User, Member
+from discord import Activity, ActivityType, Status, User
+from dislash.application_commands import slash_client
 from typing import Optional
 
 class utils(commands.Cog):
@@ -18,7 +19,7 @@ class utils(commands.Cog):
 			await ctx.message.delete()
 
 	# ping
-	@commands.command()
+	@slash_client.slash_command(description = "Get Bot's Latency")
 	async def ping(self,ctx):
 		await ctx.send(f'Client Latency: {round(self.client.latency * 1000)}  ms')
 

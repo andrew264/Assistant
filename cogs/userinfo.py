@@ -1,7 +1,6 @@
 import discord
 import discord.ext.commands as commands
 from discord import Member, Embed
-from discord import Spotify, CustomActivity, Game, Streaming, Activity
 from dislash.application_commands import slash_client
 from dislash.interactions.application_command import Option, OptionType
 from datetime import datetime, timezone
