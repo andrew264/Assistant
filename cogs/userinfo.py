@@ -18,7 +18,7 @@ class userinfo(commands.Cog):
 			user = ctx.author
 		date_format = "%a, %d %b %Y %I:%M %p"
 		embed = Embed(color=user.colour, description=user.mention)
-		if user.avatar.url:
+		if user.avatar is not None:
 			embed.set_author(name=user, icon_url=user.avatar.url)
 			embed.set_thumbnail(url=user.avatar.url)
 		else: embed.set_author(name=user)
