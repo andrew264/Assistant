@@ -16,7 +16,7 @@ class TextToSpeech(commands.Cog):
 							 options=[Option("message", "Enter a message", OptionType.STRING, required = True)])
 	async def tts(self, inter: SlashInteraction, message:str):
 		if inter.author.voice is None or inter.author.voice.channel is None:
-			return await ctx.send("You are not connected to a voice channel.")
+			return await inter.reply("You are not connected to a voice channel.", ephemeral=True)
 		voice = get(self.client.voice_clients, guild=inter.guild)
 		if voice and voice.is_connected():
 			pass
