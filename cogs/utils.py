@@ -1,6 +1,7 @@
 import discord.ext.commands as commands
 from olenv import OWNERID
 from discord import Activity, ActivityType, Status, User, Member
+from typing import Optional
 
 class utils(commands.Cog):
 
@@ -16,32 +17,10 @@ class utils(commands.Cog):
 			await ctx.send(args)
 			await ctx.message.delete()
 
-	# Nickname
-	@commands.command(hidden=True,aliases=['nick'])
-	async def nickname(self,ctx, member: Member, *, new_nick):
-		if ctx.author.guild_permissions.administrator or ctx.author.id == OWNERID :
-			await ctx.message.delete()
-			old_nick = member.display_name
-			await member.edit(nick=new_nick)
-			await ctx.send(f'{old_nick} ---> {new_nick}')
-		else:
-			await ctx.reply("https://media1.tenor.com/images/7bc1dffdde74316e94dcbe421cf2f260/tenor.gif?itemid=8850963")
-
 	# ping
 	@commands.command()
 	async def ping(self,ctx):
 		await ctx.send(f'Client Latency: {round(self.client.latency * 1000)}  ms')
-
-	# clear
-	@commands.command()
-	@commands.has_permissions(manage_messages=True)
-	async def clear(self, ctx, amount=5):
-		await ctx.channel.purge(limit=amount+1)
-	@commands.command(hidden=True)
-	@clear.error
-	async def clear_error(self, ctx, error):
-		if isinstance(error, commands.MissingPermissions):
-			await ctx.send('You have no Permission(s).')
 
 	#Set Status
 	@commands.command(pass_context=True)
@@ -72,17 +51,50 @@ class utils(commands.Cog):
 			await self.client.change_presence(status=A, activity=Activity(type=B, name=name))
 			await ctx.send(f'Status set to `{state}` and `{type.title()}ing: {name}`')
 
-	# Slide into dms
-	@commands.command(pass_context = True)
-	async def dm(self, ctx, user: User, *, msg:str):
-		if ctx.author.id != OWNERID :
-			await ctx.reply("I am not your Assistant.")
+	# clear
+	@commands.command(aliases=['delete'])
+	@commands.has_permissions(manage_messages=True)
+	async def clear(self, ctx, user: Optional[User], no_of_msgs:int = 5):
+		if no_of_msgs > 420:
+			return await ctx.reply(f'No')
+		await ctx.message.delete()
+		def check(msg):
+			return msg.author.id == user.id
+		if user is None:
+			await ctx.channel.purge(limit=no_of_msgs)
+			await ctx.send(f'`{ctx.author.display_name}` deleted `{no_of_msgs}` message(s).', delete_after=30)
 		else:
-			channel = await user.create_dm()
-			try:
-				await channel.send(msg)
-			except Exception: 
-				await ctx.send(f'{user} is gei')
+			await ctx.channel.purge(limit=no_of_msgs, check=check, before=None)
+			await ctx.send(f'`{ctx.author.display_name}` deleted `{user.display_name}\'s` `{no_of_msgs}` message(s).', delete_after=30)
+	@commands.command(hidden=True)
+	@clear.error
+	async def clear_error(self, ctx, error):
+		if isinstance(error, commands.MissingPermissions):
+			await ctx.send('You have no Permission(s).')
+
+	@commands.command(aliases=['yeettill', 'yeetill'])
+	@commands.has_permissions(manage_messages=True)
+	async def purge_until(self, ctx, message_id: int):
+		channel = ctx.message.channel
+		try:
+			message = await channel.fetch_message(message_id)
+		except errors.NotFound:
+			await ctx.send("Message could not be found in this channel")
+			return
+		await ctx.message.delete()
+		await channel.purge(after=message)
+		await ctx.send(f'`{ctx.author.display_name}` deleted messages till `{message.content}`', delete_after=30)
+		return True
+
+	@commands.command(aliases=['yeetmsg','notme'])
+	@commands.has_permissions(manage_messages=True)
+	async def purge_msg(self, ctx, string, amount: Optional[int] = 10):
+		channel = ctx.message.channel
+		def check(msg):
+			if string in msg.content: return True
+		await ctx.message.delete()
+		await channel.purge(limit=amount, check=check, before=None)
+		await ctx.send(f'`{ctx.author.display_name}` deleted `{amount}` {string} message(s).', delete_after=30)
 
 def setup(client):
 	client.add_cog(utils(client))

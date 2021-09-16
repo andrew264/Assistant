@@ -51,9 +51,10 @@ class ready(commands.Cog):
 	@commands.Cog.listener()
 	async def on_command_error(self, ctx, error):
 		if isinstance(error, commands.CommandNotFound):
-			await ctx.send(f'{error}.', delete_after=60)
-		channel = self.client.get_channel(DM_Channel)
-		await channel.send(f'{error}\n`MESSAGE: `{ctx.message.content}')
+			return
+		elif isinstance(error, commands.MissingPermissions):
+			return await ctx.send(error, delete_after=60)
+		else: await ctx.send(f'***{error}***')
 
 def setup(client):
 	client.add_cog(ready(client))
