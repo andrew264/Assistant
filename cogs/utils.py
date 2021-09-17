@@ -92,7 +92,7 @@ class utils(commands.Cog):
 	async def purge_msg(self, ctx: commands.Context, string: str, amount: Optional[int] = 10):
 		channel = ctx.message.channel
 		def check(msg: Message):
-			if string in msg.content.lower(): return True
+			if string.lower() in msg.content.lower(): return True
 		await ctx.message.delete()
 		await channel.purge(limit=amount, check=check, before=None)
 		await ctx.send(f'`{ctx.author.display_name}` deleted `{amount}` {string} message(s).', delete_after=30)
