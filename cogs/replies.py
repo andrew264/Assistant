@@ -1,5 +1,6 @@
 from random import choice
 import discord.ext.commands as commands
+from discord import Message
 from olreplies import *
 
 class replies(commands.Cog):
@@ -9,7 +10,7 @@ class replies(commands.Cog):
 
 	# Replies
 	@commands.Cog.listener()
-	async def on_message(self, message):
+	async def on_message(self, message: Message):
 		if message.author == self.client.user:
 			return
 		if message.author.bot: return

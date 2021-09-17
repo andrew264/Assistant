@@ -61,7 +61,7 @@ class music(commands.Cog):
 
     #Play
     @commands.command(pass_context=True, aliases=['p'])
-    async def play(self, ctx,*,query:str=None):
+    async def play(self, ctx: commands.Context,*,query:str=None):
 
         # create Dictionary
         if not self.dict_obj:
@@ -102,7 +102,7 @@ class music(commands.Cog):
 
     #Queue
     @commands.command(aliases=['q'])
-    async def queue(self, ctx):
+    async def queue(self, ctx: commands.Context):
         self.page_no = 1
         ###
         row = ActionRow(
@@ -149,7 +149,7 @@ class music(commands.Cog):
                 await msg.edit(components=[])
 
     #Play from Queue
-    async def player(self, ctx):
+    async def player(self, ctx: commands.Context):
         # Embed
         if self.dict_obj[ctx.guild.id]:
             embed=Embed(title="", color=0xff0000)
@@ -181,7 +181,7 @@ class music(commands.Cog):
 
     #Skip
     @commands.command()
-    async def skip(self, ctx, arg=0):
+    async def skip(self, ctx: commands.Context, arg=0):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
             embed=Embed(title='Removed',colour=0xff7f50)
             embed.add_field(name=f'{self.dict_obj[ctx.guild.id][arg].Title} from Queue.',value=f'by {ctx.message.author.display_name}')
@@ -199,7 +199,7 @@ class music(commands.Cog):
 
     #Stop
     @commands.command(aliases=['dc', 'kelambu'])
-    async def stop(self, ctx):
+    async def stop(self, ctx: commands.Context):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
             ctx.voice_client.stop()
             # clean list
@@ -209,7 +209,7 @@ class music(commands.Cog):
 
     #Pause
     @commands.command()
-    async def pause(self, ctx):
+    async def pause(self, ctx: commands.Context):
         if ctx.voice_client is not None and ctx.voice_client.is_paused() is False:
             ctx.voice_client.pause()
             embed=Embed(title='Paused:',colour=0x4169e1)
@@ -222,7 +222,7 @@ class music(commands.Cog):
 
     #Loop
     @commands.command(aliases=['repeat'])
-    async def loop(self, ctx):
+    async def loop(self, ctx: commands.Context):
         if self.looper:
             self.looper=False
             embed=Embed(title='Loop Disabled.',colour=0x1abc9c)
@@ -233,7 +233,7 @@ class music(commands.Cog):
 
     #Now Playing
     @commands.command(aliases=['nowplaying'])
-    async def np(self, ctx):
+    async def np(self, ctx: commands.Context):
         if self.dict_obj[ctx.guild.id]:
             percentile=20-round((self.dict_obj[ctx.guild.id][0].SongIn/self.dict_obj[ctx.guild.id][0].Duration)*20)
             bar='────────────────────'
@@ -253,7 +253,7 @@ class music(commands.Cog):
 
     #Jump
     @commands.command(aliases=['skipto'])
-    async def jump(self, ctx, song_index: int=1):
+    async def jump(self, ctx: commands.Context, song_index: int=1):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True and song_index >1:
             embed=Embed(title='Skipped to',colour=0xff7f50)
             embed.add_field(name=f'{self.dict_obj[ctx.guild.id][song_index].Title} from Queue.',value=f'by {ctx.message.author.display_name}')
@@ -270,7 +270,7 @@ class music(commands.Cog):
     @loop.before_invoke
     @np.before_invoke
     @jump.before_invoke
-    async def check_voice(self, ctx):
+    async def check_voice(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('Bot is not connect to VC.')
         if ctx.author.voice is None:
@@ -281,7 +281,7 @@ class music(commands.Cog):
 
     # Play Checks
     @play.before_invoke
-    async def check_play(self, ctx):
+    async def check_play(self, ctx: commands.Context):
         if ctx.author.voice is None:
             raise commands.CommandError('You are not connected to a voice channel.')
         if ctx.voice_client is not None and ctx.author.voice is not None:

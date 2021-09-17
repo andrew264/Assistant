@@ -49,7 +49,7 @@ class ready(commands.Cog):
 
 	# Unknown commands
 	@commands.Cog.listener()
-	async def on_command_error(self, ctx, error):
+	async def on_command_error(self, ctx: commands.Context, error):
 		if isinstance(error, commands.CommandNotFound):
 			return
 		elif isinstance(error, commands.MissingPermissions):

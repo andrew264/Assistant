@@ -29,7 +29,7 @@ class mc(commands.Cog):
 	# startup server
 	@commands.command(pass_context=True, aliases=['minecraft', 'startserver', 'start'])
 	@commands.has_permissions(manage_messages=True)
-	async def mcstart(self, ctx):
+	async def mcstart(self, ctx: commands.Context):
 		async with ctx.typing():
 			await mc.serverstat(self)
 			if self.online:
@@ -41,7 +41,7 @@ class mc(commands.Cog):
 	# server status
 	@commands.command(aliases=['ip', 'stat', 'mcip'])
 	@commands.has_permissions(manage_messages=True)
-	async def mcstatus(self, ctx):
+	async def mcstatus(self, ctx: commands.Context):
 		async with ctx.typing():
 			await mc.serverstat(self)
 			if self.online:
@@ -57,7 +57,7 @@ class mc(commands.Cog):
 
 	@commands.command(aliases=['newserver', 'createserver'])
 	@commands.has_permissions(manage_messages=True)
-	async def mcnew(self, ctx, *, seed: Optional[int]):
+	async def mcnew(self, ctx: commands.Context, seed: Optional[int]):
 		async with ctx.typing():
 			await mc.serverstat(self)
 			if self.online is False:

@@ -13,7 +13,7 @@ class userinfo(commands.Cog):
 	@commands.command(aliases=['info', 'analyse', 'user', 'userinfo'])
 	@commands.guild_only()
 	@commands.bot_has_permissions(embed_links=True)
-	async def whois(self, ctx, *, user: Member = None):
+	async def whois(self, ctx: commands.Context, *, user: Member = None):
 		if user is None:
 			user = ctx.author
 		date_format = "%a, %d %b %Y %I:%M %p"
@@ -62,7 +62,7 @@ class userinfo(commands.Cog):
 	@slash_client.slash_command(
 		description="Shows the avatar of the user",
 		options=[Option("user", "Mention a user", OptionType.USER)])
-	async def avatar(self, ctx, *, user: Member = None):
+	async def avatar(self, ctx: commands.Context, user: Member = None):
 		if user is None:
 			user = ctx.author
 		avatar=Embed(title=f"{user.display_name}'s profile pic :)", color=user.colour)
@@ -70,7 +70,7 @@ class userinfo(commands.Cog):
 		await ctx.send(embed=avatar)
 
 	@slash_client.slash_command(description="Shows Bot's Info")
-	async def botinfo(self, ctx):
+	async def botinfo(self, ctx: commands.Context):
 		user = self.client.user
 		embed = Embed(color=0xFF0060, description=user.mention)
 		embed.set_author(name=user, icon_url=user.avatar.url)

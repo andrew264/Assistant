@@ -1,7 +1,7 @@
 import discord.ext.commands as commands
 from discord.utils import get
 from gtts import gTTS
-from discord import FFmpegPCMAudio
+from discord import FFmpegPCMAudio, Member, User
 import re, os
 from dislash.application_commands import slash_client
 from dislash.interactions.application_command import Option, OptionType
@@ -15,12 +15,12 @@ class TextToSpeech(commands.Cog):
 	@slash_client.slash_command(description = "Text To Speach",
 							 options=[Option("message", "Enter a message", OptionType.STRING, required = True)])
 	async def tts(self, inter: SlashInteraction, message:str):
-		if inter.author.voice is None or inter.author.voice.channel is None:
+		if isinstance(inter.author, Member) and inter.author.voice is None:
 			return await inter.reply("You are not connected to a voice channel.", ephemeral=True)
 		voice = get(self.client.voice_clients, guild=inter.guild)
 		if voice and voice.is_connected():
 			pass
-		elif voice==None:
+		elif isinstance(inter.author, Member) and voice==None:
 			voiceChannel = inter.author.voice.channel
 			voice = await voiceChannel.connect()
 		if message:
@@ -34,7 +34,7 @@ class TextToSpeech(commands.Cog):
 			new_str = re.sub(r'[^A-Za-z0-9 ]+', '', message)
 			gTTS(f'{name} says {new_str}').save('tts.mp3')
 			voice.play(FFmpegPCMAudio('tts.mp3'))
-			await inter.reply(f"{inter.author.display_name} says: {message}")
+			await inter.send(f"{inter.author.display_name} says: {message}")
 
 def setup(client):
 	client.add_cog(TextToSpeech(client))

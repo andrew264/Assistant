@@ -1,6 +1,6 @@
 import discord.ext.commands as commands
 from olenv import OWNERID
-from discord import Activity, ActivityType, Status, User
+from discord import Activity, ActivityType, Status, User, Message
 from dislash.application_commands import slash_client
 from typing import Optional
 
@@ -11,7 +11,7 @@ class utils(commands.Cog):
 
 	# echo
 	@commands.command(hidden=True)
-	async def echo(self,ctx,*,args):
+	async def echo(self,ctx: commands.Context, *, args):
 		if ctx.author.id != OWNERID :
 			await ctx.reply("I am not your Assistant.")
 		else:
@@ -20,7 +20,7 @@ class utils(commands.Cog):
 
 	# ping
 	@slash_client.slash_command(description = "Get Bot's Latency")
-	async def ping(self,ctx):
+	async def ping(self, ctx: commands.Context):
 		await ctx.send(f'Client Latency: {round(self.client.latency * 1000)}  ms')
 
 	#Set Status
@@ -55,7 +55,7 @@ class utils(commands.Cog):
 	# clear
 	@commands.command(aliases=['delete'])
 	@commands.has_permissions(manage_messages=True)
-	async def clear(self, ctx, user: Optional[User], no_of_msgs:int = 5):
+	async def clear(self, ctx: commands.Context, user: Optional[User], no_of_msgs:int = 5):
 		if no_of_msgs > 420:
 			return await ctx.reply(f'No')
 		await ctx.message.delete()
@@ -69,13 +69,13 @@ class utils(commands.Cog):
 			await ctx.send(f'`{ctx.author.display_name}` deleted `{user.display_name}\'s` `{no_of_msgs}` message(s).', delete_after=30)
 	@commands.command(hidden=True)
 	@clear.error
-	async def clear_error(self, ctx, error):
+	async def clear_error(self, ctx: commands.Context, error: commands.errors):
 		if isinstance(error, commands.MissingPermissions):
 			await ctx.send('You have no Permission(s).')
 
 	@commands.command(aliases=['yeettill', 'yeetill'])
 	@commands.has_permissions(manage_messages=True)
-	async def purge_until(self, ctx, message_id: int):
+	async def purge_until(self, ctx: commands.Context, message_id: int):
 		channel = ctx.message.channel
 		try:
 			message = await channel.fetch_message(message_id)
@@ -89,10 +89,10 @@ class utils(commands.Cog):
 
 	@commands.command(aliases=['yeetmsg','notme'])
 	@commands.has_permissions(manage_messages=True)
-	async def purge_msg(self, ctx, string, amount: Optional[int] = 10):
+	async def purge_msg(self, ctx: commands.Context, string: str, amount: Optional[int] = 10):
 		channel = ctx.message.channel
-		def check(msg):
-			if string in msg.content: return True
+		def check(msg: Message):
+			if string in msg.content.lower(): return True
 		await ctx.message.delete()
 		await channel.purge(limit=amount, check=check, before=None)
 		await ctx.send(f'`{ctx.author.display_name}` deleted `{amount}` {string} message(s).', delete_after=30)
