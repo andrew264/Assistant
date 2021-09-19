@@ -1,8 +1,10 @@
-import discord
+﻿import discord
 import discord.ext.commands as commands
 from discord import Member, Embed
+from discord import Spotify, Game, CustomActivity, Streaming, Activity
 from dislash.application_commands import slash_client
 from dislash.interactions.application_command import Option, OptionType
+from dislash.interactions.app_command_interaction import SlashInteraction
 from datetime import datetime, timezone
 
 class userinfo(commands.Cog):
@@ -24,22 +26,27 @@ class userinfo(commands.Cog):
 		else: embed.set_author(name=user)
 		time_now = datetime.now(timezone.utc)
 		embed.add_field(name=f"Joined {ctx.guild.name} on", value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**")
-		embed.add_field(name="Joined Discord on", value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**")
-		embed.add_field(name="Nickname", value=user.nick)
+		embed.add_field(name="Account created on", value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**")
+		if user.nick is not None:
+			embed.add_field(name="Nickname", value=user.nick)
 		# Clients
 		if user.raw_status != 'offline':
-			embed.add_field(name="Available Clients", value=f"**{userinfo.clients(self, user)}**")
+			embed.add_field(name="Available Clients", value=userinfo.AvailableClients(user))
 		# Activity
 		for activity in user.activities:
-			if activity.type.name == 'playing':
-				if activity.start is not None: embed.add_field(name="Playing", value=f"**{activity.name}** ({':'.join(str(time_now - activity.start).split(':')[:2])} hours)")
-				else: embed.add_field(name="Playing", value=f"**{activity.name}**")
-			elif activity.type.name == 'streaming':
+			if isinstance(activity, Game):
+				embed.add_field(name="Playing", value=userinfo.ActivityVal(activity))
+			elif isinstance(activity, Streaming):
 				embed.add_field(name=f"Streaming", value=f"[{activity.name}]({activity.url})")
-			elif activity.type.name == 'listening':
-				embed.add_field(name="Spotify", value = f"Listening to [{activity.title} by {', '.join(activity.artists)}]({activity.track_url})")
-			elif activity.type.name == 'custom':
-				embed.add_field(name="Status", value=f'{activity.emoji} {activity.name}')
+			elif isinstance(activity, Spotify):
+				embed.add_field(name="Spotify", value=f"Listening to [{activity.title} by {', '.join(activity.artists)}]({activity.track_url})")
+				embed.set_thumbnail(url=activity.album_cover_url)
+			elif isinstance(activity, CustomActivity):
+				embed.add_field(name="Status", value=userinfo.CustomActVal(activity))
+			elif isinstance(activity, Activity):
+				embed.add_field(name=f"{activity.type.name.capitalize()}", value=userinfo.ActivityVal(activity))
+				if hasattr(activity, 'large_image_url') and activity.large_image_url is not None:
+					embed.set_thumbnail(url=activity.large_image_url)
 		if len(user.roles) > 1:
 			role_string = ' '.join([r.mention for r in user.roles][1:])
 			embed.add_field(name=f"Roles [{len(user.roles)-1}]", value=role_string, inline=False)
@@ -49,7 +56,27 @@ class userinfo(commands.Cog):
 		except discord.Forbidden:
 			return await ctx.send("Missing Embed Permission.")
 
-	def clients(self, user: Member):
+	def ActivityVal(activity: Activity):
+		value: str = f"**{activity.name}** "
+		if activity.start is not None:
+			delta = (datetime.now(timezone.utc) - activity.start).seconds
+			if delta < 60:
+				value += f"({delta} s)"
+			elif 60 <= delta < 3600:
+				value += f"({delta//60} mins {delta%60} sec)"
+			elif delta >=3600:
+				value += f"({delta//3600} hrs {(delta//60)%60} mins)"
+		return value
+
+	def CustomActVal(activity: CustomActivity):
+		value: str = ''
+		if activity.emoji is not None:
+			value += f"[{activity.emoji}]({activity.emoji.url}) "
+		if activity.name is not None:
+			value += activity.name
+		return value
+
+	def AvailableClients(user: Member):
 		clients = []
 		if user.desktop_status.name != 'offline':
 			clients.append('Desktop')
@@ -57,7 +84,11 @@ class userinfo(commands.Cog):
 			clients.append('Mobile')
 		if user.web_status.name != 'offline':
 			clients.append('Web')
-		return ', '.join(clients)
+		value = f"**{', '.join(clients)}**"
+		if user.raw_status == 'online': value = "Online in " + value
+		elif user.raw_status == 'idle': value = "Idling in " + value
+		elif user.raw_status == 'dnd': value = value + " (DND)"
+		return value
 
 	@slash_client.slash_command(
 		description="Shows the avatar of the user",
@@ -65,7 +96,7 @@ class userinfo(commands.Cog):
 	async def avatar(self, ctx: commands.Context, user: Member = None):
 		if user is None:
 			user = ctx.author
-		avatar=Embed(title=f"{user.display_name}'s profile pic :)", color=user.colour)
+		avatar=Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
 		avatar.set_image(url=user.avatar.url)
 		await ctx.send(embed=avatar)
 
