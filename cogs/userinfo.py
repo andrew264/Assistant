@@ -20,10 +20,8 @@ class userinfo(commands.Cog):
 			user = ctx.author
 		date_format = "%a, %d %b %Y %I:%M %p"
 		embed = Embed(color=user.colour, description=user.mention)
-		if user.avatar is not None:
-			embed.set_author(name=user, icon_url=user.avatar.url)
-			embed.set_thumbnail(url=user.avatar.url)
-		else: embed.set_author(name=user)
+		embed.set_author(name=user, icon_url=user.display_avatar.url)
+		embed.set_thumbnail(url=user.display_avatar.url)
 		time_now = datetime.now(timezone.utc)
 		embed.add_field(name=f"Joined {ctx.guild.name} on", value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**")
 		embed.add_field(name="Account created on", value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**")
@@ -97,7 +95,7 @@ class userinfo(commands.Cog):
 		if user is None:
 			user = ctx.author
 		avatar=Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
-		avatar.set_image(url=user.avatar.url)
+		avatar.set_image(url=user.display_avatar.url)
 		await ctx.send(embed=avatar)
 
 	@slash_client.slash_command(description="Shows Bot's Info")
