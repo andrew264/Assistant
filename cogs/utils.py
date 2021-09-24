@@ -1,6 +1,7 @@
 import discord.ext.commands as commands
 from olenv import OWNERID
 from discord import Activity, ActivityType, Status, User, Message
+from discord import errors
 from dislash.application_commands import slash_client
 from typing import Optional
 
@@ -80,8 +81,7 @@ class utils(commands.Cog):
 		try:
 			message = await channel.fetch_message(message_id)
 		except errors.NotFound:
-			await ctx.send("Message could not be found in this channel")
-			return
+			return await ctx.send("Message could not be found in this channel")
 		await ctx.message.delete()
 		await channel.purge(after=message)
 		await ctx.send(f'`{ctx.author.display_name}` deleted messages till `{message.content}`', delete_after=30)
