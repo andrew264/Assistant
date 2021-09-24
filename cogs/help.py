@@ -18,8 +18,7 @@ class HelpMe(commands.Cog):
 		row = ActionRow(
             Button(style=ButtonStyle.blurple, label="User Info", custom_id="user"),
             Button(style=ButtonStyle.blurple, label="Cleaning Commands", custom_id="clean"),
-            Button(style=ButtonStyle.blurple, label="Music Commands", custom_id="music"),
-            Button(style=ButtonStyle.blurple, label="Minecraft Commands", custom_id="mc")
+            Button(style=ButtonStyle.blurple, label="Music Commands", custom_id="music")
         )
 		msg = await inter.reply('Slash Commands are not listed here.', components=[row])
 		on_click = msg.create_click_listener(timeout=120)
@@ -52,13 +51,6 @@ class HelpMe(commands.Cog):
 		musicembed.add_field(name='`+jump`\t<song_index>', value='Skip to a Song')
 		###
 
-		### Minecraft Commands
-		mcembed = Embed(color = Colour.red())
-		mcembed.set_author(name='Admin Commands',icon_url=self.client.user.avatar.url)
-		mcembed.add_field(name='`.mcstatus`\t\t\t\t\t\t\t\t\t\t  Check Minecraft Server Status', value='\u200b', inline=False)
-		mcembed.add_field(name='`.mcnew`\t<seed[Optional]>\t\tCreate Minecraft Server', value='\u200b', inline=False)
-		###
-
 		@on_click.matching_id("user")
 		async def on_user(inter):
 			await inter.reply(embed = userembed, ephemeral=True)
@@ -68,9 +60,6 @@ class HelpMe(commands.Cog):
 		@on_click.matching_id("music")
 		async def on_music(inter):
 			await inter.reply(embed = musicembed, ephemeral=True)
-		@on_click.matching_id("mc")
-		async def on_mc(inter):
-			await inter.reply(embed = mcembed, ephemeral=True)
 		@on_click.timeout
 		async def on_timeout():
 			await msg.edit(components=[])
