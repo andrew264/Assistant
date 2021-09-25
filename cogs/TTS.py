@@ -33,7 +33,8 @@ class TextToSpeech(commands.Cog):
 			name = re.sub(r'[^A-Za-z0-9 ]+', '', inter.author.display_name)
 			new_str = re.sub(r'[^A-Za-z0-9 ]+', '', message)
 			gTTS(f'{name} says {new_str}').save('tts.mp3')
-			voice.play(FFmpegPCMAudio('tts.mp3'))
+			if voice.is_playing() == False & voice.is_playing() == False :
+				voice.play(FFmpegPCMAudio('tts.mp3'))
 			await inter.send(f"{inter.author.display_name} says: {message}")
 
 def setup(client):

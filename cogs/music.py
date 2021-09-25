@@ -150,7 +150,7 @@ class music(commands.Cog):
 
     #Play from Queue
     async def player(self, ctx: commands.Context):
-        # Embed
+        voice = get(self.client.voice_clients, guild=ctx.guild)
         if self.dict_obj[ctx.guild.id]:
             embed=Embed(title="", color=0xff0000)
             embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
@@ -159,12 +159,12 @@ class music(commands.Cog):
             embed.add_field(name="Requested by:", value=self.dict_obj[ctx.guild.id][0].Author, inline=True)
             embed.add_field(name="Song Rating:", value=f'{self.dict_obj[ctx.guild.id][0].Rating}/5', inline=True)
             await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].Duration)
-            voice = get(self.client.voice_clients, guild=ctx.guild)
             voice.play(FFmpegOpusAudio(self.dict_obj[ctx.guild.id][0].URL, bitrate=192, **FFMPEG_OPTIONS),
                        after=lambda e: print(f'Player error: {e}') if e else None)
-            while self.dict_obj[ctx.guild.id][0].SongIn>0:
-                await asyncio.sleep(1)
-                self.dict_obj[ctx.guild.id][0].SongIn-=1
+            if self.dict_obj[ctx.guild.id][0]:
+                while self.dict_obj[ctx.guild.id][0].SongIn>0:
+                    await asyncio.sleep(1)
+                    self.dict_obj[ctx.guild.id][0].SongIn-=1
             ctx.voice_client.stop()
             # song ends here
             if self.dict_obj[ctx.guild.id] and self.looper:
@@ -177,7 +177,8 @@ class music(commands.Cog):
             await music.player(self, ctx)
         else:
             await asyncio.sleep(30)
-            await ctx.voice_client.disconnect()
+            if voice and voice.is_connected():
+                await ctx.voice_client.disconnect()
 
     #Skip
     @commands.command()
@@ -203,6 +204,8 @@ class music(commands.Cog):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
             ctx.voice_client.stop()
             # clean list
+            self.dict_obj[ctx.guild.id][0].SongIn = 0
+            await asyncio.sleep(2)
             self.dict_obj[ctx.guild.id].clear()
             await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
             self.looper=False

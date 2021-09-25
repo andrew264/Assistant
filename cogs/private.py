@@ -2,6 +2,7 @@
 import discord
 from discord import Embed
 import discord.ext.commands as commands
+from discord.utils import find
 from dislash.application_commands import slash_client
 from dislash.interactions.app_command_interaction import SlashInteraction
 
@@ -25,9 +26,11 @@ class private(commands.Cog):
 					await channel.set_permissions(inter.author, overwrite=overwrites_readEnable)
 				await category.set_permissions(inter.author, overwrite=overwrites_readEnable)
 				return await inter.reply(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
+		daBotsRole = find(lambda r: r.id == 821762347659165727, inter.guild.roles)
 		overwrites_readTrue = { inter.guild.default_role: discord.PermissionOverwrite(read_messages=False),
 								inter.guild.me: discord.PermissionOverwrite(read_messages=True),
-								inter.author: discord.PermissionOverwrite(read_messages=True) }
+								inter.author: discord.PermissionOverwrite(read_messages=True),
+							    daBotsRole: discord.PermissionOverwrite(read_messages=True) }
 		category: discord.CategoryChannel = await inter.guild.create_category(f"{inter.author.display_name}'s Chat", overwrites=overwrites_readTrue, reason=None, position=None)
 		textChannel = await category.create_text_channel("private-chat", overwrites=overwrites_readTrue)
 		voiceChannel = await category.create_voice_channel("Private Call Booth", overwrites=overwrites_readTrue)
