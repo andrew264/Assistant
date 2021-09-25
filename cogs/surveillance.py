@@ -29,6 +29,7 @@ class Surveillance(commands.Cog):
 	@commands.Cog.listener()
 	async def on_message_delete(self, message: Message):
 		if message.author.bot: return
+		if message.author.id == OWNERID: return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
 		embed = Embed(colour = Colour.orange())
 		embed.set_author(name=f"{message.author} deleted a message in #{message.channel.name}", icon_url=message.author.avatar.url)
@@ -84,7 +85,7 @@ class Surveillance(commands.Cog):
 			elif before.activity is not None and after.activity is not None and before.activity.name != after.activity.name:
 				embed.add_field(name=f"Activity Update", value=f"{before.activity.type.name.capitalize()}: {before.activity.name}\n──>\n{after.activity.type.name.capitalize()}: {after.activity.name}", inline=False)
 		if len(embed.fields):
-			await log_channel.send(embed=embed)
+			await log_channel.send(embed=embed, delete_after=7200)
 
 	@commands.Cog.listener()
 	async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
