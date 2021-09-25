@@ -36,7 +36,7 @@ class private(commands.Cog):
 		voiceChannel = await category.create_voice_channel("Private Call Booth", overwrites=overwrites_readTrue)
 		await inter.reply(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
 		await voiceChannel.edit(rtc_region="india", bitrate=96000)
-		embed = Embed(colour = 0x002366, title=f"Welcome, {inter.author.display_name}!", description="This is a Private Chat.\nNo one else can see this channel other than both of us.\n:3")
+		embed = Embed(colour = 0x002366, title=f"Welcome, {inter.author.display_name}!", description="This is a Private Chat.\nNo one else can see this channel other than us.\n:3")
 		await textChannel.send(embed=embed)
 
 	@chat.sub_command(description="Delete existing Private Chat.")
