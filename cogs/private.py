@@ -1,5 +1,6 @@
 # discord stuff
 import discord
+from discord import Embed
 import discord.ext.commands as commands
 from dislash.application_commands import slash_client
 from dislash.interactions.app_command_interaction import SlashInteraction
@@ -24,15 +25,16 @@ class private(commands.Cog):
 					await channel.set_permissions(inter.author, overwrite=overwrites_readEnable)
 				await category.set_permissions(inter.author, overwrite=overwrites_readEnable)
 				return await inter.reply(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
-		overwrites_readTrue = {
-			inter.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-			inter.guild.me: discord.PermissionOverwrite(read_messages=True),
-			inter.author: discord.PermissionOverwrite(read_messages=True)
-		}
+		overwrites_readTrue = { inter.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+								inter.guild.me: discord.PermissionOverwrite(read_messages=True),
+								inter.author: discord.PermissionOverwrite(read_messages=True) }
 		category: discord.CategoryChannel = await inter.guild.create_category(f"{inter.author.display_name}'s Chat", overwrites=overwrites_readTrue, reason=None, position=None)
-		await category.create_text_channel("Chat", overwrites=overwrites_readTrue)
-		await category.create_voice_channel("Private Voice", overwrites=overwrites_readTrue)
+		textChannel = await category.create_text_channel("private-chat", overwrites=overwrites_readTrue)
+		voiceChannel = await category.create_voice_channel("Private Call Booth", overwrites=overwrites_readTrue)
 		await inter.reply(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
+		await voiceChannel.edit(rtc_region="india", bitrate=96000)
+		embed = Embed(colour = 0x002366, title=f"Welcome, {inter.author.display_name}!", description="This is a Private Chat.\nNo one else can see this channel other than both of us.\n<3")
+		await textChannel.send(embed=embed)
 
 	@chat.sub_command(description="Delete existing Private Chat.")
 	async def delete(self, inter: SlashInteraction):
