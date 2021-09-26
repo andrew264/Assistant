@@ -1,8 +1,11 @@
 ﻿import discord.ext.commands as commands
 from discord import Embed, Colour
 from discord import Message, Member, User, VoiceState, TextChannel
-from discord import CustomActivity
+from discord import CustomActivity, Activity, Spotify, Streaming, Game
+from discord.activity import ActivityTypes
 from datetime import datetime
+from typing import Tuple
+
 from olenv import OWNERID
 
 # IDs
@@ -69,21 +72,42 @@ class Surveillance(commands.Cog):
 		if before.id == OWNERID: return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
 		embed = Embed(colour = Colour.gold())
-		embed.set_author(name=f"{before.name}'s Presence update", icon_url=before.avatar.url)
+		embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.avatar.url)
 		if Surveillance.StatusUpdate(before) != Surveillance.StatusUpdate(after):
 			embed.add_field(name=f"Status Update", value=f"{Surveillance.StatusUpdate(before)} ──> {Surveillance.StatusUpdate(after)}")
 		if Surveillance.AvailableClients(before) != Surveillance.AvailableClients(after) :
 			embed.add_field(name=f"Client Update", value=f"{Surveillance.AvailableClients(before)} ──> {Surveillance.AvailableClients(after)}", inline=False)
-		if before.activity != after.activity:
-			if isinstance(after.activity, CustomActivity) and isinstance(before.activity, CustomActivity):
-				if Surveillance.CustomActVal(before.activity) != Surveillance.CustomActVal(after.activity):
-					embed.add_field(name=f"Custom Activity", value=f"{Surveillance.CustomActVal(before.activity)}\n──>\n{Surveillance.CustomActVal(after.activity)}", inline=False)
-			elif before.activity is None and after.activity is not None:
-				embed.add_field(name=f"Activity Update", value=f"Started: {after.activity.type.name.capitalize()} {after.activity.name}", inline=False)
-			elif before.activity is not None and after.activity is None:
-				embed.add_field(name=f"Activity Update", value=f"Stoped: {before.activity.type.name.capitalize()} {before.activity.name}", inline=False)
-			elif before.activity is not None and after.activity is not None and before.activity.name != after.activity.name:
-				embed.add_field(name=f"Activity Update", value=f"{before.activity.type.name.capitalize()}: {before.activity.name}\n──>\n{after.activity.type.name.capitalize()}: {after.activity.name}", inline=False)
+		
+		# Custom Activity
+		before_custom, after_custom = None, None
+		for activity in before.activities:
+			if isinstance(activity, CustomActivity):
+				before_custom = activity
+		for activity in after.activities:
+			if isinstance(activity, CustomActivity):
+				after_custom = activity
+		if before_custom is None and isinstance(after_custom, CustomActivity):
+			embed.add_field(name=f"Custom Status added", value=f"{Surveillance.CustomActVal(after_custom)}", inline=False)
+		elif after_custom is None and isinstance(before_custom, CustomActivity):
+			embed.add_field(name=f"Custom Status removed", value=f"{Surveillance.CustomActVal(before_custom)}", inline=False)
+		elif before_custom is not None and after_custom is not None and Surveillance.CustomActVal(before_custom) != Surveillance.CustomActVal(after_custom):
+			embed.add_field(name=f"Custom Status modified", value=f"{Surveillance.CustomActVal(before_custom)}\n──>\n{Surveillance.CustomActVal(after_custom)}", inline=False)
+
+		# Other Activities
+		before_activities = Surveillance.ActivityVal(before.activities)
+		after_activities = Surveillance.ActivityVal(after.activities)
+		for before_activity in before_activities:
+			for after_activity in after_activities:
+				if before_activity == after_activity:
+					before_activities.remove(before_activity)
+					after_activities.remove(after_activity)
+		if before_activities:
+			for before_activity in before_activities:
+				embed.add_field(name=f"Activity Update", value=f"Stoped: {before_activity}", inline=False)
+		if after_activities:
+			for after_activity in after_activities:
+				embed.add_field(name=f"Activity Update", value=f"Started: {after_activity}", inline=False)
+
 		if len(embed.fields):
 			await log_channel.send(embed=embed, delete_after=7200)
 
@@ -131,6 +155,22 @@ class Surveillance(commands.Cog):
 		if activity.name is not None:
 			value += activity.name
 		return value
+
+	def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()):
+		activitiesList = []
+		for activity in activities:
+			if isinstance(activity, Game):
+				activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
+			elif isinstance(activity, Streaming):
+				activitiesList.append(f"Streaming {activity.name}")
+			elif isinstance(activity, Spotify):
+				activitiesList.append(f"Listening to Spotify")
+			elif isinstance(activity, CustomActivity):
+				# handle CustomActivity Seperately
+				continue
+			elif isinstance(activity, Activity):
+				activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
+		return activitiesList
 
 def setup(client):
 	client.add_cog(Surveillance(client))
