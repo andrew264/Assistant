@@ -18,7 +18,7 @@ class leDMs(commands.Cog):
 		if message.author == self.client.user: return
 		else:
 			channel = self.client.get_channel(DM_Channel)
-			await channel.send(f'UserID: `{message.author.id}`\nMessage Author: `{message.author}`\nMessage:\n {message.content} \n──────────────────────────────')
+			await channel.send(f'UserID: `{message.author.id}`\nMessage Author: `{message.author}`\nMessage:\n ```{message.content}\n``` \n──────────────────────────────')
 
 	# slide to dms
 	@commands.command()
