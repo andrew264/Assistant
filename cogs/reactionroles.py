@@ -1,7 +1,6 @@
 ﻿import discord.ext.commands as commands
-from discord import Embed, RawReactionActionEvent
-from discord import Member, TextChannel, Guild, Message
-from discord.ext.commands.core import command
+from discord import Embed, RawReactionActionEvent, Client
+from discord import Member, PartialMessage, TextChannel
 from discord.utils import get
 
 CHANNEL_ID = 826931734645440562
@@ -21,7 +20,7 @@ possibleEmojis = {
 class ReactionRoles(commands.Cog):
 
 	def __init__(self,client):
-		self.client = client
+		self.client: Client = client
 
 	@commands.Cog.listener()
 	async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
@@ -29,10 +28,8 @@ class ReactionRoles(commands.Cog):
 		if payload.message_id != MESSAGE_ID: return
 		if payload.member.bot == True: return
 
-		# fetch guild, channel, message objects
-		guild: Guild = self.client.get_guild(payload.guild_id)
-		channel: TextChannel = guild.get_channel(payload.channel_id)
-		message: Message = await channel.fetch_message(payload.message_id)
+		channel: TextChannel = self.client.get_channel(payload.channel_id)
+		message: PartialMessage = channel.get_partial_message(payload.message_id)
 
 		# filter out other emojis
 		if payload.emoji.name not in possibleEmojis.keys():
@@ -40,9 +37,8 @@ class ReactionRoles(commands.Cog):
 
 		# remove duplicate emojis
 		for emoji in possibleEmojis.keys():
-			if emoji == payload.emoji.name:
-				continue
-			else: await message.remove_reaction(emoji, payload.member)
+			if emoji != payload.emoji.name:
+				await message.remove_reaction(emoji, payload.member)
 
 		# remove any colour roles
 		for role in payload.member.roles:
@@ -50,9 +46,8 @@ class ReactionRoles(commands.Cog):
 				await payload.member.remove_roles(role)
 
 		# assign the particular role
-		if payload.emoji.name in possibleEmojis.keys():
-			role = get(guild.roles, name=possibleEmojis[payload.emoji.name])
-			await payload.member.add_roles(role)
+		role = get(payload.member.guild.roles, name=possibleEmojis[payload.emoji.name])
+		await payload.member.add_roles(role)
 
 	@commands.Cog.listener()
 	async def on_raw_reaction_remove(self, payload: RawReactionActionEvent):
