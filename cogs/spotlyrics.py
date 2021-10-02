@@ -5,8 +5,7 @@ from discord.utils import get
 import lyricsgenius
 import re
 from dislash import ActionRow, Button, ButtonStyle
-from dislash.interactions.app_command_interaction import SlashInteraction
-from dislash.interactions import MessageInteraction
+from dislash.interactions import SlashInteraction, MessageInteraction
 from dislash.application_commands import slash_client
 import asyncio
 
