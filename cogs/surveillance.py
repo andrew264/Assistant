@@ -76,10 +76,10 @@ class Surveillance(commands.Cog):
 		embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url)
 		if Surveillance.StatusUpdate(before) != Surveillance.StatusUpdate(after):
 			embed.add_field(name=f"Status Update", value=f"{Surveillance.StatusUpdate(before)} ──> {Surveillance.StatusUpdate(after)}")
-			if delete_after ==300: delete_after += 86400
+			if delete_after ==300: delete_after += 43200
 		if Surveillance.AvailableClients(before) != Surveillance.AvailableClients(after) :
 			embed.add_field(name=f"Client Update", value=f"{Surveillance.AvailableClients(before)} ──> {Surveillance.AvailableClients(after)}", inline=False)
-			if delete_after ==300: delete_after +=43200
+			if delete_after ==300: delete_after +=86400
 		
 		# Custom Activity
 		before_custom, after_custom = None, None
@@ -91,12 +91,12 @@ class Surveillance(commands.Cog):
 				after_custom = activity
 		if before_custom is None and isinstance(after_custom, CustomActivity):
 			embed.add_field(name=f"Custom Status added", value=f"{Surveillance.CustomActVal(after_custom)}", inline=False)
-			if delete_after ==300: delete_after +=64800
+			if delete_after ==300: delete_after +=43200
 		elif after_custom is None and isinstance(before_custom, CustomActivity):
 			embed.add_field(name=f"Custom Status removed", value=f"{Surveillance.CustomActVal(before_custom)}", inline=False)
 		elif before_custom is not None and after_custom is not None and Surveillance.CustomActVal(before_custom) != Surveillance.CustomActVal(after_custom):
 			embed.add_field(name=f"Custom Status modified", value=f"{Surveillance.CustomActVal(before_custom)}\n──>\n{Surveillance.CustomActVal(after_custom)}", inline=False)
-			if delete_after ==300: delete_after +=64800
+			if delete_after ==300: delete_after +=43200
 
 		# Other Activities
 		before_activities = Surveillance.ActivityVal(before.activities)
