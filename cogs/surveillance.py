@@ -57,7 +57,7 @@ class Surveillance(commands.Cog):
 	async def on_user_update(self, before: User, after: User):
 		if before.bot: return
 		if before.id == OWNERID: return
-		if before.name == after.name & before.discriminator == after.discriminator: return
+		if before.name == after.name and before.discriminator == after.discriminator: return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
 		embed = Embed(colour = Colour.brand_green())
 		embed.set_author(name=f"{before} updated their Username", icon_url=before.display_avatar.url)
