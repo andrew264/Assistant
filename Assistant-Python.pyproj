@@ -22,6 +22,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="cogs\fun.py" />
+    <Compile Include="cogs\help.py" />
+    <Compile Include="cogs\leDMs.py" />
+    <Compile Include="cogs\music.py" />
+    <Compile Include="cogs\private.py" />
+    <Compile Include="cogs\reactionroles.py" />
+    <Compile Include="cogs\ready.py" />
+    <Compile Include="cogs\replies.py" />
+    <Compile Include="cogs\surveillance.py" />
+    <Compile Include="cogs\TTS.py" />
+    <Compile Include="cogs\userinfo.py" />
+    <Compile Include="cogs\utils.py" />
+    <Compile Include="olenv.py" />
+    <Compile Include="olreplies.py" />
     <Compile Include="start.py" />
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +48,15 @@
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
       <Architecture>X64</Architecture>
     </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="cogs\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include=".env" />
+    <Content Include=".gitignore" />
+    <Content Include="icon.png" />
+    <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
