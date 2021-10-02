@@ -1,0 +1,6 @@
+git+https://github.com/Rapptz/discord.py
+PyNaCl
+python-dotenv
+yt-dlp
+gTTS
+dislash.py
