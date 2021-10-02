@@ -134,12 +134,14 @@ class music(commands.Cog):
         
             @on_click.matching_id("prev")
             async def on_prev_page(inter):
+                await inter.acknowledge()
                 if self.page_no > 1:
                     self.page_no -= 1
                 await msg.edit(embed = embed_gen(self.dict_obj[ctx.guild.id]), components=[row])
 
             @on_click.matching_id("next")
             async def on_next_page(inter):
+                await inter.acknowledge()
                 if self.page_no < math.ceil((len(self.dict_obj[ctx.guild.id])-1)/4):
                     self.page_no += 1
                 await msg.edit(embed = embed_gen(self.dict_obj[ctx.guild.id]), components=[row])
