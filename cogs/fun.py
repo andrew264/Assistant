@@ -1,11 +1,10 @@
 # discord stuff
 import discord.ext.commands as commands
-from discord import Embed
-from discord.member import Member
+from discord import Embed, Member
 from discord.utils import find
 from dislash.application_commands import slash_client
-from dislash.interactions.application_command import Option, OptionType
-from dislash.interactions.app_command_interaction import SlashInteraction
+from dislash import Option, OptionType
+from dislash.interactions import SlashInteraction
 
 # random stuff
 from random import randint, choice
