@@ -3,4 +3,5 @@ PyNaCl
 python-dotenv
 yt-dlp
 gTTS
-dislash.py
+git+https://github.com/EQUENOS/dislash.py
+lyricsgenius

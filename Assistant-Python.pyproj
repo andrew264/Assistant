@@ -30,6 +30,7 @@
     <Compile Include="cogs\reactionroles.py" />
     <Compile Include="cogs\ready.py" />
     <Compile Include="cogs\replies.py" />
+    <Compile Include="cogs\spotlyrics.py" />
     <Compile Include="cogs\surveillance.py" />
     <Compile Include="cogs\TTS.py" />
     <Compile Include="cogs\userinfo.py" />
