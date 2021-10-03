@@ -20,7 +20,7 @@ class LyricsProcess():
         lyrics = re.sub(r"[0-9]*EmbedShare*",'',song.lyrics)
         lyricsList = list(lyrics.split("\n\n"))
         return lyricsList
-        
+
     def fetchlyrics(song_title, artist_name):
         song = genius.search_song(song_title, artist_name)
         if song is not None and song.lyrics is not None:
@@ -66,6 +66,7 @@ class Lyrics(commands.Cog):
                 await inter.acknowledge()
                 if self.page_no > 0:
                     self.page_no -= 1
+                else: self.page_no = len(lyricsList)-1
                 await msg.edit(embed = LyricsProcess.generate_embed(title=title, track_url=track_url, album_art=album_art, lyricsList=lyricsList, pgno=self.page_no), components = [row])
 
             @on_click.matching_id("next")
@@ -73,6 +74,7 @@ class Lyrics(commands.Cog):
                 await inter.acknowledge()
                 if self.page_no < len(lyricsList)-1:
                     self.page_no += 1
+                else: self.page_no = 0
                 await msg.edit(embed = LyricsProcess.generate_embed(title=title, track_url=track_url, album_art=album_art, lyricsList=lyricsList, pgno=self.page_no), components = [row])
 
             @on_click.timeout
