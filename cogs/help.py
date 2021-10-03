@@ -17,7 +17,6 @@ class HelpMe(commands.Cog):
 	async def help(self, inter):
 		row = ActionRow(
             Button(style=ButtonStyle.blurple, label="General Commands", custom_id="general"),
-            Button(style=ButtonStyle.blurple, label="Cleaning Commands", custom_id="clean"),
             Button(style=ButtonStyle.blurple, label="Music Commands", custom_id="music"),
             Button(style=ButtonStyle.blurple, label="Fun Commands", custom_id="fun")
         )
@@ -32,14 +31,6 @@ class HelpMe(commands.Cog):
 		generalembed.add_field(name='`/chat create`', value='Create a new Private Chat', inline=False)
 		generalembed.add_field(name='`/help`', value='Get this help message', inline=False)
 		generalembed.add_field(name='`/tts`', value='Generate a TTS message', inline=False)
-		###
-
-		### Chat Cleaning
-		cleanembed = Embed(color = Colour.blurple())
-		cleanembed.set_author(name='Cleanse The Chat',icon_url=self.client.user.avatar.url)
-		cleanembed.add_field(name='`.clear`\t<@User>\t<No_of_Msgs>\t\t  Delete No. of Msgs', value='\u200b', inline=False)
-		cleanembed.add_field(name='`.yeetill`\t<MessageID>\t\t\t\t\t\t\t   Delete till that Msg', value='\u200b', inline=False)
-		cleanembed.add_field(name='`.yeetmsg`\t<string>\t<No_of_Msgs>\t\tDelete No. of Msgs Containing that String', value='\u200b', inline=False)
 		###
 
 		### Music Commands
@@ -67,9 +58,6 @@ class HelpMe(commands.Cog):
 		@on_click.matching_id("general")
 		async def on_user(inter):
 			await inter.reply(embed = generalembed, ephemeral=True)
-		@on_click.matching_id("clean")
-		async def on_clean(inter):
-			await inter.reply(embed = cleanembed, ephemeral=True)
 		@on_click.matching_id("music")
 		async def on_music(inter):
 			await inter.reply(embed = musicembed, ephemeral=True)
