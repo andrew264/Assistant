@@ -64,7 +64,7 @@ class utils(commands.Cog):
 			return await ctx.send(f'`{ctx.author.display_name}` deleted `{no_of_msgs}` message(s).', delete_after=30)
 
 	@commands.command(aliases=['yeet'])
-	@commands.has_permissions(manage_messages=True)
+	@commands.has_permissions(administrator=True)
 	async def purge_user(self, ctx: commands.Context, user: Member= None):
 		if user is None:
 			return await ctx.send("Mention Someone")
