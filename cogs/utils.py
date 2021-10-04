@@ -1,6 +1,8 @@
 import discord.ext.commands as commands
 from olenv import OWNERID
 from discord import Activity, ActivityType, Status, User, Member, Message, MessageReference
+import dislash
+from dislash import Option, OptionChoice, OptionType, SlashInteraction
 from dislash.application_commands import slash_client
 from typing import Optional
 
@@ -24,33 +26,22 @@ class utils(commands.Cog):
 		await ctx.send(f'Client Latency: {round(self.client.latency * 1000)}  ms')
 
 	#Set Status
-	@commands.command(pass_context=True)
-	async def status(self, ctx, state, type, *, name):
-		if ctx.author.id != OWNERID:
-			await ctx.reply("You don't have permission")
-		else:
-			if state == 'idle':
-				A=Status.idle
-			elif state == 'online':
-				A=Status.online
-			elif state == 'dnd':
-				A=Status.dnd
-			elif state == 'offline':
-				A=Status.offline
-			else:
-				return await ctx.send(f'Invalid status `{state}`.')
-			if type == 'play':
-				B=ActivityType.playing
-			elif type == 'stream':
-				B=ActivityType.streaming
-			elif type == 'listen':
-				B=ActivityType.listening
-			elif type == 'watch':
-				B=ActivityType.watching
-			else:
-				return await ctx.send(f'Invalid Activity Type `{type}`.')
-			await self.client.change_presence(status=A, activity=Activity(type=B, name=name))
-			await ctx.send(f'Status set to `{state}` and `{type.title()}ing: {name}`')
+	@slash_client.slash_command(description = "Set Bot's Activity", options=[
+								 Option(name="state", description="Set Bot's Status", type=OptionType.STRING, required=True, choices=[
+										OptionChoice("Online", Status.online),
+										OptionChoice("Idle", Status.idle),
+										OptionChoice("Do not Disturb", Status.dnd),
+										OptionChoice("Offline", Status.offline) ]),
+								 Option(name="type", description="Set Bot's Activity Type", type=OptionType.STRING, required=True, choices=[
+										OptionChoice("Playing", ActivityType.playing),
+										OptionChoice("Listening", ActivityType.listening),
+										OptionChoice("Watching", ActivityType.watching),
+										OptionChoice("Streaming", ActivityType.streaming) ]),
+								 Option(name="name", description="Set Bot's Activity Name", type=OptionType.STRING)])
+	@dislash.has_permissions(administrator=True)
+	async def status(self, inter: SlashInteraction, state: Status, type: ActivityType, name: str=""):
+		await self.client.change_presence(status=state, activity=Activity(type=type, name=name))
+		await inter.respond(f'Status set to `{state.name.capitalize()}` and `{type.name.title()}: {name}`', ephemeral=True)
 
 	# clear
 	@commands.command(aliases=['delete'])

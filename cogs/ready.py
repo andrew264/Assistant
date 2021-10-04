@@ -56,5 +56,11 @@ class ready(commands.Cog):
 			return await ctx.send(error, delete_after=60)
 		else: await ctx.send(f'***{error}***')
 
+	# slash errors
+	@commands.Cog.listener()
+	async def on_slash_command_error(self, inter, error):
+		for error in error.args:
+			await inter.respond(f"```{error}```", ephemeral=True)
+
 def setup(client):
 	client.add_cog(ready(client))
