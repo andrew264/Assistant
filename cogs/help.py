@@ -29,6 +29,7 @@ class HelpMe(commands.Cog):
 		generalembed.add_field(name='`/whois`', value='User\'s Info', inline=True)
 		generalembed.add_field(name='`/botinfo`', value='Bot\'s Info', inline=True)
 		generalembed.add_field(name='`/chat create`', value='Create a new Private Chat', inline=False)
+		generalembed.add_field(name='`/introduce`', value='Introduce Yourself', inline=False)
 		generalembed.add_field(name='`/help`', value='Get this help message', inline=False)
 		generalembed.add_field(name='`/tts`', value='Generate a TTS message', inline=False)
 		###

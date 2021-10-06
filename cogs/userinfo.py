@@ -7,6 +7,7 @@ from dislash.application_commands import slash_client
 from dislash.interactions.application_command import Option, OptionType
 from dislash.interactions.app_command_interaction import SlashInteraction
 from datetime import datetime, timezone
+import sqlite3
 
 class userinfo(commands.Cog):
 
@@ -25,7 +26,12 @@ class userinfo(commands.Cog):
 		userWithPresence: Member = get(self.client.get_all_members(), id=user.id)
 
 		date_format = "%a, %d %b %Y %I:%M %p"
-		embed = Embed(color=user.colour, description=user.mention)
+		embed = Embed(color=user.colour)
+		# description
+		about = userinfo.GetAboutfromDB(user.id)
+		if about is not None: embed.description = f"{user.mention}: {about}"
+		else: embed.description=user.mention
+
 		embed.set_author(name=user, icon_url=user.display_avatar.url)
 		embed.set_thumbnail(url=user.display_avatar.url)
 		time_now = datetime.now(timezone.utc)
@@ -118,6 +124,30 @@ class userinfo(commands.Cog):
 		embed.add_field(name="Created for", value='Personal Purposes', inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
 		return await ctx.send(embed=embed)
+	
+	@slash_client.slash_command(description = "Introduce Yourself to Others.",
+							options=[Option("message", "Enter a message", OptionType.STRING, required = True)])
+	async def introduce(self, inter: SlashInteraction, message: str):
+		userinfo.AddDatatoDB(userID=inter.author.id, message=message.replace('"', ''))
+		await inter.respond("Introduction Added.")
+
+	def AddDatatoDB(userID: int, message: str):
+		conn = sqlite3.connect('./data/database.sqlite3')
+		#conn.execute("CREATE TABLE Members (USERID INT PRIMARY KEY NOT NULL, ABOUT TEXT);")
+		alreadyExists = conn.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {userID})").fetchone()[0]
+		if alreadyExists: conn.execute(f"""UPDATE Members SET ABOUT = "{message}" WHERE USERID = {userID}""")
+		else: conn.execute(f"""INSERT INTO Members (USERID, ABOUT) VALUES ({userID}, "{message}")""")
+		conn.commit()
+		conn.close()
+	
+	def GetAboutfromDB(userID: int):
+		conn = sqlite3.connect('./data/database.sqlite3')
+		alreadyExists = conn.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {userID})").fetchone()[0]
+		if alreadyExists:
+			about = [row[1] for row in conn.execute(f"SELECT * FROM Members WHERE USERID = {userID}")]
+			conn.close()
+			return about[0]
+		else: return None
 
 def setup(client):
 	client.add_cog(userinfo(client))
