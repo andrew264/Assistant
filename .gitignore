@@ -11,3 +11,6 @@
 
 # ignore tts files
 *.mp3
+
+# ignore database
+*.sqlite3
