@@ -6,15 +6,10 @@ import time, asyncio, re, math
 from datetime import datetime
 import yt_dlp.YoutubeDL as YDL
 
-ydl_opts = {
-    'quiet': True,
-    'no_warnings': True,
-    'format': 'bestaudio/best',
-}
-FFMPEG_OPTIONS = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1',
-    'options': '-vn'
-}
+ydl_opts={'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best'}
+FFMPEG_OPTIONS={'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1',
+                'options': '-vn'}
+
 vid_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$", re.IGNORECASE)
 playlist_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com)\/(playlist).+$", re.IGNORECASE)
 
@@ -80,7 +75,7 @@ class music(commands.Cog):
 
         async with ctx.typing():
             loop = asyncio.get_event_loop()
-            song_info = await loop.run_in_executor(None, music.YTDl, self, query)
+            song_info = await loop.run_in_executor(None, music.YTDl, None, query)
             for i in range(0,len(song_info)):
                 self.dict_obj[ctx.guild.id].append(video_info(song_info[i], ctx.message.author.display_name))
         
@@ -203,13 +198,14 @@ class music(commands.Cog):
     #Stop
     @commands.command(aliases=['dc', 'kelambu'])
     async def stop(self, ctx: commands.Context):
-        if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
-            ctx.voice_client.stop()
-            # clean list
-            self.dict_obj[ctx.guild.id][0].SongIn = 0
-            await asyncio.sleep(2)
-            self.dict_obj[ctx.guild.id].clear()
-            await ctx.message.add_reaction('👋') ,await ctx.voice_client.disconnect()
+        if ctx.voice_client is not None:
+            if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
+                ctx.voice_client.stop()
+                # clean list
+                self.dict_obj[ctx.guild.id][0].SongIn = 0
+                await asyncio.sleep(2)
+                self.dict_obj[ctx.guild.id].clear()
+            await ctx.message.add_reaction('👋'), await ctx.voice_client.disconnect()
             self.looper=False
 
     #Pause
