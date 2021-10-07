@@ -1,6 +1,6 @@
 from discord.ext import commands
 from discord.utils import get
-from discord import FFmpegOpusAudio, Embed
+from discord import FFmpegOpusAudio, Embed, Activity, ActivityType, Status, Client
 from dislash import ActionRow, Button, ButtonStyle
 import time, asyncio, re, math
 from datetime import datetime
@@ -42,7 +42,7 @@ class video_info:
             self.Author:str = author
 
 class music(commands.Cog):
-    def __init__(self,client):
+    def __init__(self, client: Client):
         self.client = client
         self.looper = False
         self.dict_obj = {}
@@ -81,8 +81,12 @@ class music(commands.Cog):
         async with ctx.typing():
             loop = asyncio.get_event_loop()
             song_info = await loop.run_in_executor(None, music.YTDl, self, query)
-
-            self.dict_obj[ctx.guild.id].append(video_info(song_info[0], ctx.message.author.display_name))
+            for i in range(0,len(song_info)):
+                self.dict_obj[ctx.guild.id].append(video_info(song_info[i], ctx.message.author.display_name))
+        
+        if re.match(playlist_url_regex, query) is not None:
+            await ctx.send(f"Adding `{self.entries} SONGS` to Queue.")
+        else: await ctx.send(f'Adding `{self.dict_obj[ctx.guild.id][len(self.dict_obj[ctx.guild.id])-1].Title}` to Queue.')
 
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)
@@ -94,21 +98,13 @@ class music(commands.Cog):
             if self.dict_obj[ctx.guild.id][0]:
                 await music.player(self, ctx)
 
-        if re.match(playlist_url_regex, query) is not None:
-            await ctx.send(f"Adding `{self.entries} SONGS` to Queue.")
-            for i in range(1,len(song_info)):
-                self.dict_obj[ctx.guild.id].append(video_info(song_info[i], ctx.message.author.display_name))
-        else: await ctx.send(f'Adding `{self.dict_obj[ctx.guild.id][len(self.dict_obj[ctx.guild.id])-1].Title}` to Queue.')
-
     #Queue
     @commands.command(aliases=['q'])
     async def queue(self, ctx: commands.Context):
         self.page_no = 1
         ###
-        row = ActionRow(
-            Button(style=ButtonStyle.blurple, label="◀️", custom_id="prev"),
-            Button(style=ButtonStyle.blurple, label="▶️", custom_id="next")
-        )
+        row = ActionRow(Button(style=ButtonStyle.blurple, label="◀️", custom_id="prev"),
+                        Button(style=ButtonStyle.blurple, label="▶️", custom_id="next"))
         ###
         def embed_gen(obj):
             embed=Embed(title="Now Playing", description = f"[{obj[0].Title}]({obj[0].pURL}) (Requested by {obj[0].Author})", colour=0xffa31a)
@@ -153,7 +149,8 @@ class music(commands.Cog):
     #Play from Queue
     async def player(self, ctx: commands.Context):
         voice = get(self.client.voice_clients, guild=ctx.guild)
-        if self.dict_obj[ctx.guild.id]:
+        await music.StatusUpdate(self, ctx)
+        if len(self.dict_obj[ctx.guild.id]):
             embed=Embed(title="", color=0xff0000)
             embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
             embed.set_author(name=f'Playing: {self.dict_obj[ctx.guild.id][0].Title}', url=self.dict_obj[ctx.guild.id][0].pURL, icon_url='')
@@ -177,10 +174,13 @@ class music(commands.Cog):
             elif self.dict_obj[ctx.guild.id] and not self.looper:
                 self.dict_obj[ctx.guild.id].pop(0)
             await music.player(self, ctx)
-        else:
-            await asyncio.sleep(30)
-            if voice and voice.is_connected():
-                await ctx.voice_client.disconnect()
+
+    # Update client's status
+    #Cuz why not ?
+    async def StatusUpdate(self, ctx: commands.Context):
+        if ctx.voice_client is not None and len(self.dict_obj[ctx.guild.id]):
+            await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=self.dict_obj[ctx.guild.id][0].Title))
+        else: await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="yall Homies."))
 
     #Skip
     @commands.command()
@@ -260,12 +260,10 @@ class music(commands.Cog):
     @commands.command(aliases=['skipto'])
     async def jump(self, ctx: commands.Context, song_index: int=1):
         if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True and song_index >1:
-            embed=Embed(title='Skipped to',colour=0xff7f50)
-            embed.add_field(name=f'{self.dict_obj[ctx.guild.id][song_index].Title} from Queue.',value=f'by {ctx.message.author.display_name}')
-            ctx.voice_client.stop()
-            self.dict_obj[ctx.guild.id][0].SongIn = 0
-            if song_index >=2: del self.dict_obj[ctx.guild.id][0:song_index-1]
-            await ctx.send(embed=embed, delete_after=60)
+            if song_index >=2: del self.dict_obj[ctx.guild.id][1:song_index]
+            self.dict_obj[ctx.guild.id][0].SongIn = 1
+            await asyncio.sleep(2)
+            await ctx.send("Skipped", delete_after=6)
 
     # Check Bot in VC
     @queue.before_invoke
