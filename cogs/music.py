@@ -95,8 +95,8 @@ class music(commands.Cog):
         elif voice==None:
             voiceChannel = ctx.message.author.voice.channel
             voice = await voiceChannel.connect()
-            if self.dict_obj[ctx.guild.id][0]:
-                await music.player(self, ctx)
+        if self.dict_obj[ctx.guild.id][0] and ctx.voice_client.is_paused() is False and ctx.voice_client.is_playing() is False:
+            await music.player(self, ctx)
 
     #Queue
     @commands.command(aliases=['q'])
