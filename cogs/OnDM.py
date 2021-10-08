@@ -1,13 +1,12 @@
-﻿# discord stuff
-import discord.ext.commands as commands
-from discord import User, Message
+﻿# Imports
+from disnake.ext import commands
+from disnake import User, Message, Client
 
-# .env variables
-from olenv import DM_Channel
+from EnvVariables import DM_Channel
 
-class leDMs(commands.Cog):
+class OnDM(commands.Cog):
 
-	def __init__(self,client):
+	def __init__(self, client: Client):
 		self.client = client
 
 	# Replies
@@ -33,7 +32,7 @@ class leDMs(commands.Cog):
 	# slide to dms
 	@commands.command()
 	@commands.has_permissions(administrator=True)
-	async def dm(self, ctx,  user: User, *, msg):
+	async def dm(self, ctx: commands.Context,  user: User, *, msg):
 		msg_content = ''
 		channel = await user.create_dm()
 		msg_content = f'{msg}\n'
@@ -46,4 +45,4 @@ class leDMs(commands.Cog):
 			await ctx.send(f'Failed to DM {user}.')
 
 def setup(client):
-	client.add_cog(leDMs(client))
+	client.add_cog(OnDM(client))

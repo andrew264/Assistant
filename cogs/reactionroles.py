@@ -1,7 +1,8 @@
-﻿import discord.ext.commands as commands
-from discord import Embed, RawReactionActionEvent, Client
-from discord import Member, PartialMessage, TextChannel
-from discord.utils import get
+﻿# Imports
+from disnake.ext import commands
+from disnake import Embed, RawReactionActionEvent, Client
+from disnake import Member, PartialMessage, TextChannel
+from disnake.utils import get
 
 CHANNEL_ID = 826931734645440562
 MESSAGE_ID = 891793035959078932
@@ -19,8 +20,8 @@ possibleEmojis = {
 
 class ReactionRoles(commands.Cog):
 
-	def __init__(self,client):
-		self.client: Client = client
+	def __init__(self, client: Client):
+		self.client = client
 
 	@commands.Cog.listener()
 	async def on_raw_reaction_add(self, payload: RawReactionActionEvent):

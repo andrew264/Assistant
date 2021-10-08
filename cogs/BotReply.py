@@ -1,31 +1,30 @@
+# Imports
+from disnake.ext import commands
+from disnake import Message, Client
+
 from random import choice
-import discord.ext.commands as commands
-from discord import Message
-from olreplies import *
 
-class replies(commands.Cog):
+from ReplyMsgs import *
 
-	def __init__(self,client):
+class BotReply(commands.Cog):
+
+	def __init__(self, client: Client):
 		self.client = client
 
 	# Replies
 	@commands.Cog.listener()
 	async def on_message(self, message: Message):
-		if message.author == self.client.user:
-			return
+		if message.author == self.client.user: return
 		if message.author.bot: return
 		if any(word in message.content.lower().split() for word in hiMsgs):
 			response = choice(hiMsgReplys)
-			await message.channel.send(response)
-			await self.client.process_commands(message)
+			return await message.channel.send(response)
 		elif any(word in message.content.lower().split() for word in byeMsgs):
 			response = choice(byeMsgReplys)
-			await message.channel.send(response)
-			await self.client.process_commands(message)
+			return await message.channel.send(response)
 		elif any(word in message.content.lower().split() for word in yeahMsgs):
 			response = choice(yeahMsgReplys)
-			await message.channel.send(response)
-			await self.client.process_commands(message)
+			return await message.channel.send(response)
 
 def setup(client):
-	client.add_cog(replies(client))
+	client.add_cog(BotReply(client))

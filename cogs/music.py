@@ -1,7 +1,10 @@
-from discord.ext import commands
-from discord.utils import get
-from discord import FFmpegOpusAudio, Embed, Activity, ActivityType, Status, Client
-from dislash import ActionRow, Button, ButtonStyle
+# Imports
+import disnake
+from disnake.ext import commands
+from disnake.utils import get
+from disnake import FFmpegOpusAudio, Embed, Activity, ActivityType, Status, Client
+from disnake import Button, ButtonStyle, Interaction
+
 import time, asyncio, re, math
 from datetime import datetime
 import yt_dlp.YoutubeDL as YDL
@@ -36,7 +39,7 @@ class video_info:
             self.SongIn:int = (YT_extract.get("duration"))
             self.Author:str = author
 
-class music(commands.Cog):
+class Music(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
         self.looper = False
@@ -75,7 +78,7 @@ class music(commands.Cog):
 
         async with ctx.typing():
             loop = asyncio.get_event_loop()
-            song_info = await loop.run_in_executor(None, music.YTDl, None, query)
+            song_info = await loop.run_in_executor(None, Music.YTDl, None, query)
             for i in range(0,len(song_info)):
                 self.dict_obj[ctx.guild.id].append(video_info(song_info[i], ctx.message.author.display_name))
         
@@ -91,60 +94,51 @@ class music(commands.Cog):
             voiceChannel = ctx.message.author.voice.channel
             voice = await voiceChannel.connect()
         if self.dict_obj[ctx.guild.id][0] and ctx.voice_client.is_paused() is False and ctx.voice_client.is_playing() is False:
-            await music.player(self, ctx)
+            await Music.player(self, ctx)
 
     #Queue
-    @commands.command(aliases=['q'])
-    async def queue(self, ctx: commands.Context):
-        self.page_no = 1
-        ###
-        row = ActionRow(Button(style=ButtonStyle.blurple, label="◀️", custom_id="prev"),
-                        Button(style=ButtonStyle.blurple, label="▶️", custom_id="next"))
-        ###
-        def embed_gen(obj):
+    class QueuePages(disnake.ui.View):
+        def __init__(self, obj):
+            super().__init__()
+            self.page_no = 1
+            self.obj = obj
+
+        def page_index(obj, pgno):
+            first = (pgno*4)-3
+            if (pgno*4)+1 <= len(obj):
+                last = (pgno*4)+1
+            else: last = len(obj)
+            return [i for i in range(first, last)]
+
+        def embed_gen(obj, page_no):
             embed=Embed(title="Now Playing", description = f"[{obj[0].Title}]({obj[0].pURL}) (Requested by {obj[0].Author})", colour=0xffa31a)
             if len(obj)>1:
-                song_index = page_index(self.page_no)
+                song_index = Music.QueuePages.page_index(obj, page_no)
                 next_songs = "\u200b"
                 max_page = math.ceil((len(obj)-1)/4)
                 for i in song_index:
                     next_songs += f"{i}. [{obj[i].Title}]({obj[i].pURL}) (Requested by {obj[i].Author})\n"
-                embed.add_field(name=f'Next Up ({self.page_no}/{max_page})', value=next_songs, inline=False)
+                embed.add_field(name=f'Next Up ({page_no}/{max_page})', value=next_songs, inline=False)
             return embed
-        ###
-        def page_index(pgno):
-            first = (pgno*4)-3
-            if (pgno*4)+1 <= len(self.dict_obj[ctx.guild.id]):
-                last = (pgno*4)+1
-            else: last = len(self.dict_obj[ctx.guild.id])
-            return [i for i in range(first, last)]
-        ###
-        if self.dict_obj[ctx.guild.id]:
-            msg = await ctx.send(embed = embed_gen(self.dict_obj[ctx.guild.id]), components=[row], delete_after=300)
-            on_click = msg.create_click_listener(timeout=180)
-        
-            @on_click.matching_id("prev")
-            async def on_prev_page(inter):
-                await inter.acknowledge()
-                if self.page_no > 1:
-                    self.page_no -= 1
-                await msg.edit(embed = embed_gen(self.dict_obj[ctx.guild.id]), components=[row])
 
-            @on_click.matching_id("next")
-            async def on_next_page(inter):
-                await inter.acknowledge()
-                if self.page_no < math.ceil((len(self.dict_obj[ctx.guild.id])-1)/4):
-                    self.page_no += 1
-                await msg.edit(embed = embed_gen(self.dict_obj[ctx.guild.id]), components=[row])
+        @disnake.ui.button(label='◀️', style=ButtonStyle.blurple)
+        async def prev_page(self, button: Button, interaction: Interaction):
+            if self.page_no > 1: self.page_no -= 1
+            await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
 
-            @on_click.timeout
-            async def on_timeout():
-                await msg.edit(components=[])
+        @disnake.ui.button(label='▶️', style=ButtonStyle.blurple)
+        async def next_page(self, button: Button, interaction: Interaction):
+            if self.page_no < math.ceil((len(self.obj)-1)/4): self.page_no += 1
+            await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
+
+    @commands.command(aliases=['q'])
+    async def queue(self, ctx):
+        await ctx.send(embed = Music.QueuePages.embed_gen(self.dict_obj[ctx.guild.id], 1), view=Music.QueuePages(self.dict_obj[ctx.guild.id]), delete_after=300)
 
     #Play from Queue
     async def player(self, ctx: commands.Context):
         voice = get(self.client.voice_clients, guild=ctx.guild)
-        await music.StatusUpdate(self, ctx)
+        await Music.StatusUpdate(self, ctx)
         if len(self.dict_obj[ctx.guild.id]):
             embed=Embed(title="", color=0xff0000)
             embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
@@ -168,7 +162,7 @@ class music(commands.Cog):
                 self.dict_obj[ctx.guild.id][0].SongIn = self.dict_obj[ctx.guild.id][0].Duration
             elif self.dict_obj[ctx.guild.id] and not self.looper:
                 self.dict_obj[ctx.guild.id].pop(0)
-            await music.player(self, ctx)
+            await Music.player(self, ctx)
 
     # Update client's status
     #Cuz why not ?
@@ -288,4 +282,4 @@ class music(commands.Cog):
                 raise commands.CommandError('You must be in same VC as Bot.') 
 
 def setup(client):
-	client.add_cog(music(client))
+	client.add_cog(Music(client))

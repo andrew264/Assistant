@@ -1,27 +1,40 @@
-﻿# discord stuff
-from discord.ext import commands
-from discord import Embed, Colour
-from dislash.application_commands import slash_client
-from dislash.interactions.application_command import Option, OptionType
-from dislash.interactions.message_components import ActionRow, Button, ButtonStyle
-
-# .env variables
-from olenv import OWNERID
+﻿# Import
+import disnake
+from disnake.ext import commands
+from disnake import Embed, Colour, Client
+from disnake import Button, ButtonStyle, Interaction, ApplicationCommandInteraction
 
 class HelpMe(commands.Cog):
 
-	def __init__(self,client):
+	def __init__(self, client: Client):
 		self.client = client
 
-	@slash_client.slash_command(description="How may I help you ?")
-	async def help(self, inter):
-		row = ActionRow(
-            Button(style=ButtonStyle.blurple, label="General Commands", custom_id="general"),
-            Button(style=ButtonStyle.blurple, label="Music Commands", custom_id="music"),
-            Button(style=ButtonStyle.blurple, label="Fun Commands", custom_id="fun")
-        )
-		msg = await inter.reply('How may I help you ?', components=[row])
-		on_click = msg.create_click_listener(timeout=120)
+	class HelpButtons(disnake.ui.View):
+			def __init__(self):
+				super().__init__()
+				self.value = ''
+				self.timeout = 120
+
+			@disnake.ui.button(label='General Commands', style=ButtonStyle.blurple)
+			async def user(self, button: Button, interaction: Interaction):
+				self.value = 'general'
+				self.stop()
+
+			@disnake.ui.button(label='Music Commands', style=ButtonStyle.blurple)
+			async def msuic(self, button: Button, interaction: Interaction):
+				self.value = 'music'
+				self.stop()
+
+			@disnake.ui.button(label='Fun Commands', style=ButtonStyle.blurple)
+			async def fun(self, button: Button, interaction: Interaction):
+				self.value = 'fun'
+				self.stop()
+
+	@commands.slash_command(description="How may I help you ?")
+	async def help(self, inter: ApplicationCommandInteraction):
+		view = HelpMe.HelpButtons()
+		await inter.response.send_message('How may I help you ?', view=view)
+		await view.wait()
 
 		### general Embed 
 		generalembed = Embed(color = Colour.blurple())
@@ -56,18 +69,9 @@ class HelpMe(commands.Cog):
 		funembed.add_field(name='`/ping`', value='Get Bot\'s Latency', inline=False)
 		###
 
-		@on_click.matching_id("general")
-		async def on_user(inter):
-			await inter.reply(embed = generalembed, ephemeral=True)
-		@on_click.matching_id("music")
-		async def on_music(inter):
-			await inter.reply(embed = musicembed, ephemeral=True)
-		@on_click.matching_id("fun")
-		async def on_music(inter):
-			await inter.reply(embed = funembed, ephemeral=True)
-		@on_click.timeout
-		async def on_timeout():
-			await msg.edit(components=[])
+		if view.value == 'general': return await inter.edit_original_message(embed=generalembed, view=None)
+		elif view.value == 'music': return await inter.edit_original_message(embed=musicembed, view=None)
+		elif view.value == 'fun': return await inter.edit_original_message(embed=funembed, view=None)
 
 def setup(client):
 	client.add_cog(HelpMe(client))

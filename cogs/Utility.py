@@ -1,14 +1,15 @@
-import discord.ext.commands as commands
-from olenv import OWNERID
-from discord import Activity, ActivityType, Status, User, Member, Message, MessageReference
-import dislash
-from dislash import Option, OptionChoice, OptionType, SlashInteraction
-from dislash.application_commands import slash_client
+# Imports
+from disnake.ext import commands
+from disnake import Client, Activity, ActivityType, Status, User, Member, Message, MessageReference
+from disnake import Option, OptionChoice, OptionType, ApplicationCommandInteraction
+
 from typing import Optional
 
-class utils(commands.Cog):
+from EnvVariables import OWNERID
 
-	def __init__(self,client):
+class Utility(commands.Cog):
+
+	def __init__(self, client: Client):
 		self.client = client
 
 	# echo
@@ -21,27 +22,27 @@ class utils(commands.Cog):
 			await ctx.message.delete()
 
 	# ping
-	@slash_client.slash_command(description = "Get Bot's Latency")
-	async def ping(self, ctx: commands.Context):
-		await ctx.send(f'Client Latency: {round(self.client.latency * 1000)}  ms')
+	@commands.slash_command(description = "Get Bot's Latency")
+	async def ping(self, inter: ApplicationCommandInteraction):
+		await inter.response.send_message(f'Client Latency: {round(self.client.latency * 1000)}  ms')
 
 	#Set Status
-	@slash_client.slash_command(description = "Set Bot's Activity", options=[
-								 Option(name="state", description="Set Bot's Status", type=OptionType.STRING, required=True, choices=[
-										OptionChoice("Online", Status.online),
-										OptionChoice("Idle", Status.idle),
-										OptionChoice("Do not Disturb", Status.dnd),
-										OptionChoice("Offline", Status.offline) ]),
-								 Option(name="type", description="Set Bot's Activity Type", type=OptionType.STRING, required=True, choices=[
-										OptionChoice("Playing", ActivityType.playing),
-										OptionChoice("Listening", ActivityType.listening),
-										OptionChoice("Watching", ActivityType.watching),
-										OptionChoice("Streaming", ActivityType.streaming) ]),
-								 Option(name="name", description="Set Bot's Activity Name", type=OptionType.STRING)])
-	@dislash.has_permissions(administrator=True)
-	async def status(self, inter: SlashInteraction, state: Status, type: ActivityType, name: str=""):
-		await self.client.change_presence(status=state, activity=Activity(type=type, name=name))
-		await inter.respond(f'Status set to `{state.name.capitalize()}` and `{type.name.title()}: {name}`', ephemeral=True)
+	@commands.slash_command(description = "Set Bot's Activity", options=[
+								 Option(name="state", description="Set Bot's Status", type=OptionType.string, required=True, choices=[
+										OptionChoice("Online", 'online'),
+										OptionChoice("Idle", 'idle'),
+										OptionChoice("Do not Disturb", 'dnd'),
+										OptionChoice("Invisible", 'invisible') ]),
+								 Option(name="type", description="Set Bot's Activity Type", type=OptionType.integer, required=True, choices=[
+										OptionChoice("Playing", 0),
+										OptionChoice("Listening", 2),
+										OptionChoice("Watching", 3),
+										OptionChoice("Streaming", 1) ]),
+								 Option(name="name", description="Set Bot's Activity Name", type=OptionType.string)])
+	@commands.has_permissions(administrator=True)
+	async def status(self, inter: ApplicationCommandInteraction, state: str, type: int, name: str=""):
+		await self.client.change_presence(status=Status(state), activity=Activity(type=ActivityType(type), name=name))
+		await inter.response.send_message(f'Status set to `{Status(state).name.capitalize()}` and `{ActivityType(type).name.title()}: {name}`', ephemeral=True)
 
 	# clear
 	@commands.command(aliases=['delete'])
@@ -80,4 +81,4 @@ class utils(commands.Cog):
 			await ctx.send(f'Deleted {counter} messages.', delete_after=30)
 
 def setup(client):
-	client.add_cog(utils(client))
+	client.add_cog(Utility(client))

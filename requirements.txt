@@ -1,7 +1,5 @@
-git+https://github.com/Rapptz/discord.py
-PyNaCl
+disnake[voice]
 python-dotenv
 yt-dlp
 gTTS
-git+https://github.com/EQUENOS/dislash.py
 lyricsgenius

@@ -1,19 +1,21 @@
-﻿import discord.ext.commands as commands
-from discord import Embed, Colour
-from discord import Message, Member, User, VoiceState, TextChannel
-from discord import CustomActivity, Activity, Spotify, Streaming, Game
-from discord.activity import ActivityTypes
+﻿# Imports
+from disnake.ext import commands
+from disnake import Embed, Colour, Client
+from disnake import Message, Member, User, VoiceState, TextChannel
+from disnake import CustomActivity, Activity, Spotify, Streaming, Game
+from disnake.activity import ActivityTypes
+
 from datetime import datetime
 from typing import Tuple
 
-from olenv import OWNERID
+from EnvVariables import OWNERID
 
 # Channel ID
 CHANNEL_ID = 891369472101863494
 
 class Surveillance(commands.Cog):
 
-	def __init__(self,client):
+	def __init__(self, client: Client):
 		self.client = client
 
 	@commands.Cog.listener()

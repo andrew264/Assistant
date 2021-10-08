@@ -22,9 +22,11 @@ byeMsgReplys = [
 	'bye da'
 	]
 
-yeahMsgs = [ 'yeah', 'boi' , 'boii']
+yeahMsgs = [ 'yeah', 'boi' , 'boii', 'yes', 's', 'aama']
 yeahMsgReplys = [
 	'https://media1.tenor.com/images/a7cdeb1036b54acce7c624f999989a1e/tenor.gif?itemid=17305845',
 	'https://media1.tenor.com/images/f35c5a5b72f78a56c7680873206a3fbf/tenor.gif?itemid=6042030',
-	'https://tenor.com/view/nodding-yeah-boy-longest-yeah-boy-man-beard-gif-7733818'
+	'https://tenor.com/view/nodding-yeah-boy-longest-yeah-boy-man-beard-gif-7733818',
+	'https://tenor.com/view/yes-baby-goal-funny-face-gif-13347383',
+	'https://tenor.com/view/pedro-approves-pedrorc-pedroredcerberus-yes-agree-gif-11599348'
 	]

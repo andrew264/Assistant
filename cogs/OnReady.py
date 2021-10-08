@@ -1,20 +1,18 @@
-from discord import Activity, ActivityType, Status
-import discord.ext.commands as commands
+# Imports
+from disnake import Activity, ActivityType, Status, Client
+from disnake.ext import commands
 
-# os, platform
 import os, platform
 
-# .env stuff
-from olenv import DM_Channel
+from EnvVariables import DM_Channel
 
-class ready(commands.Cog):
+class Ready(commands.Cog):
 
-	def __init__(self,client):
+	def __init__(self, client: Client):
 		self.client = client
 
-	async def output(self):
-		if platform.system() == 'Windows':
-			clear = lambda: os.system('cls')
+	async def Output(self):
+		if platform.system() == 'Windows': clear = lambda: os.system('cls')
 		else: clear = lambda: os.system('clear')
 		clear()
 		print(f'{self.client.user} is connected to the following guild:')
@@ -41,11 +39,11 @@ class ready(commands.Cog):
 	@commands.Cog.listener()
 	async def on_ready(self):
 		await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="yall Homies."))
-		await ready.output(self)
+		await Ready.Output(self)
 
 	@commands.Cog.listener()
 	async def on_voice_state_update(self, member, before, after):
-		await ready.output(self)
+		await Ready.Output(self)
 
 	# Unknown commands
 	@commands.Cog.listener()
@@ -63,4 +61,4 @@ class ready(commands.Cog):
 			await inter.respond(f"```{error}```", ephemeral=True)
 
 def setup(client):
-	client.add_cog(ready(client))
+	client.add_cog(Ready(client))

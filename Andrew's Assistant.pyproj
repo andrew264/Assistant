@@ -2,16 +2,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>32ff480e-bb59-4d2c-a590-1f48c27952e5</ProjectGuid>
+    <ProjectGuid>e945615e-76dd-4767-a967-5a126205cef3</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>start.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>Assistant-Python</Name>
-    <RootNamespace>Assistant-Python</RootNamespace>
+    <Name>Andrew's Assistant</Name>
+    <RootNamespace>Andrew's Assistant</RootNamespace>
     <InterpreterId>MSBuild|venv|$(MSBuildProjectFullPath)</InterpreterId>
+    <SuppressPackageInstallationPrompt>True</SuppressPackageInstallationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,21 +23,21 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="cogs\fun.py" />
-    <Compile Include="cogs\help.py" />
-    <Compile Include="cogs\leDMs.py" />
-    <Compile Include="cogs\music.py" />
-    <Compile Include="cogs\private.py" />
-    <Compile Include="cogs\reactionroles.py" />
-    <Compile Include="cogs\ready.py" />
-    <Compile Include="cogs\replies.py" />
-    <Compile Include="cogs\lyrics.py" />
-    <Compile Include="cogs\surveillance.py" />
-    <Compile Include="cogs\TTS.py" />
-    <Compile Include="cogs\userinfo.py" />
-    <Compile Include="cogs\utils.py" />
-    <Compile Include="olenv.py" />
-    <Compile Include="olreplies.py" />
+    <Compile Include="cogs\Fun.py" />
+    <Compile Include="cogs\Help.py" />
+    <Compile Include="cogs\Lyrics.py" />
+    <Compile Include="cogs\Music.py" />
+    <Compile Include="cogs\OnDM.py" />
+    <Compile Include="cogs\OnReady.py" />
+    <Compile Include="cogs\BotReply.py" />
+    <Compile Include="cogs\PrivateChat.py" />
+    <Compile Include="cogs\ReactionRoles.py" />
+    <Compile Include="cogs\Surveillance.py" />
+    <Compile Include="cogs\TextToSpeech.py" />
+    <Compile Include="cogs\UserInfo.py" />
+    <Compile Include="cogs\Utility.py" />
+    <Compile Include="EnvVariables.py" />
+    <Compile Include="ReplyMsgs.py" />
     <Compile Include="start.py" />
   </ItemGroup>
   <ItemGroup>
@@ -54,9 +55,6 @@
     <Folder Include="cogs\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include=".env" />
-    <Content Include=".gitignore" />
-    <Content Include="icon.png" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

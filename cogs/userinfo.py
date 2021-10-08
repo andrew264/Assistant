@@ -1,34 +1,32 @@
-﻿import discord.ext.commands as commands
-from discord.utils import get
-from discord import Member, Embed
-from discord import Spotify, Game, CustomActivity, Streaming, Activity
-import dislash
-from dislash.application_commands import slash_client
-from dislash.interactions.application_command import Option, OptionType
-from dislash.interactions.app_command_interaction import SlashInteraction
+﻿# Imports
+from disnake.ext import commands
+from disnake.utils import get
+from disnake import Member, Embed, Client
+from disnake import Spotify, Game, CustomActivity, Streaming, Activity
+from disnake import Option, OptionType, ApplicationCommandInteraction
+
 from datetime import datetime, timezone
 import sqlite3
 
-class userinfo(commands.Cog):
+class UserInfo(commands.Cog):
 
-	def __init__(self,client):
+	def __init__(self, client: Client):
 		self.client = client
 
-	@slash_client.slash_command(description="Luk wat he be doin ovar der",
-		options=[Option("user", "Mention someone", OptionType.USER)])
-	@dislash.guild_only()
-	@dislash.bot_has_permissions(embed_links=True)
-	async def whois(self, inter: SlashInteraction, user: Member = None):
-		if user is None:
-			user = inter.author
+	@commands.slash_command(description="Luk wat he be doin ovar der",
+							options=[Option("user", "Mention someone", OptionType.user)])
+	@commands.guild_only()
+	@commands.bot_has_permissions(embed_links=True)
+	async def whois(self, inter: ApplicationCommandInteraction, user: Member = None):
+		if user is None: user = inter.author
 
 		# Fetch activity. I really wish i don't have to do this.
 		userWithPresence: Member = get(self.client.get_all_members(), id=user.id)
 
 		date_format = "%a, %d %b %Y %I:%M %p"
 		embed = Embed(color=user.colour)
-		# description
-		about = userinfo.GetAboutfromDB(user.id)
+		# Description
+		about = UserInfo.GetAboutfromDB(user.id)
 		if about is not None: embed.description = f"{user.mention}: {about}"
 		else: embed.description=user.mention
 
@@ -41,32 +39,32 @@ class userinfo(commands.Cog):
 			embed.add_field(name="Nickname", value=user.nick)
 		# Clients
 		if userWithPresence.raw_status != 'offline':
-			embed.add_field(name="Available Clients", value=userinfo.AvailableClients(userWithPresence))
+			embed.add_field(name="Available Clients", value=UserInfo.AvailableClients(userWithPresence))
 		# Activity
 		for activity in userWithPresence.activities:
 			if isinstance(activity, Game):
-				embed.add_field(name="Playing", value=userinfo.ActivityVal(activity))
+				embed.add_field(name="Playing", value=UserInfo.ActivityVal(activity))
 			elif isinstance(activity, Streaming):
 				embed.add_field(name=f"Streaming", value=f"[{activity.name}]({activity.url})")
 			elif isinstance(activity, Spotify):
 				embed.add_field(name="Spotify", value=f"Listening to [{activity.title} by {', '.join(activity.artists)}]({activity.track_url})")
 				embed.set_thumbnail(url=activity.album_cover_url)
 			elif isinstance(activity, CustomActivity):
-				embed.add_field(name="Status", value=userinfo.CustomActVal(activity))
+				embed.add_field(name="Status", value=UserInfo.CustomActVal(activity))
 			elif isinstance(activity, Activity):
-				embed.add_field(name=f"{activity.type.name.capitalize()}", value=userinfo.ActivityVal(activity))
+				embed.add_field(name=f"{activity.type.name.capitalize()}", value=UserInfo.ActivityVal(activity))
 				if hasattr(activity, 'large_image_url') and activity.large_image_url is not None:
 					embed.set_thumbnail(url=activity.large_image_url)
 		if len(user.roles) > 1:
 			role_string = ' '.join([r.mention for r in user.roles][1:])
 			embed.add_field(name=f"Roles [{len(user.roles)-1}]", value=role_string, inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
-		return await inter.send(embed=embed)
+		return await inter.response.send_message(embed=embed)
 
 	def ActivityVal(activity: Activity):
 		value: str = f"**{activity.name}**\n"
 		if activity.start is not None:
-			value += userinfo.timeDelta(activity.start)
+			value += UserInfo.timeDelta(activity.start)
 		return value
 
 	def timeDelta(timestamp: datetime):
@@ -86,7 +84,7 @@ class userinfo(commands.Cog):
 			value += f"[{activity.emoji}]({activity.emoji.url}) "
 		if activity.name is not None:
 			value += f"**{activity.name}**"
-		value += f"\n{userinfo.timeDelta(activity.created_at)}"
+		value += f"\n{UserInfo.timeDelta(activity.created_at)}"
 		return value
 
 	def AvailableClients(user: Member):
@@ -103,18 +101,17 @@ class userinfo(commands.Cog):
 		elif user.raw_status == 'dnd': value = value + " (DND)"
 		return value
 
-	@slash_client.slash_command(
+	@commands.slash_command(
 		description="Shows the avatar of the user",
-		options=[Option("user", "Mention a user", OptionType.USER)])
-	async def avatar(self, ctx: commands.Context, user: Member = None):
-		if user is None:
-			user = ctx.author
+		options=[Option("user", "Mention a user", OptionType.user)])
+	async def avatar(self, inter: ApplicationCommandInteraction, user: Member = None):
+		if user is None: user = inter.author
 		avatar=Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
 		avatar.set_image(url=user.display_avatar.url)
-		await ctx.send(embed=avatar)
+		await inter.response.send_message(embed=avatar)
 
-	@slash_client.slash_command(description="Shows Bot's Info")
-	async def botinfo(self, ctx: commands.Context):
+	@commands.slash_command(description="Shows Bot's Info")
+	async def botinfo(self, inter: ApplicationCommandInteraction):
 		user = self.client.user
 		embed = Embed(color=0xFF0060, description=user.mention)
 		embed.set_author(name=user, icon_url=user.avatar.url)
@@ -123,13 +120,13 @@ class userinfo(commands.Cog):
 		embed.add_field(name="Created on", value='21 Mar 2021', inline=False)
 		embed.add_field(name="Created for", value='Personal Purposes', inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
-		return await ctx.send(embed=embed)
+		return await inter.response.send_message(embed=embed)
 	
-	@slash_client.slash_command(description = "Introduce Yourself to Others.",
-							options=[Option("message", "Enter a message", OptionType.STRING, required = True)])
-	async def introduce(self, inter: SlashInteraction, message: str):
-		userinfo.AddDatatoDB(userID=inter.author.id, message=message.replace('"', ''))
-		await inter.respond("Introduction Added.")
+	@commands.slash_command(description = "Introduce Yourself to Others.",
+							options=[Option("message", "Enter a message", OptionType.string, required = True)])
+	async def introduce(self, inter: ApplicationCommandInteraction, message: str):
+		UserInfo.AddDatatoDB(userID=inter.author.id, message=message.replace('"', ''))
+		await inter.response.send_message("Introduction Added.")
 
 	def AddDatatoDB(userID: int, message: str):
 		conn = sqlite3.connect('./data/database.sqlite3')
@@ -150,4 +147,4 @@ class userinfo(commands.Cog):
 		else: return None
 
 def setup(client):
-	client.add_cog(userinfo(client))
+	client.add_cog(UserInfo(client))
