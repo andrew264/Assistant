@@ -1,5 +1,5 @@
 # Imports
-from disnake import Activity, ActivityType, Status, Client
+from disnake import Activity, ActivityType, Status, Client, ApplicationCommandInteraction
 from disnake.ext import commands
 
 import os, platform
@@ -48,17 +48,16 @@ class Ready(commands.Cog):
 	# Unknown commands
 	@commands.Cog.listener()
 	async def on_command_error(self, ctx: commands.Context, error):
-		if isinstance(error, commands.CommandNotFound):
-			return
+		if isinstance(error, commands.CommandNotFound): return
 		elif isinstance(error, commands.MissingPermissions):
 			return await ctx.send(error, delete_after=60)
 		else: await ctx.send(f'***{error}***')
 
 	# slash errors
 	@commands.Cog.listener()
-	async def on_slash_command_error(self, inter, error):
+	async def on_slash_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError):
 		for error in error.args:
-			await inter.respond(f"```{error}```", ephemeral=True)
+			await inter.response.send_message(f"```{error}```", ephemeral=True)
 
 def setup(client):
 	client.add_cog(Ready(client))
