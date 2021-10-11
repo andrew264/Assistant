@@ -67,7 +67,7 @@ class ReactionRoles(commands.Cog):
 				await member.remove_roles(role)
 
 	@commands.command()
-	@commands.has_guild_permissions(administrator=True)
+	@commands.is_owner()
 	async def reactionroles(self, ctx: commands.Context):
 		await ctx.message.delete()
 		embed = Embed(title = "Reaction Roles", colour = 0xffffff, description = "Claim a colour of your choice!")

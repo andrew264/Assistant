@@ -31,7 +31,7 @@ class OnDM(commands.Cog):
 
 	# slide to dms
 	@commands.command()
-	@commands.has_permissions(administrator=True)
+	@commands.is_owner()
 	async def dm(self, ctx: commands.Context,  user: User, *, msg):
 		msg_content = ''
 		channel = await user.create_dm()

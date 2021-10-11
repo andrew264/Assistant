@@ -5,8 +5,6 @@ from disnake import Option, OptionChoice, OptionType, ApplicationCommandInteract
 
 from typing import Optional
 
-from EnvVariables import OWNERID
-
 class Utility(commands.Cog):
 
 	def __init__(self, client: Client):
@@ -14,12 +12,10 @@ class Utility(commands.Cog):
 
 	# echo
 	@commands.command(hidden=True)
+	@commands.is_owner()
 	async def echo(self,ctx: commands.Context, *, args):
-		if ctx.author.id != OWNERID :
-			await ctx.reply("I am not your Assistant.")
-		else:
-			await ctx.send(args)
-			await ctx.message.delete()
+		await ctx.send(args)
+		await ctx.message.delete()
 
 	# ping
 	@commands.slash_command(description = "Get Bot's Latency")
@@ -39,7 +35,7 @@ class Utility(commands.Cog):
 										OptionChoice("Watching", 3),
 										OptionChoice("Streaming", 1) ]),
 								 Option(name="name", description="Set Bot's Activity Name", type=OptionType.string)])
-	@commands.has_permissions(administrator=True)
+	@commands.is_owner()
 	async def status(self, inter: ApplicationCommandInteraction, state: str, type: int, name: str=""):
 		await self.client.change_presence(status=Status(state), activity=Activity(type=ActivityType(type), name=name))
 		await inter.response.send_message(f'Status set to `{Status(state).name.capitalize()}` and `{ActivityType(type).name.title()}: {name}`', ephemeral=True)

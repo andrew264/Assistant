@@ -8,9 +8,8 @@ from disnake.activity import ActivityTypes
 from datetime import datetime
 from typing import Tuple
 
-from EnvVariables import OWNERID
-
-# Channel ID
+# ID Numbers
+OWNERID = 493025015445454868
 CHANNEL_ID = 891369472101863494
 
 class Surveillance(commands.Cog):

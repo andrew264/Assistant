@@ -49,13 +49,17 @@ class Ready(commands.Cog):
 		if isinstance(error, commands.CommandNotFound): return
 		elif isinstance(error, commands.MissingPermissions):
 			return await ctx.send(error, delete_after=60)
+		elif isinstance(error, commands.NotOwner):
+			return await ctx.send("🚫 You can\'t do that.", delete_after=60)
 		else: await ctx.send(f'***{error}***')
 
 	# slash errors
 	@commands.Cog.listener()
 	async def on_slash_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError):
+		if isinstance(error, commands.NotOwner):
+			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
 		for error in error.args:
-			await inter.response.send_message(f"```{error}```", ephemeral=True)
+			await inter.response.send_message(f"```{error}```")
 
 def setup(client):
 	client.add_cog(Ready(client))
