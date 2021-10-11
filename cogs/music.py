@@ -42,8 +42,8 @@ class video_info:
 class Music(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
-        self.looper = False
-        self.dict_obj = {}
+        self.looper: bool = False
+        self.dict_obj: dict = {}
 
     def YTDl(self, url):
         with YDL(ydl_opts) as ydl:
@@ -59,7 +59,7 @@ class Music(commands.Cog):
 
     #Play
     @commands.command(pass_context=True, aliases=['p'])
-    async def play(self, ctx: commands.Context,*,query:str=None):
+    async def play(self, ctx: commands.Context, *, query:str=None):
 
         # create Dictionary
         if not self.dict_obj:
@@ -78,7 +78,7 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             loop = asyncio.get_event_loop()
-            song_info = await loop.run_in_executor(None, Music.YTDl, None, query)
+            song_info = await loop.run_in_executor(None, Music.YTDl, self, query)
             for i in range(0,len(song_info)):
                 self.dict_obj[ctx.guild.id].append(video_info(song_info[i], ctx.message.author.display_name))
         
@@ -105,8 +105,7 @@ class Music(commands.Cog):
 
         def page_index(obj, pgno):
             first = (pgno*4)-3
-            if (pgno*4)+1 <= len(obj):
-                last = (pgno*4)+1
+            if (pgno*4)+1 <= len(obj): last = (pgno*4)+1
             else: last = len(obj)
             return [i for i in range(first, last)]
 
@@ -124,11 +123,13 @@ class Music(commands.Cog):
         @disnake.ui.button(label='◀️', style=ButtonStyle.blurple)
         async def prev_page(self, button: Button, interaction: Interaction):
             if self.page_no > 1: self.page_no -= 1
+            else: self.page_no = math.ceil((len(self.obj)-1)/4)
             await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
 
         @disnake.ui.button(label='▶️', style=ButtonStyle.blurple)
         async def next_page(self, button: Button, interaction: Interaction):
             if self.page_no < math.ceil((len(self.obj)-1)/4): self.page_no += 1
+            else: self.page_no = 1
             await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
 
     @commands.command(aliases=['q'])
