@@ -4,8 +4,6 @@ from disnake.ext import commands
 
 import os, platform
 
-from EnvVariables import DM_Channel
-
 class Ready(commands.Cog):
 
 	def __init__(self, client: Client):
