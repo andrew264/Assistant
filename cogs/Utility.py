@@ -1,7 +1,7 @@
 # Imports
 from disnake.ext import commands
-from disnake import Client, Activity, ActivityType, Status, User, Member, Message, MessageReference
-from disnake import Option, OptionChoice, OptionType, ApplicationCommandInteraction
+from disnake import Client, Activity, ActivityType, Status, User, Member, Message
+from disnake import Option, OptionChoice, OptionType, ApplicationCommandInteraction, MessageCommandInteraction
 
 from typing import Optional
 
@@ -52,13 +52,16 @@ class Utility(commands.Cog):
 				return msg.author.id == user.id
 			await ctx.channel.purge(limit=no_of_msgs, check=check)
 			return await ctx.send(f'`{ctx.author.display_name}` deleted `{user.display_name}\'s` `{no_of_msgs}` message(s).', delete_after=30)
-		elif isinstance(ctx.message.reference, MessageReference):
-			message: Message = ctx.message.reference.resolved
-			await ctx.channel.purge(after=message)
-			return await ctx.send(f'`{ctx.author.display_name}` deleted messages till `{message.author.display_name}\'s` message', delete_after=30)
 		else:
 			await ctx.channel.purge(limit=no_of_msgs)
 			return await ctx.send(f'`{ctx.author.display_name}` deleted `{no_of_msgs}` message(s).', delete_after=30)
+	
+	# Context Delete
+	@commands.message_command(name="Delete till HERE")
+	@commands.has_permissions(administrator=True)
+	async def ContextClear(self, inter: MessageCommandInteraction):
+		await inter.channel.purge(after=inter.target)
+		await inter.response.send_message(f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}\'s` message", ephemeral=True)
 
 	@commands.command(aliases=['yeet'])
 	@commands.has_permissions(administrator=True)

@@ -4,6 +4,8 @@ from disnake.ext import commands
 
 import os, platform
 
+from EnvVariables import DM_Channel
+
 class Ready(commands.Cog):
 
 	def __init__(self, client: Client):
@@ -56,10 +58,35 @@ class Ready(commands.Cog):
 	# slash errors
 	@commands.Cog.listener()
 	async def on_slash_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError):
+		channel = self.client.get_channel(DM_Channel)
 		if isinstance(error, commands.NotOwner):
 			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
+		elif isinstance(error, commands.MissingPermissions):
+			return await inter.response.send_message(error, ephemeral=True)
 		for error in error.args:
-			await inter.response.send_message(f"```{error}```")
+			await channel.send(f"```{error}```")
+
+	# Message Context Error
+	@commands.Cog.listener()
+	async def on_message_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError):
+		channel = self.client.get_channel(DM_Channel)
+		if isinstance(error, commands.NotOwner):
+			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
+		elif isinstance(error, commands.MissingPermissions):
+			return await inter.response.send_message(error, ephemeral=True)
+		for error in error.args:
+			await channel.send(f"```{error}```")
+
+	# User Context Error
+	@commands.Cog.listener()
+	async def on_user_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError):
+		channel = self.client.get_channel(DM_Channel)
+		if isinstance(error, commands.NotOwner):
+			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
+		elif isinstance(error, commands.MissingPermissions):
+			return await inter.response.send_message(error, ephemeral=True)
+		for error in error.args:
+			await channel.send(f"```{error}```")
 
 def setup(client):
 	client.add_cog(Ready(client))
