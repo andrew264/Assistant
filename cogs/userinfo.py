@@ -3,7 +3,7 @@ from disnake.ext import commands
 from disnake.utils import get
 from disnake import Member, Embed, Client
 from disnake import Spotify, Game, CustomActivity, Streaming, Activity
-from disnake import Option, OptionType, ApplicationCommandInteraction
+from disnake import Option, OptionType, ApplicationCommandInteraction, UserCommandInteraction
 
 from datetime import datetime, timezone
 import sqlite3
@@ -19,7 +19,15 @@ class UserInfo(commands.Cog):
 	@commands.bot_has_permissions(embed_links=True)
 	async def whois(self, inter: ApplicationCommandInteraction, user: Member = None):
 		if user is None: user = inter.author
+		return await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, user))
 
+	@commands.user_command(name="Who is this Guy?")
+	@commands.guild_only()
+	@commands.bot_has_permissions(embed_links=True)
+	async def ContextWhoIs(self, inter: UserCommandInteraction):
+		return await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, inter.target))
+
+	def WhoIsEmbed(self, user: Member):
 		# Fetch activity. I really wish i don't have to do this.
 		userWithPresence: Member = get(self.client.get_all_members(), id=user.id)
 
@@ -33,7 +41,7 @@ class UserInfo(commands.Cog):
 		embed.set_author(name=user, icon_url=user.display_avatar.url)
 		embed.set_thumbnail(url=user.display_avatar.url)
 		time_now = datetime.now(timezone.utc)
-		embed.add_field(name=f"Joined {inter.guild.name} on", value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**")
+		embed.add_field(name=f"Joined {user.guild.name} on", value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**")
 		embed.add_field(name="Account created on", value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**")
 		if user.nick is not None:
 			embed.add_field(name="Nickname", value=user.nick)
@@ -59,7 +67,7 @@ class UserInfo(commands.Cog):
 			role_string = ' '.join([r.mention for r in user.roles][1:])
 			embed.add_field(name=f"Roles [{len(user.roles)-1}]", value=role_string, inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
-		return await inter.response.send_message(embed=embed)
+		return embed
 
 	def ActivityVal(activity: Activity):
 		value: str = f"**{activity.name}**\n"
@@ -108,6 +116,12 @@ class UserInfo(commands.Cog):
 		if user is None: user = inter.author
 		avatar=Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
 		avatar.set_image(url=user.display_avatar.url)
+		await inter.response.send_message(embed=avatar)
+
+	@commands.user_command(name='Avatar')
+	async def ContextAvatar(self, inter: UserCommandInteraction):
+		avatar=Embed(title=f"{inter.target.display_name}'s Avatar 🖼")
+		avatar.set_image(url=inter.target.display_avatar.url)
 		await inter.response.send_message(embed=avatar)
 
 	@commands.slash_command(description="Shows Bot's Info")
