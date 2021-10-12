@@ -1,9 +1,9 @@
 # Imports
-import disnake
 from disnake.ext import commands
 from disnake.utils import get
 from disnake import FFmpegOpusAudio, Embed, Activity, ActivityType, Status, Client
 from disnake import Button, ButtonStyle, Interaction
+from disnake.ui import View, button
 
 import time, asyncio, re, math
 from datetime import datetime
@@ -97,7 +97,7 @@ class Music(commands.Cog):
             await Music.player(self, ctx)
 
     #Queue
-    class QueuePages(disnake.ui.View):
+    class QueuePages(View):
         def __init__(self, obj):
             super().__init__()
             self.page_no = 1
@@ -120,13 +120,13 @@ class Music(commands.Cog):
                 embed.add_field(name=f'Next Up ({page_no}/{max_page})', value=next_songs, inline=False)
             return embed
 
-        @disnake.ui.button(label='◀️', style=ButtonStyle.blurple)
+        @button(label='◀️', style=ButtonStyle.blurple)
         async def prev_page(self, button: Button, interaction: Interaction):
             if self.page_no > 1: self.page_no -= 1
             else: self.page_no = math.ceil((len(self.obj)-1)/4)
             await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
 
-        @disnake.ui.button(label='▶️', style=ButtonStyle.blurple)
+        @button(label='▶️', style=ButtonStyle.blurple)
         async def next_page(self, button: Button, interaction: Interaction):
             if self.page_no < math.ceil((len(self.obj)-1)/4): self.page_no += 1
             else: self.page_no = 1

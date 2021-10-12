@@ -1,21 +1,20 @@
 # Imports
-from disnake import FFmpegPCMAudio, Member, Client
-from disnake import Option, OptionType, ApplicationCommandInteraction
+from disnake import FFmpegPCMAudio, Member, Client, ApplicationCommandInteraction
 from disnake.ext import commands
+from disnake.ext.commands import Param
 from disnake.utils import get
 
 import os, re
 from gtts import gTTS
-
 
 class TextToSpeech(commands.Cog):
 
 	def __init__(self, client: Client):
 		self.client = client
 
-	@commands.slash_command(description = "Text To Speach",
-						options=[Option("message", "Enter a message", OptionType.string, required = True)])
-	async def tts(self, inter: ApplicationCommandInteraction, message:str):
+	@commands.slash_command(description = "Text To Speach")
+	async def tts(self, inter: ApplicationCommandInteraction,
+			   message : str = Param(description="Enter a message")):
 		if isinstance(inter.author, Member) and inter.author.voice is None:
 			return await inter.response.send_message("You are not connected to a Voice Channel.", ephemeral=True)
 		voice = get(self.client.voice_clients, guild=inter.guild)

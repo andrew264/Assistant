@@ -1,8 +1,8 @@
 # Imports
 from disnake.ext import commands
-from disnake import Embed, Member, Client
+from disnake.ext.commands import Param
+from disnake import Embed, Member, Client, ApplicationCommandInteraction
 from disnake.utils import find
-from disnake import Option, OptionType, ApplicationCommandInteraction
 
 from random import randint, choice
 
@@ -11,11 +11,9 @@ class Fun(commands.Cog):
 	def __init__(self, client: Client):
 		self.client = client
 
-	@commands.slash_command(description="Measure them PPs",
-							options=[Option("user", "Mention a user", OptionType.user)])
-	async def pp(self, inter: ApplicationCommandInteraction, user: Member = None):
-		if user is None:
-			user = inter.author
+	@commands.slash_command(description="Measure them PPs")
+	async def pp(self, inter: ApplicationCommandInteraction,
+			  user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)):
 		pp404 = find(lambda r: r.id == 838868317779394560, inter.guild.roles)
 		ppembed = Embed(colour = user.color)
 		ppembed.set_author(name=user, icon_url=user.avatar.url)
@@ -25,9 +23,9 @@ class Fun(commands.Cog):
 		ppembed.set_footer(text=f'Inspected by: {inter.author.display_name}')
 		return await inter.response.send_message(embed=ppembed)
 
-	@commands.slash_command(description="Delete their existance",
-							options=[Option("user", "Mention a user", OptionType.user)])
-	async def kill(self, inter: ApplicationCommandInteraction, user: Member = None):
+	@commands.slash_command(description="Delete their existance")
+	async def kill(self, inter: ApplicationCommandInteraction,
+				user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)):
 		if user is None or user == inter.author :
 			return await inter.response.send_message('Stop, Get some Help.')
 		killembed = Embed(colour = user.color)

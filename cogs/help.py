@@ -1,31 +1,31 @@
 ﻿# Import
-import disnake
 from disnake.ext import commands
 from disnake import Embed, Colour, Client
 from disnake import Button, ButtonStyle, Interaction, ApplicationCommandInteraction
+from disnake.ui import View, button
 
 class HelpMe(commands.Cog):
 
 	def __init__(self, client: Client):
 		self.client = client
 
-	class HelpButtons(disnake.ui.View):
+	class HelpButtons(View):
 			def __init__(self):
 				super().__init__()
 				self.value = ''
 				self.timeout = 120
 
-			@disnake.ui.button(label='General Commands', style=ButtonStyle.blurple)
+			@button(label='General Commands', style=ButtonStyle.blurple)
 			async def user(self, button: Button, interaction: Interaction):
 				self.value = 'general'
 				self.stop()
 
-			@disnake.ui.button(label='Music Commands', style=ButtonStyle.blurple)
+			@button(label='Music Commands', style=ButtonStyle.blurple)
 			async def msuic(self, button: Button, interaction: Interaction):
 				self.value = 'music'
 				self.stop()
 
-			@disnake.ui.button(label='Fun Commands', style=ButtonStyle.blurple)
+			@button(label='Fun Commands', style=ButtonStyle.blurple)
 			async def fun(self, button: Button, interaction: Interaction):
 				self.value = 'fun'
 				self.stop()

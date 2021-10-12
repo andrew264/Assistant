@@ -1,7 +1,8 @@
 # Imports
 from disnake.ext import commands
+from disnake.ext.commands import Param
 from disnake import Client, Activity, ActivityType, Status, User, Member, Message
-from disnake import Option, OptionChoice, OptionType, ApplicationCommandInteraction, MessageCommandInteraction
+from disnake import ApplicationCommandInteraction, MessageCommandInteraction
 
 from typing import Optional
 
@@ -23,22 +24,16 @@ class Utility(commands.Cog):
 		await inter.response.send_message(f'Client Latency: {round(self.client.latency * 1000)}  ms')
 
 	#Set Status
-	@commands.slash_command(description = "Set Bot's Activity", options=[
-								 Option(name="state", description="Set Bot's Status", type=OptionType.string, required=True, choices=[
-										OptionChoice("Online", 'online'),
-										OptionChoice("Idle", 'idle'),
-										OptionChoice("Do not Disturb", 'dnd'),
-										OptionChoice("Invisible", 'invisible') ]),
-								 Option(name="type", description="Set Bot's Activity Type", type=OptionType.integer, required=True, choices=[
-										OptionChoice("Playing", 0),
-										OptionChoice("Listening", 2),
-										OptionChoice("Watching", 3),
-										OptionChoice("Streaming", 1) ]),
-								 Option(name="name", description="Set Bot's Activity Name", type=OptionType.string)])
+	State = commands.option_enum({"Online": 'online', "Idle": 'idle', "Do not Disturb": 'dnd',"Invisible": 'offline'})
+	ActType = commands.option_enum({"Playing": '0', "Streaming": '1', "Listening": '2', "Watching": '3'})
+	@commands.slash_command(description = "Set Bot's Activity")
 	@commands.is_owner()
-	async def status(self, inter: ApplicationCommandInteraction, state: str, type: int, name: str=""):
-		await self.client.change_presence(status=Status(state), activity=Activity(type=ActivityType(type), name=name))
-		await inter.response.send_message(f'Status set to `{Status(state).name.capitalize()}` and `{ActivityType(type).name.title()}: {name}`', ephemeral=True)
+	async def status(self, inter: ApplicationCommandInteraction,
+				  state: State = Param(description="Set Bot's Status"),
+				  type: ActType = Param(description="Set Bot's Activity Type"),
+				  name: str = Param(description="Set Bot's Activity Name", default="yall Homies")):
+		await self.client.change_presence(status=Status(state), activity=Activity(type=ActivityType(int(type)), name=name))
+		await inter.response.send_message(f'Status set to `{Status(state).name.capitalize()}` and `{ActivityType(int(type)).name.title()}: {name}`', ephemeral=True)
 
 	# clear
 	@commands.command(aliases=['delete'])
@@ -64,7 +59,7 @@ class Utility(commands.Cog):
 		await inter.response.send_message(f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}\'s` message", ephemeral=True)
 
 	@commands.command(aliases=['yeet'])
-	@commands.has_permissions(administrator=True)
+	@commands.is_owner()
 	async def purge_user(self, ctx: commands.Context, user: Member= None):
 		if user is None:
 			return await ctx.send("Mention Someone")

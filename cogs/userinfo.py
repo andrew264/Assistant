@@ -1,5 +1,6 @@
 ﻿# Imports
 from disnake.ext import commands
+from disnake.ext.commands import Param
 from disnake.utils import get
 from disnake import Member, Embed, Client
 from disnake import Spotify, Game, CustomActivity, Streaming, Activity
@@ -13,12 +14,11 @@ class UserInfo(commands.Cog):
 	def __init__(self, client: Client):
 		self.client = client
 
-	@commands.slash_command(description="Luk wat he be doin ovar der",
-							options=[Option("user", "Mention someone", OptionType.user)])
+	@commands.slash_command(description="Luk wat he be doin ovar der")
 	@commands.guild_only()
 	@commands.bot_has_permissions(embed_links=True)
-	async def whois(self, inter: ApplicationCommandInteraction, user: Member = None):
-		if user is None: user = inter.author
+	async def whois(self, inter: ApplicationCommandInteraction,
+				 user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)):
 		return await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, user))
 
 	@commands.user_command(name="Who is this Guy?")
@@ -29,7 +29,7 @@ class UserInfo(commands.Cog):
 
 	def WhoIsEmbed(self, user: Member):
 		# Fetch activity. I really wish i don't have to do this.
-		userWithPresence: Member = get(self.client.get_all_members(), id=user.id)
+		user: Member = get(self.client.get_all_members(), id=user.id)
 
 		date_format = "%a, %d %b %Y %I:%M %p"
 		embed = Embed(color=user.colour)
@@ -46,10 +46,10 @@ class UserInfo(commands.Cog):
 		if user.nick is not None:
 			embed.add_field(name="Nickname", value=user.nick)
 		# Clients
-		if userWithPresence.raw_status != 'offline':
-			embed.add_field(name="Available Clients", value=UserInfo.AvailableClients(userWithPresence))
+		if user.raw_status != 'offline':
+			embed.add_field(name="Available Clients", value=UserInfo.AvailableClients(user))
 		# Activity
-		for activity in userWithPresence.activities:
+		for activity in user.activities:
 			if isinstance(activity, Game):
 				embed.add_field(name="Playing", value=UserInfo.ActivityVal(activity))
 			elif isinstance(activity, Streaming):
@@ -109,11 +109,9 @@ class UserInfo(commands.Cog):
 		elif user.raw_status == 'dnd': value = value + " (DND)"
 		return value
 
-	@commands.slash_command(
-		description="Shows the avatar of the user",
-		options=[Option("user", "Mention a user", OptionType.user)])
-	async def avatar(self, inter: ApplicationCommandInteraction, user: Member = None):
-		if user is None: user = inter.author
+	@commands.slash_command(description="Shows the avatar of the user")
+	async def avatar(self, inter: ApplicationCommandInteraction,
+				  user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)):
 		avatar=Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
 		avatar.set_image(url=user.display_avatar.url)
 		await inter.response.send_message(embed=avatar)

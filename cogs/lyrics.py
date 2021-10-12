@@ -1,9 +1,10 @@
 ﻿# Imports
-import disnake
 from disnake.ext import commands
+from disnake.ext.commands import Param
 from disnake import Spotify, Embed, Member, Client
 from disnake.utils import get
-from disnake import ActionRow, Button, ButtonStyle, Interaction, Option, OptionType, ApplicationCommandInteraction, MessageInteraction
+from disnake import Button, ButtonStyle, Interaction, ApplicationCommandInteraction
+from disnake.ui import View, button
 
 from EnvVariables import GENIUS_TOKEN
 
@@ -20,6 +21,7 @@ class LyricsProcess():
 
     def SongTolist(song: Song):
         lyrics = re.sub(r"[0-9]*EmbedShare*",'',song.lyrics)
+        lyrics = re.sub(r"URLCopyEmbedCopy",'',lyrics)
         lyricsList = list(lyrics.split("\n\n"))
         return lyricsList
 
@@ -33,7 +35,7 @@ class LyricsProcess():
         embed.set_thumbnail(url = album_art)
         return embed
 
-class Pages(disnake.ui.View):
+class Pages(View):
     def __init__(self, title: str, track_url: str, album_art: str, lyricsList: list):
         super().__init__()
         self.page_no = 0
@@ -43,7 +45,7 @@ class Pages(disnake.ui.View):
         self.album_art = album_art
         self.lyricsList = lyricsList
 
-    @disnake.ui.button(label='◀️', style=ButtonStyle.blurple)
+    @button(label='◀️', style=ButtonStyle.blurple)
     async def prev_page(self, button: Button, interaction: Interaction):
         if self.page_no > 0:
             self.page_no -= 1
@@ -51,7 +53,7 @@ class Pages(disnake.ui.View):
 
         await interaction.response.edit_message(embed=LyricsProcess.generate_embed(title=self.title, track_url=self.track_url, album_art=self.album_art, lyricsList=self.lyricsList, pgno=self.page_no),view=self)
 
-    @disnake.ui.button(label='▶️', style=ButtonStyle.blurple)
+    @button(label='▶️', style=ButtonStyle.blurple)
     async def next_page(self, button: Button, interaction: Interaction):
         if self.page_no < len(self.lyricsList)-1:
             self.page_no += 1
@@ -64,10 +66,10 @@ class Lyrics(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(description="Get Lyrics for the song you are currently listening to.",
-                                options=[Option("title", "Song Title", OptionType.string),
-                                         Option("author", "Song Author", OptionType.string) ])
-    async def lyrics(self, inter: ApplicationCommandInteraction, title: str = None, author: str = ""):
+    @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")
+    async def lyrics(self, inter: ApplicationCommandInteraction,
+                     title: str = Param(description="Song Title", default=None),
+                     author: str = Param(description="Song Author", default="")):
         self.page_no = 0
         await inter.response.defer()
         loop = asyncio.get_event_loop()
