@@ -6,10 +6,11 @@ from disnake import Button, ButtonStyle, Interaction
 from disnake.ui import View, button
 
 import time, asyncio, re, math
-from datetime import datetime
 import yt_dlp.YoutubeDL as YDL
 from enum import Enum
+from typing import List
 from pyyoutube import Api
+from pyyoutube.models.playlist_item import PlaylistItem
 
 from EnvVariables import YT_TOKEN
 api = Api(api_key=YT_TOKEN)
@@ -39,28 +40,37 @@ class InputType(Enum):
     Playlist = 2
 
 class VideoInfo:
-    def __init__(self, YT_extract, author):
-        self.Title:str = (YT_extract.get("title", None))
-        self.pURL:str = (YT_extract.get("webpage_url"))
-        self.URL:str = (YT_extract["formats"][0]["url"])
-        self.Thumbnail:str = (YT_extract.get("thumbnail"))
-        self.Rating:float = (round(YT_extract.get("average_rating"),2))
-        self.Views:int = (YT_extract.get("view_count"))
-        self.Likes:int = (YT_extract.get("like_count"))
-        self.UploadDate:str = (datetime.strptime(YT_extract.get('upload_date'), '%Y%m%d').strftime('%d-%m-%Y'))
-        self.Duration:int = (YT_extract.get("duration"))
-        self.FDuration:str = (time.strftime('%M:%S', time.gmtime(YT_extract.get("duration"))))
-        self.SongIn:int = (YT_extract.get("duration"))
+    def __init__(self, vID, author):
+        videoData = api.get_video_by_id(video_id=vID).items[0]
+        self.Title:str = videoData.snippet.title
+        self.pURL:str = f'https://www.youtube.com/watch?v={videoData.id}'
+        self.Thumbnail:str = videoData.snippet.thumbnails.maxres.url
+        self.Views:int = videoData.statistics.viewCount
+        self.Likes:int = videoData.statistics.likeCount
+        self.UploadDate:str = videoData.snippet.string_to_datetime(videoData.snippet.publishedAt).strftime('%d-%m-%Y')
+        self.Duration:int = videoData.contentDetails.get_video_seconds_duration()
+        self.FDuration:str = time.strftime('%M:%S', time.gmtime(videoData.contentDetails.get_video_seconds_duration()))
+        self.SongIn:int = videoData.contentDetails.get_video_seconds_duration()
         self.Author:str = author
 
-def YTDl(self, url: str, inputtype: InputType, author:str):
+def FromApi(query: str, inputtype: InputType, author:str):
+    match inputtype:
+        case InputType.URL:
+            regex = re.compile(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*")
+            video_id = regex.search(query).group(1)
+            return [VideoInfo(video_id , author)]
+        case InputType.Search:
+            video_id = api.search(q=query, limit = 1, search_type="video").items[0].id.videoId
+            return [VideoInfo(video_id , author)]
+        case InputType.Playlist:
+            playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
+            videoData: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
+            return [VideoInfo(video.snippet.resourceId.videoId , author) for video in videoData]
+
+def StreamURL(url:str):
     with YDL(ydl_opts) as ydl:
-        match inputtype:
-            case InputType.Search:
-                YT_extract = ydl.extract_info(f'ytsearch:{url}', download=False)['entries'][0]
-            case _:
-                YT_extract = ydl.extract_info(url, download=False)
-    return VideoInfo(YT_extract, author)
+        YT_extract = ydl.extract_info(url, download=False)
+        return YT_extract["formats"][0]["url"]
 
 class Music(commands.Cog):
     def __init__(self, client: Client):
@@ -74,20 +84,6 @@ class Music(commands.Cog):
         elif re.match(vid_url_regex, query) is not None:
             return InputType.URL
         else: return InputType.Search
-
-    def Playlist_urls(playlist:str):
-        playlist_id = playlist.replace('https://www.youtube.com/playlist?list=','')
-        playlistResponse = api.get_playlist_items(playlist_id=playlist_id, count=None)
-        playlist_URLS = []
-        for i in range(0, len(playlistResponse.items)):
-            playlist_URLS.append(f'https://www.youtube.com/watch?v={playlistResponse.items[i].contentDetails.videoId}')
-        return playlist_URLS
-
-    async def AddtoQueue(self, ctx: commands.Context, playlist:list):
-        loop = asyncio.get_event_loop()
-        for i in range(0, len(playlist)):
-            song_info = await loop.run_in_executor(None, YTDl, self, playlist[i], InputType.Playlist, ctx.message.author.display_name)
-            self.dict_obj[ctx.guild.id].append(song_info)
 
     #Play
     @commands.command(pass_context=True, aliases=['p'])
@@ -107,20 +103,9 @@ class Music(commands.Cog):
         async with ctx.typing():
             inputType = Music.FindInputType(query)
             loop = asyncio.get_event_loop()
-            match inputType:
-                case InputType.Playlist:
-                    playlist = Music.Playlist_urls(query)
-                    song_info = await loop.run_in_executor(None, YTDl, self, playlist[0], InputType.Playlist, ctx.message.author.display_name)
-                    playlist.pop(0)
-                    self.dict_obj[ctx.guild.id].append(song_info)
-                    asyncio.create_task(Music.AddtoQueue(self, ctx, playlist))
-                case InputType.Search:
-                    song_info = await loop.run_in_executor(None, YTDl, self, query, InputType.Search, ctx.message.author.display_name)
-                    self.dict_obj[ctx.guild.id].append(song_info)
-                case InputType.URL:
-                    song_info = await loop.run_in_executor(None, YTDl, self, query, InputType.URL, ctx.message.author.display_name)
-                    self.dict_obj[ctx.guild.id].append(song_info)
-        
+            song_info = await loop.run_in_executor(None, FromApi, query, inputType, ctx.message.author.display_name)
+            self.dict_obj[ctx.guild.id].extend(song_info)
+
         if inputType == InputType.Playlist: await ctx.send(f"Adding Playlist to Queue...")
         else: await ctx.send(f'Adding `{self.dict_obj[ctx.guild.id][len(self.dict_obj[ctx.guild.id])-1].Title}` to Queue.')
 
@@ -179,14 +164,15 @@ class Music(commands.Cog):
         voice = get(self.client.voice_clients, guild=ctx.guild)
         await Music.StatusUpdate(self, ctx)
         if len(self.dict_obj[ctx.guild.id]):
+            loop = asyncio.get_event_loop()
+            streamurl = await loop.run_in_executor(None, StreamURL, self.dict_obj[ctx.guild.id][0].pURL)
             embed=Embed(title="", color=0xff0000)
             embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
             embed.set_author(name=f'Playing: {self.dict_obj[ctx.guild.id][0].Title}', url=self.dict_obj[ctx.guild.id][0].pURL, icon_url='')
             embed.add_field(name="Duration:", value=self.dict_obj[ctx.guild.id][0].FDuration, inline=True)
             embed.add_field(name="Requested by:", value=self.dict_obj[ctx.guild.id][0].Author, inline=True)
-            embed.add_field(name="Song Rating:", value=f'{self.dict_obj[ctx.guild.id][0].Rating}/5', inline=True)
             await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].Duration)
-            voice.play(FFmpegOpusAudio(self.dict_obj[ctx.guild.id][0].URL, bitrate=192, **FFMPEG_OPTIONS),
+            voice.play(FFmpegOpusAudio(streamurl, bitrate=192, **FFMPEG_OPTIONS),
                        after=lambda e: print(f'Player error: {e}') if e else None)
             if self.dict_obj[ctx.guild.id][0]:
                 while self.dict_obj[ctx.guild.id][0].SongIn>0:
@@ -282,8 +268,8 @@ class Music(commands.Cog):
             embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
             embed.set_author(name=f'{self.dict_obj[ctx.guild.id][0].Title}', url=self.dict_obj[ctx.guild.id][0].pURL, icon_url='')
             embed.add_field(name=f'{song_on} {progbar} {self.dict_obj[ctx.guild.id][0].FDuration}',value='\u200b',inline=False)
-            embed.add_field(name="Views:", value=f'{human_format(self.dict_obj[ctx.guild.id][0].Views)}', inline=True)
-            embed.add_field(name="Likes:", value=f'{human_format(self.dict_obj[ctx.guild.id][0].Likes)}', inline=True)
+            embed.add_field(name="Views:", value=f'{human_format(int(self.dict_obj[ctx.guild.id][0].Views))}', inline=True)
+            embed.add_field(name="Likes:", value=f'{human_format(int(self.dict_obj[ctx.guild.id][0].Likes))}', inline=True)
             embed.add_field(name="Uploaded on:", value=f'{self.dict_obj[ctx.guild.id][0].UploadDate}', inline=True)
             await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].SongIn)
         else:
