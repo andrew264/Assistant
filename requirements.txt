@@ -3,3 +3,4 @@ python-dotenv
 yt-dlp
 gTTS
 lyricsgenius
+python-youtube

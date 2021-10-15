@@ -8,6 +8,7 @@ from disnake import Option, OptionType, ApplicationCommandInteraction, UserComma
 
 from datetime import datetime, timezone
 import sqlite3
+from platform import python_version
 
 class UserInfo(commands.Cog):
 
@@ -130,7 +131,7 @@ class UserInfo(commands.Cog):
 		embed.set_thumbnail(url=user.avatar.url)
 		embed.add_field(name="Created by", value='Andrew', inline=False)
 		embed.add_field(name="Created on", value='21 Mar 2021', inline=False)
-		embed.add_field(name="Created for", value='Personal Purposes', inline=False)
+		embed.add_field(name="Python Version", value=f'v{python_version()}', inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
 		return await inter.response.send_message(embed=embed)
 	

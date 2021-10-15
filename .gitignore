@@ -3,7 +3,7 @@
 
 # Visual Studio 
 /.vs
-/venv
+/env
 *.pyc
 
 #ignore batch files

@@ -8,10 +8,20 @@ from disnake.ui import View, button
 import time, asyncio, re, math
 from datetime import datetime
 import yt_dlp.YoutubeDL as YDL
+from enum import Enum
+from pyyoutube import Api
 
-ydl_opts={'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best'}
-FFMPEG_OPTIONS={'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1',
-                'options': '-vn'}
+from EnvVariables import YT_TOKEN
+
+api = Api(api_key=YT_TOKEN)
+
+ydl_opts = {
+    'noplaylist': True,
+    'quiet': True,
+    'no_warnings': True,
+    'format': 'bestaudio/best',
+}
+FFMPEG_OPTIONS={'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1', 'options': '-vn'}
 
 vid_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$", re.IGNORECASE)
 playlist_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com)\/(playlist).+$", re.IGNORECASE)
@@ -39,23 +49,47 @@ class video_info:
             self.SongIn:int = (YT_extract.get("duration"))
             self.Author:str = author
 
+class InputType(Enum):
+    Search = 0
+    URL = 1
+    Playlist = 2
+
 class Music(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
         self.looper: bool = False
         self.dict_obj: dict = {}
 
-    def YTDl(self, url):
+    def YTDl(self, url: str, inputtype: InputType ):
         with YDL(ydl_opts) as ydl:
-            if re.match(playlist_url_regex, url) is not None:
-                song_info = ydl.extract_info(url, download=False)['entries']
-                self.entries = len(song_info)
-            elif re.match(vid_url_regex, url) is not None:
-                song_info = []
-                song_info.append(ydl.extract_info(url, download=False))
-            else:
-                song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
+            match inputtype:
+                case InputType.Search:
+                    song_info = ydl.extract_info(f'ytsearch:{url}', download=False)['entries']
+                case _:
+                    song_info = []
+                    song_info.append(ydl.extract_info(url, download=False))
         return song_info
+
+    def FindInputType(query:str):
+        if re.match(playlist_url_regex, query) is not None:
+            return InputType.Playlist
+        elif re.match(vid_url_regex, query) is not None:
+            return InputType.URL
+        else: return InputType.Search
+
+    def Playlist_urls(playlist:str):
+        playlist_id = playlist.replace('https://www.youtube.com/playlist?list=','')
+        playlistResponse = api.get_playlist_items(playlist_id=playlist_id, count=None)
+        playlist_URLS = []
+        for i in range(0, len(playlistResponse.items)):
+            playlist_URLS.append(f'https://www.youtube.com/watch?v={playlistResponse.items[i].contentDetails.videoId}')
+        return playlist_URLS
+
+    async def AddtoQueue(self, ctx: commands.Context, playlist:list):
+        loop = asyncio.get_event_loop()
+        for i in range(0, len(playlist)):
+            song_info = await loop.run_in_executor(None, Music.YTDl, self, playlist[i], InputType.Playlist)
+            self.dict_obj[ctx.guild.id].append(video_info(song_info[0], ctx.message.author.display_name))
 
     #Play
     @commands.command(pass_context=True, aliases=['p'])
@@ -69,21 +103,24 @@ class Music(commands.Cog):
         # If player is_paused resume...
         if query is None:
             if self.dict_obj[ctx.guild.id] !=[] and ctx.voice_client.is_paused() is True:
-                async with ctx.typing():
-                    ctx.voice_client.resume()
-                    embed=Embed(title='Resumed:',colour=0x4169e1)
-                    embed.add_field(name=self.dict_obj[ctx.guild.id][0].Title,value='\u200b')
-                    return await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].SongIn)
+                return await Music.pause(self, ctx)
             else: return await ctx.send('Queue is Empty.', delete_after = 60)
 
         async with ctx.typing():
+            inputType = Music.FindInputType(query)
             loop = asyncio.get_event_loop()
-            song_info = await loop.run_in_executor(None, Music.YTDl, self, query)
-            for i in range(0,len(song_info)):
-                self.dict_obj[ctx.guild.id].append(video_info(song_info[i], ctx.message.author.display_name))
+            match inputType:
+                case InputType.Playlist:
+                    playlist = Music.Playlist_urls(query)
+                    song_info = await loop.run_in_executor(None, Music.YTDl, self, playlist[0], inputType)
+                    playlist.pop(0)
+                    self.dict_obj[ctx.guild.id].append(video_info(song_info[0], ctx.message.author.display_name))
+                    asyncio.create_task(Music.AddtoQueue(self, ctx, playlist))
+                case _:
+                    song_info = await loop.run_in_executor(None, Music.YTDl, self, query, inputType)
+                    self.dict_obj[ctx.guild.id].append(video_info(song_info[0], ctx.message.author.display_name))
         
-        if re.match(playlist_url_regex, query) is not None:
-            await ctx.send(f"Adding `{self.entries} SONGS` to Queue.")
+        if inputType == InputType.Playlist: await ctx.send(f"Adding Playlist to Queue...")
         else: await ctx.send(f'Adding `{self.dict_obj[ctx.guild.id][len(self.dict_obj[ctx.guild.id])-1].Title}` to Queue.')
 
         # Join VC
@@ -95,6 +132,7 @@ class Music(commands.Cog):
             voice = await voiceChannel.connect()
         if self.dict_obj[ctx.guild.id][0] and ctx.voice_client.is_paused() is False and ctx.voice_client.is_playing() is False:
             await Music.player(self, ctx)
+            
 
     #Queue
     class QueuePages(View):
@@ -215,6 +253,11 @@ class Music(commands.Cog):
             while ctx.voice_client.is_paused():
                 self.dict_obj[ctx.guild.id][0].SongIn+=1
                 await asyncio.sleep(1)
+        else:
+            ctx.voice_client.resume()
+            embed=Embed(title='Resumed:',colour=0x4169e1)
+            embed.add_field(name=self.dict_obj[ctx.guild.id][0].Title,value='\u200b')
+            return await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].SongIn)
 
     #Loop
     @commands.command(aliases=['repeat'])
