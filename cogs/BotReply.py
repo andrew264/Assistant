@@ -1,6 +1,7 @@
 # Imports
 from disnake.ext import commands
-from disnake import Message, Client
+from disnake import Message, Client, TextChannel
+from disnake import Webhook
 
 from random import choice
 
@@ -18,13 +19,19 @@ class BotReply(commands.Cog):
 		if message.author.bot: return
 		if any(word in message.content.lower().split() for word in hiMsgs):
 			response = choice(hiMsgReplys)
-			return await message.channel.send(response)
+			return await BotReply.ReplyWebhook(self, message.channel, response)
 		elif any(word in message.content.lower().split() for word in byeMsgs):
 			response = choice(byeMsgReplys)
-			return await message.channel.send(response)
+			return await BotReply.ReplyWebhook(self, message.channel, response)
 		elif any(word in message.content.lower().split() for word in yeahMsgs):
 			response = choice(yeahMsgReplys)
-			return await message.channel.send(response)
+			return await BotReply.ReplyWebhook(self, message.channel, response)
+
+	async def ReplyWebhook(self, channel: TextChannel, response: str):
+		webhook: Webhook = await channel.create_webhook(name="Reply Hook")
+		avatarURL = self.client.get_user(493025015445454868).display_avatar.url
+		await webhook.send(content=response, username='Andrew', avatar_url = avatarURL)
+		await webhook.delete()
 
 def setup(client):
 	client.add_cog(BotReply(client))
