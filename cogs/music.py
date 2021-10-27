@@ -5,7 +5,7 @@ from disnake import FFmpegOpusAudio, Embed, Activity, ActivityType, Status, Clie
 from disnake import Button, ButtonStyle, Interaction
 from disnake.ui import View, button
 
-import time, asyncio, re, math
+import time, asyncio, re, math, json
 import yt_dlp.YoutubeDL as YDL
 from enum import Enum
 from typing import List
@@ -24,6 +24,7 @@ ydl_opts = {
 FFMPEG_OPTIONS={'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1', 'options': '-vn'}
 
 vid_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$", re.IGNORECASE)
+vid_id_regex = re.compile(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*")
 playlist_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com)\/(playlist).+$", re.IGNORECASE)
 
 def human_format(num):
@@ -44,21 +45,53 @@ class VideoInfo:
         videoData = api.get_video_by_id(video_id=vID).items[0]
         self.Title:str = videoData.snippet.title
         self.pURL:str = f'https://www.youtube.com/watch?v={videoData.id}'
-        self.Thumbnail:str = videoData.snippet.thumbnails.maxres.url
+        self.Thumbnail:str = videoData.snippet.thumbnails.default.url
         self.Views:int = videoData.statistics.viewCount
         self.Likes:int = videoData.statistics.likeCount
         self.UploadDate:str = videoData.snippet.string_to_datetime(videoData.snippet.publishedAt).strftime('%d-%m-%Y')
         self.Duration:int = videoData.contentDetails.get_video_seconds_duration()
-        self.FDuration:str = time.strftime('%M:%S', time.gmtime(videoData.contentDetails.get_video_seconds_duration()))
-        self.SongIn:int = videoData.contentDetails.get_video_seconds_duration()
+        self.FDuration:str = time.strftime('%M:%S', time.gmtime(self.Duration))
+        self.SongIn:int = self.Duration
         self.Author:str = author
+
+    def to_dict(self):
+        dict1 = {vid_id_regex.search(self.pURL).group(1):  {
+                "Title": self.Title,
+                "pURL": self.pURL,
+                "Thumbnail": self.Thumbnail,
+                "Views": self.Views,
+                "Likes": self.Likes,
+                "UploadDate": self.UploadDate,
+                "Duration": self.Duration,
+                "FDuration": self.FDuration,
+                "SongIn": self.SongIn,
+                "Author": self.Author,
+                }   }
+        return dict1
+
+class VideoInfofromDict:
+    def __init__(self, data: dict):
+        self.Title:str = data["Title"]
+        self.pURL:str = data["pURL"]
+        self.Thumbnail:str = data["Thumbnail"]
+        self.Views:int = int(data["Views"])
+        self.Likes:int = int(data["Likes"])
+        self.UploadDate:str = data["UploadDate"]
+        self.Duration:int = int(data["Duration"])
+        self.FDuration:str = data["FDuration"]
+        self.SongIn:int = int(data["SongIn"])
+        self.Author:str = data["Author"]
 
 def FromApi(query: str, inputtype: InputType, author:str):
     match inputtype:
         case InputType.URL:
-            regex = re.compile(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*")
-            video_id = regex.search(query).group(1)
-            return [VideoInfo(video_id , author)]
+            video_id = vid_id_regex.search(query).group(1)
+            video_info = ReadfromJSON(video_id)
+            if video_info is None:
+                video_info = VideoInfo(video_id , author)
+                WritetoJSON(video_info.to_dict())
+                print("From API")
+            return [video_info]
         case InputType.Search:
             video_id = api.search(q=query, limit = 1, search_type="video").items[0].id.videoId
             return [VideoInfo(video_id , author)]
@@ -71,6 +104,24 @@ def StreamURL(url:str):
     with YDL(ydl_opts) as ydl:
         YT_extract = ydl.extract_info(url, download=False)
         return YT_extract["formats"][0]["url"]
+
+def WritetoJSON(dictionary: dict):
+    with open('MusicCache.json', 'r+') as jsonFile:
+        data: dict = json.load(jsonFile)
+        data.update(dictionary)
+        jsonFile.seek(0)
+        json.dump(data, jsonFile, indent=4, sort_keys=True)
+        jsonFile.close()
+
+def ReadfromJSON(videoID: str):
+    with open('MusicCache.json', 'r+') as jsonFile:
+        data: dict = json.load(jsonFile)
+        jsonFile.close()
+        if videoID in data:
+            print("From JSON")
+            video_info = VideoInfofromDict(data=data[videoID])
+            return video_info
+        else: return None
 
 class Music(commands.Cog):
     def __init__(self, client: Client):
