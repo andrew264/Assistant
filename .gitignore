@@ -14,3 +14,6 @@
 
 # ignore database
 *.sqlite3
+
+# ignore Music Cache
+MusicCache.json

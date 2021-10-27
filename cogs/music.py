@@ -74,13 +74,12 @@ class VideoInfo:
                 "Duration": self.Duration,
                 "FDuration": self.FDuration,
                 "SongIn": self.SongIn,
-                "Author": self.Author,
                 }   }
         return dict1
 
 class VideoInfofromDict:
     '''Cast Dict to Object'''
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, author: str):
         self.Title:str = data["Title"]
         self.pURL:str = data["pURL"]
         self.Thumbnail:str = data["Thumbnail"]
@@ -90,7 +89,7 @@ class VideoInfofromDict:
         self.Duration:int = int(data["Duration"])
         self.FDuration:str = data["FDuration"]
         self.SongIn:int = int(data["SongIn"])
-        self.Author:str = data["Author"]
+        self.Author:str = author
 
 def FetchVideoId(query: str, inputtype: InputType):
     '''Get Video ID'''
@@ -108,7 +107,7 @@ def FetchVideoId(query: str, inputtype: InputType):
 def FetchVidInfo(video_id: str, author: str):
     '''Return Video Details'''
     # From JSON
-    video_info = ReadfromJSON(video_id)
+    video_info = ReadfromJSON(video_id, author)
     if video_info is None:
         # From API
         video_info = VideoInfo(video_id , author)
@@ -124,13 +123,13 @@ def WritetoJSON(dictionary: dict):
         json.dump(data, jsonFile, indent=4, sort_keys=True)
         jsonFile.close()
 
-def ReadfromJSON(videoID: str):
+def ReadfromJSON(videoID: str, author: str):
     '''Read from JSON and return VideoInfofromDict if exists else None'''
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         jsonFile.close()
         if videoID in data:
-            video_info = VideoInfofromDict(data=data[videoID])
+            video_info = VideoInfofromDict(data=data[videoID], author=author)
             return video_info
         else: return None
 
@@ -212,6 +211,7 @@ class Music(commands.Cog):
             return [i for i in range(first, last)]
 
         def embed_gen(obj, page_no):
+            if len(obj) == 0: return Embed(title = "Queue is Empty", colour=0xffa31a)
             embed=Embed(title="Now Playing", description = f"[{obj[0].Title}]({obj[0].pURL}) (Requested by {obj[0].Author})", colour=0xffa31a)
             if len(obj)>1:
                 song_index = Music.QueuePages.page_index(obj, page_no)
