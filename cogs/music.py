@@ -28,6 +28,7 @@ vid_id_regex = re.compile(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*")
 playlist_url_regex = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com)\/(playlist).+$", re.IGNORECASE)
 
 def human_format(num):
+    '''Convert Integers to Human readable formats.'''
     num = float('{:.3g}'.format(num))
     magnitude = 0
     while abs(num) >= 1000:
@@ -36,13 +37,20 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 class InputType(Enum):
+    '''
+    Types of Input
+    Search = 0
+    URL = 1
+    Playlist = 2
+    '''
     Search = 0
     URL = 1
     Playlist = 2
 
 class VideoInfo:
-    def __init__(self, vID, author):
-        videoData = api.get_video_by_id(video_id=vID).items[0]
+    '''Fetch Info from API'''
+    def __init__(self, video_id, author):
+        videoData = api.get_video_by_id(video_id=video_id).items[0]
         self.Title:str = videoData.snippet.title
         self.pURL:str = f'https://www.youtube.com/watch?v={videoData.id}'
         self.Thumbnail:str = videoData.snippet.thumbnails.default.url
@@ -55,7 +63,8 @@ class VideoInfo:
         self.Author:str = author
 
     def to_dict(self):
-        dict1 = {vid_id_regex.search(self.pURL).group(1):  {
+        '''returns Video Details as Dictionary'''
+        dict1: dict = { vid_id_regex.search(self.pURL).group(1):  {
                 "Title": self.Title,
                 "pURL": self.pURL,
                 "Thumbnail": self.Thumbnail,
@@ -70,6 +79,7 @@ class VideoInfo:
         return dict1
 
 class VideoInfofromDict:
+    '''Cast Dict to Object'''
     def __init__(self, data: dict):
         self.Title:str = data["Title"]
         self.pURL:str = data["pURL"]
@@ -82,30 +92,31 @@ class VideoInfofromDict:
         self.SongIn:int = int(data["SongIn"])
         self.Author:str = data["Author"]
 
-def FromApi(query: str, inputtype: InputType, author:str):
+def FetchVideoId(query: str, inputtype: InputType):
+    '''Get Video ID'''
     match inputtype:
         case InputType.URL:
-            video_id = vid_id_regex.search(query).group(1)
-            video_info = ReadfromJSON(video_id)
-            if video_info is None:
-                video_info = VideoInfo(video_id , author)
-                WritetoJSON(video_info.to_dict())
-                print("From API")
-            return [video_info]
+            return vid_id_regex.search(query).group(1)
         case InputType.Search:
-            video_id = api.search(q=query, limit = 1, search_type="video").items[0].id.videoId
-            return [VideoInfo(video_id , author)]
+            with YDL(ydl_opts) as ydl:
+                return ydl.extract_info(f'ytsearch:{query}', download=False)['entries'][0]['id']
         case InputType.Playlist:
             playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
             videoData: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
-            return [VideoInfo(video.snippet.resourceId.videoId , author) for video in videoData]
+            return [video.snippet.resourceId.videoId for video in videoData]
 
-def StreamURL(url:str):
-    with YDL(ydl_opts) as ydl:
-        YT_extract = ydl.extract_info(url, download=False)
-        return YT_extract["formats"][0]["url"]
+def FetchVidInfo(video_id: str, author: str):
+    '''Return Video Details'''
+    # From JSON
+    video_info = ReadfromJSON(video_id)
+    if video_info is None:
+        # From API
+        video_info = VideoInfo(video_id , author)
+        WritetoJSON(video_info.to_dict())
+    return video_info
 
 def WritetoJSON(dictionary: dict):
+    '''Add Video Details to JSON'''
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         data.update(dictionary)
@@ -114,14 +125,19 @@ def WritetoJSON(dictionary: dict):
         jsonFile.close()
 
 def ReadfromJSON(videoID: str):
+    '''Read from JSON and return VideoInfofromDict if exists else None'''
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         jsonFile.close()
         if videoID in data:
-            print("From JSON")
             video_info = VideoInfofromDict(data=data[videoID])
             return video_info
         else: return None
+
+def StreamURL(url:str):
+    '''Fetch Stream URL'''
+    with YDL(ydl_opts) as ydl:
+        return str(ydl.extract_info(url, download=False)["formats"][0]["url"])
 
 class Music(commands.Cog):
     def __init__(self, client: Client):
@@ -154,8 +170,20 @@ class Music(commands.Cog):
         async with ctx.typing():
             inputType = Music.FindInputType(query)
             loop = asyncio.get_event_loop()
-            song_info = await loop.run_in_executor(None, FromApi, query, inputType, ctx.message.author.display_name)
-            self.dict_obj[ctx.guild.id].extend(song_info)
+            match inputType:
+                case InputType.Playlist:
+                    video_ids = FetchVideoId(query, inputType)
+                    for video_id in video_ids:
+                        video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name)
+                        self.dict_obj[ctx.guild.id].append(video_info)
+                case InputType.Search:
+                    video_id = await loop.run_in_executor(None, FetchVideoId, query, inputType)
+                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name)
+                    self.dict_obj[ctx.guild.id].append(video_info)
+                case InputType.URL:
+                    video_id = FetchVideoId(query, inputType)
+                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name)
+                    self.dict_obj[ctx.guild.id].append(video_info)
 
         if inputType == InputType.Playlist: await ctx.send(f"Adding Playlist to Queue...")
         else: await ctx.send(f'Adding `{self.dict_obj[ctx.guild.id][len(self.dict_obj[ctx.guild.id])-1].Title}` to Queue.')
