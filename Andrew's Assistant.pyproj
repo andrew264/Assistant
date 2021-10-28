@@ -44,6 +44,7 @@
     <Folder Include="cogs\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="MusicCache.json" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <ItemGroup>

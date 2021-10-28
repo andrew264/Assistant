@@ -62,21 +62,6 @@ class VideoInfo:
         self.SongIn:int = self.Duration
         self.Author:str = author
 
-    def to_dict(self):
-        '''returns Video Details as Dictionary'''
-        dict1: dict = { vid_id_regex.search(self.pURL).group(1):  {
-                "Title": self.Title,
-                "pURL": self.pURL,
-                "Thumbnail": self.Thumbnail,
-                "Views": self.Views,
-                "Likes": self.Likes,
-                "UploadDate": self.UploadDate,
-                "Duration": self.Duration,
-                "FDuration": self.FDuration,
-                "SongIn": self.SongIn,
-                }   }
-        return dict1
-
 class VideoInfofromDict:
     '''Cast Dict to Object'''
     def __init__(self, data: dict, author: str):
@@ -91,27 +76,47 @@ class VideoInfofromDict:
         self.SongIn:int = int(data["SongIn"])
         self.Author:str = author
 
+def VideoInfotoDict(video: VideoInfo, query: str|None):
+    '''returns Video Details as Dictionary'''
+    video_id = vid_id_regex.search(video.pURL).group(1)
+    dict1: dict ={video_id:{"Title": video.Title,
+                            "pURL": video.pURL,
+                            "Thumbnail": video.Thumbnail,
+                            "Views": video.Views,
+                            "Likes": video.Likes,
+                            "UploadDate": video.UploadDate,
+                            "Duration": video.Duration,
+                            "FDuration": video.FDuration,
+                            "SongIn": video.SongIn,
+                            "Tags" : [],}}
+    if query is not None:
+        dict1[video_id]["Tags"] = [query]
+    return dict1
+
 def FetchVideoId(query: str, inputtype: InputType):
     '''Get Video ID'''
     match inputtype:
         case InputType.URL:
             return vid_id_regex.search(query).group(1)
         case InputType.Search:
-            with YDL(ydl_opts) as ydl:
-                return ydl.extract_info(f'ytsearch:{query}', download=False)['entries'][0]['id']
+            video_id = SearchfromJSON(query)
+            if video_id is None:
+                with YDL(ydl_opts) as ydl:
+                    video_id = ydl.extract_info(f'ytsearch:{query}', download=False)['entries'][0]['id']
+            return video_id
         case InputType.Playlist:
             playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
             videoData: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
             return [video.snippet.resourceId.videoId for video in videoData]
 
-def FetchVidInfo(video_id: str, author: str):
+def FetchVidInfo(video_id: str, author: str, query: str):
     '''Return Video Details'''
     # From JSON
     video_info = ReadfromJSON(video_id, author)
     if video_info is None:
         # From API
         video_info = VideoInfo(video_id , author)
-        WritetoJSON(video_info.to_dict())
+        WritetoJSON(VideoInfotoDict(video_info, query))
     return video_info
 
 def WritetoJSON(dictionary: dict):
@@ -133,7 +138,28 @@ def ReadfromJSON(videoID: str, author: str):
             return video_info
         else: return None
 
-def StreamURL(url:str):
+def SearchfromJSON(query: str):
+    '''Search Title in JSON and return VideoID if exists'''
+    with open('MusicCache.json', 'r+') as jsonFile:
+        data: dict = json.load(jsonFile)
+        jsonFile.close()
+    for videoID in data:
+        if query.lower() in data[videoID]["Title"].lower():
+            return videoID
+        if query.lower() in data[videoID]["Tags"]:
+            return videoID
+    return None
+
+def AddTagstoJSON(videoID: str, tag: str):
+    '''Add Tags to Videos for Search'''
+    with open('MusicCache.json', 'r+') as jsonFile:
+        data: dict = json.load(jsonFile)
+        data[videoID]["Tags"].append(tag.lower())
+        jsonFile.seek(0)
+        json.dump(data, jsonFile, indent=4, sort_keys=True)
+        jsonFile.close()
+
+def StreamURL(url: str):
     '''Fetch Stream URL'''
     with YDL(ydl_opts) as ydl:
         return str(ydl.extract_info(url, download=False)["formats"][0]["url"])
@@ -173,15 +199,15 @@ class Music(commands.Cog):
                 case InputType.Playlist:
                     video_ids = FetchVideoId(query, inputType)
                     for video_id in video_ids:
-                        video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name)
+                        video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name, None)
                         self.dict_obj[ctx.guild.id].append(video_info)
                 case InputType.Search:
                     video_id = await loop.run_in_executor(None, FetchVideoId, query, inputType)
-                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name)
+                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name, query)
                     self.dict_obj[ctx.guild.id].append(video_info)
                 case InputType.URL:
                     video_id = FetchVideoId(query, inputType)
-                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name)
+                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name, None)
                     self.dict_obj[ctx.guild.id].append(video_info)
 
         if inputType == InputType.Playlist: await ctx.send(f"Adding Playlist to Queue...")
@@ -364,6 +390,14 @@ class Music(commands.Cog):
             await asyncio.sleep(2)
             await ctx.send("Skipped", delete_after=6)
 
+    # Add Tags to Current Song
+    @commands.is_owner()
+    @commands.command(aliases=['tag'])
+    async def addtag(self, ctx: commands.Context,* , tag: str):
+        video_id = vid_id_regex.search(self.dict_obj[ctx.guild.id][0].pURL).group(1)
+        AddTagstoJSON(video_id, tag)
+        await ctx.reply(f"TAG: **{tag}** added to **{self.dict_obj[ctx.guild.id][0].Title}**")
+
     # Check Bot in VC
     @queue.before_invoke
     @skip.before_invoke
@@ -372,6 +406,7 @@ class Music(commands.Cog):
     @loop.before_invoke
     @np.before_invoke
     @jump.before_invoke
+
     async def check_voice(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('Bot is not connect to VC.')
