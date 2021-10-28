@@ -96,62 +96,55 @@ def VideoInfotoDict(video: VideoInfo, query: str|None):
         dict1[video_id]["Tags"] = [query]
     return dict1
 
-def FetchVideoId(query: str, inputtype: InputType):
-    '''Get Video ID'''
-    match inputtype:
-        case InputType.URL:
-            return vid_id_regex.search(query).group(1)
-        case InputType.Search:
-            video_id = SearchfromJSON(query)
-            if video_id is None:
-                with YDL(ydl_opts) as ydl:
-                    video_id = ydl.extract_info(f'ytsearch:{query}', download=False)['entries'][0]['id']
-            return video_id
-        case InputType.Playlist:
-            playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
-            videoData: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
-            return [video.snippet.resourceId.videoId for video in videoData]
-
-def FetchVidInfo(video_id: str, author: str, query: str):
-    '''Return Video Details'''
-    # From JSON
-    video_info = ReadfromJSON(video_id, author)
-    if video_info is None:
-        # From API
-        video_info = VideoInfo(video_id , author)
-        WritetoJSON(VideoInfotoDict(video_info, query))
-    return video_info
-
-def WritetoJSON(dictionary: dict):
-    '''Add Video Details to JSON'''
+def Search(query: str, author: str):
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
-        data.update(dictionary)
+        for video_id in data:
+            if query.lower() in data[video_id]["Title"].lower() or "Tags" in data[video_id] and query.lower() in data[video_id]["Tags"]:
+                jsonFile.close()
+                return VideoInfofromDict(data=data[video_id], author=author)
+        with YDL(ydl_opts) as ydl:
+            video_id = ydl.extract_info(f'ytsearch:{query}', download=False)['entries'][0]['id']
+        video_info = VideoInfo(video_id , author)
+        data.update(VideoInfotoDict(video_info, query))
         jsonFile.seek(0)
         json.dump(data, jsonFile, indent=4, sort_keys=True)
         jsonFile.close()
+        return video_info
 
-def ReadfromJSON(videoID: str, author: str):
-    '''Read from JSON and return VideoInfofromDict if exists else None'''
+def FetchVideo(query: str, author: str):
+    video_id = vid_id_regex.search(query).group(1)
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
-        jsonFile.close()
-        if videoID in data:
-            video_info = VideoInfofromDict(data=data[videoID], author=author)
+        if video_id in data:
+            jsonFile.close()
+            return VideoInfofromDict(data=data[video_id], author=author)
+        else:
+            video_info = VideoInfo(video_id , author)
+            data.update(VideoInfotoDict(video_info, None))
+            jsonFile.seek(0)
+            json.dump(data, jsonFile, indent=4, sort_keys=True)
+            jsonFile.close()
             return video_info
-        else: return None
 
-def SearchfromJSON(query: str):
-    '''Search Title in JSON and return VideoID if exists'''
+def FetchPlaylist(query: str, author: str):
+    playlist_videos: List[VideoInfo|VideoInfofromDict] = []
+    playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
+    video_items: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
+    video_ids = [video.snippet.resourceId.videoId for video in video_items]
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
+        for video_id in video_ids:
+            if video_id in data:
+                playlist_videos.append(VideoInfofromDict(data=data[video_id], author=author))
+            else:
+                video_info = VideoInfo(video_id , author)
+                playlist_videos.append(video_info)
+                data.update(VideoInfotoDict(video_info, None))
+        jsonFile.seek(0)
+        json.dump(data, jsonFile, indent=4, sort_keys=True)
         jsonFile.close()
-    for videoID in data:
-        if query.lower() in data[videoID]["Title"].lower():
-            return videoID
-        if query.lower() in data[videoID]["Tags"]:
-            return videoID
-    return None
+        return playlist_videos
 
 def AddTagstoJSON(videoID: str, tag: str):
     '''Add Tags to Videos for Search'''
@@ -200,17 +193,13 @@ class Music(commands.Cog):
             loop = asyncio.get_event_loop()
             match inputType:
                 case InputType.Playlist:
-                    video_ids = FetchVideoId(query, inputType)
-                    for video_id in video_ids:
-                        video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name, None)
-                        self.dict_obj[ctx.guild.id].append(video_info)
+                    video_info = await loop.run_in_executor(None, FetchPlaylist, query, ctx.author.display_name)
+                    self.dict_obj[ctx.guild.id].extend(video_info)
                 case InputType.Search:
-                    video_id = await loop.run_in_executor(None, FetchVideoId, query, inputType)
-                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name, query)
+                    video_info = await loop.run_in_executor(None, Search, query, ctx.author.display_name)
                     self.dict_obj[ctx.guild.id].append(video_info)
                 case InputType.URL:
-                    video_id = FetchVideoId(query, inputType)
-                    video_info = await loop.run_in_executor(None, FetchVidInfo, video_id, ctx.author.display_name, None)
+                    video_info = await loop.run_in_executor(None, FetchVideo, query, ctx.author.display_name)
                     self.dict_obj[ctx.guild.id].append(video_info)
 
         if inputType == InputType.Playlist: await ctx.send(f"Adding Playlist to Queue...")
