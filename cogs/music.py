@@ -53,7 +53,10 @@ class VideoInfo:
         videoData = api.get_video_by_id(video_id=video_id).items[0]
         self.Title:str = videoData.snippet.title
         self.pURL:str = f'https://www.youtube.com/watch?v={videoData.id}'
-        self.Thumbnail:str = videoData.snippet.thumbnails.default.url
+        thumbnails = videoData.snippet.thumbnails
+        if thumbnails.maxres:
+            self.Thumbnail:str = thumbnails.maxres.url
+        else: self.Thumbnail:str = thumbnails.default.url
         self.Views:int = videoData.statistics.viewCount
         self.Likes:int = videoData.statistics.likeCount
         self.UploadDate:str = videoData.snippet.string_to_datetime(videoData.snippet.publishedAt).strftime('%d-%m-%Y')
