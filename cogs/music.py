@@ -406,7 +406,7 @@ class Music(commands.Cog):
     @loop.before_invoke
     @np.before_invoke
     @jump.before_invoke
-
+    @addtag.before_invoke
     async def check_voice(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('Bot is not connect to VC.')
