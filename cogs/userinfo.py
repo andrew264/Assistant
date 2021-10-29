@@ -2,6 +2,7 @@
 from disnake.ext import commands
 from disnake.ext.commands import Param
 from disnake.utils import get
+from disnake import __version__ as library_version
 from disnake import Member, Embed, Client
 from disnake import Spotify, Game, CustomActivity, Streaming, Activity
 from disnake import Option, OptionType, ApplicationCommandInteraction, UserCommandInteraction
@@ -131,7 +132,8 @@ class UserInfo(commands.Cog):
 		embed.set_thumbnail(url=user.avatar.url)
 		embed.add_field(name="Created by", value='Andrew', inline=False)
 		embed.add_field(name="Created on", value='21 Mar 2021', inline=False)
-		embed.add_field(name="Python Version", value=f'v{python_version()}', inline=False)
+		embed.add_field(name="Python Version", value=f'v. {python_version()}', inline=False)
+		embed.add_field(name="Library Version", value=f'v. {library_version}', inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
 		return await inter.response.send_message(embed=embed)
 	
