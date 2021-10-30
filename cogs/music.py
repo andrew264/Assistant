@@ -1,9 +1,10 @@
 # Imports
 from disnake.ext import commands
 from disnake.utils import get
-from disnake import FFmpegOpusAudio, Embed, Activity, ActivityType, Status, Client
+from disnake import Embed, Activity, ActivityType, Status, Client
 from disnake import Button, ButtonStyle, Interaction
-from disnake.ui import View, button
+from disnake import FFmpegPCMAudio, PCMVolumeTransformer
+import disnake
 
 import time, asyncio, re, math, json
 import yt_dlp.YoutubeDL as YDL
@@ -160,11 +161,53 @@ def StreamURL(url: str):
     with YDL(ydl_opts) as ydl:
         return str(ydl.extract_info(url, download=False)["formats"][0]["url"])
 
+class QueuePages(disnake.ui.View):
+    def __init__(self, obj):
+        super().__init__(timeout=180.0)
+        self.page_no = 1
+        self.obj = obj
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
+    def page_index(obj, pgno):
+        first = (pgno*4)-3
+        if (pgno*4)+1 <= len(obj): last = (pgno*4)+1
+        else: last = len(obj)
+        return [i for i in range(first, last)]
+
+    def embed_gen(obj, page_no):
+        if len(obj) == 0: return Embed(title = "Queue is Empty", colour=0xffa31a)
+        embed=Embed(title="Now Playing", description = f"[{obj[0].Title}]({obj[0].pURL}) (Requested by {obj[0].Author})", colour=0xffa31a)
+        if len(obj)>1:
+            song_index = QueuePages.page_index(obj, page_no)
+            next_songs = "\u200b"
+            max_page = math.ceil((len(obj)-1)/4)
+            for i in song_index:
+                next_songs += f"{i}. [{obj[i].Title}]({obj[i].pURL}) (Requested by {obj[i].Author})\n"
+            embed.add_field(name=f'Next Up ({page_no}/{max_page})', value=next_songs, inline=False)
+        return embed
+
+    @disnake.ui.button(label='◀️', style=ButtonStyle.secondary)
+    async def prev_page(self, button: Button, interaction: Interaction):
+        if self.page_no > 1: self.page_no -= 1
+        else: self.page_no = math.ceil((len(self.obj)-1)/4)
+        await self.message.edit(embed=QueuePages.embed_gen(self.obj, self.page_no), view=self)
+
+    @disnake.ui.button(label='▶️', style=ButtonStyle.secondary)
+    async def next_page(self, button: Button, interaction: Interaction):
+        if self.page_no < math.ceil((len(self.obj)-1)/4): self.page_no += 1
+        else: self.page_no = 1
+        await self.message.edit(embed=QueuePages.embed_gen(self.obj, self.page_no), view=self)
+
 class Music(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
         self.looper: bool = False
         self.dict_obj: dict = {}
+        self.volume_float = 0.25
 
     def FindInputType(query:str):
         if re.match(playlist_url_regex, query) is not None:
@@ -185,8 +228,9 @@ class Music(commands.Cog):
         # If player is_paused resume...
         if query is None:
             if self.dict_obj[ctx.guild.id] !=[] and ctx.voice_client.is_paused() is True:
+                if ctx.voice_client is None: return
                 return await Music.pause(self, ctx)
-            else: return await ctx.send('Queue is Empty.', delete_after = 60)
+            else: return await ctx.send('Queue is Empty.')
 
         async with ctx.typing():
             inputType = Music.FindInputType(query)
@@ -216,131 +260,86 @@ class Music(commands.Cog):
             await Music.player(self, ctx)
 
     #Queue
-    class QueuePages(View):
-        def __init__(self, obj):
-            super().__init__()
-            self.page_no = 1
-            self.obj = obj
-
-        def page_index(obj, pgno):
-            first = (pgno*4)-3
-            if (pgno*4)+1 <= len(obj): last = (pgno*4)+1
-            else: last = len(obj)
-            return [i for i in range(first, last)]
-
-        def embed_gen(obj, page_no):
-            if len(obj) == 0: return Embed(title = "Queue is Empty", colour=0xffa31a)
-            embed=Embed(title="Now Playing", description = f"[{obj[0].Title}]({obj[0].pURL}) (Requested by {obj[0].Author})", colour=0xffa31a)
-            if len(obj)>1:
-                song_index = Music.QueuePages.page_index(obj, page_no)
-                next_songs = "\u200b"
-                max_page = math.ceil((len(obj)-1)/4)
-                for i in song_index:
-                    next_songs += f"{i}. [{obj[i].Title}]({obj[i].pURL}) (Requested by {obj[i].Author})\n"
-                embed.add_field(name=f'Next Up ({page_no}/{max_page})', value=next_songs, inline=False)
-            return embed
-
-        @button(label='◀️', style=ButtonStyle.blurple)
-        async def prev_page(self, button: Button, interaction: Interaction):
-            if self.page_no > 1: self.page_no -= 1
-            else: self.page_no = math.ceil((len(self.obj)-1)/4)
-            await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
-
-        @button(label='▶️', style=ButtonStyle.blurple)
-        async def next_page(self, button: Button, interaction: Interaction):
-            if self.page_no < math.ceil((len(self.obj)-1)/4): self.page_no += 1
-            else: self.page_no = 1
-            await interaction.response.edit_message(embed=Music.QueuePages.embed_gen(self.obj, self.page_no), view=self)
-
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
-        await ctx.send(embed = Music.QueuePages.embed_gen(self.dict_obj[ctx.guild.id], 1), view=Music.QueuePages(self.dict_obj[ctx.guild.id]), delete_after=300)
+        view = QueuePages(self.dict_obj[ctx.guild.id])
+        view.message = await ctx.send(embed = QueuePages.embed_gen(self.dict_obj[ctx.guild.id], 1), view=view)
 
     #Play from Queue
     async def player(self, ctx: commands.Context):
-        voice = get(self.client.voice_clients, guild=ctx.guild)
         await Music.StatusUpdate(self, ctx)
-        if len(self.dict_obj[ctx.guild.id]):
-            loop = asyncio.get_event_loop()
-            streamurl = await loop.run_in_executor(None, StreamURL, self.dict_obj[ctx.guild.id][0].pURL)
-            embed=Embed(title="", color=0xff0000)
-            embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
-            embed.set_author(name=f'Playing: {self.dict_obj[ctx.guild.id][0].Title}', url=self.dict_obj[ctx.guild.id][0].pURL, icon_url='')
-            embed.add_field(name="Duration:", value=self.dict_obj[ctx.guild.id][0].FDuration, inline=True)
-            embed.add_field(name="Requested by:", value=self.dict_obj[ctx.guild.id][0].Author, inline=True)
-            await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].Duration)
-            voice.play(FFmpegOpusAudio(streamurl, bitrate=192, **FFMPEG_OPTIONS),
-                       after=lambda e: print(f'Player error: {e}') if e else None)
-            if self.dict_obj[ctx.guild.id][0]:
-                while self.dict_obj[ctx.guild.id][0].SongIn>0:
-                    await asyncio.sleep(1)
-                    self.dict_obj[ctx.guild.id][0].SongIn-=1
-            ctx.voice_client.stop()
-            # song ends here
-            if self.dict_obj[ctx.guild.id] and self.looper:
-                self.dict_obj[ctx.guild.id].append(self.dict_obj[ctx.guild.id][0])
-                self.dict_obj[ctx.guild.id].pop(0)
-                # Temp Fix
-                self.dict_obj[ctx.guild.id][0].SongIn = self.dict_obj[ctx.guild.id][0].Duration
-            elif self.dict_obj[ctx.guild.id] and not self.looper:
-                self.dict_obj[ctx.guild.id].pop(0)
-            await Music.player(self, ctx)
+        if len(self.dict_obj[ctx.guild.id]) == 0: return
+        loop = asyncio.get_event_loop()
+        streamurl = await loop.run_in_executor(None, StreamURL, self.dict_obj[ctx.guild.id][0].pURL)
+        voice = ctx.voice_client
+        if voice.is_playing(): return
+        voice.play(FFmpegPCMAudio(streamurl, **FFMPEG_OPTIONS))
+        voice.source=PCMVolumeTransformer(voice.source)
+        voice.source.volume = self.volume_float
+        embed=Embed(title="", color=0xff0000)
+        embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
+        embed.set_author(name=f'Playing: {self.dict_obj[ctx.guild.id][0].Title}', url=self.dict_obj[ctx.guild.id][0].pURL, icon_url='')
+        embed.add_field(name="Duration:", value=self.dict_obj[ctx.guild.id][0].FDuration, inline=True)
+        embed.add_field(name="Requested by:", value=self.dict_obj[ctx.guild.id][0].Author, inline=True)
+        await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].Duration)
+        while self.dict_obj[ctx.guild.id][0].SongIn>0:
+            await asyncio.sleep(1)
+            self.dict_obj[ctx.guild.id][0].SongIn-=1
+        ctx.voice_client.stop()
+        # song ends here
+        if self.dict_obj[ctx.guild.id] and self.looper:
+            self.dict_obj[ctx.guild.id].append(self.dict_obj[ctx.guild.id][0])
+            self.dict_obj[ctx.guild.id].pop(0)
+            # Temp Fix
+            self.dict_obj[ctx.guild.id][0].SongIn = self.dict_obj[ctx.guild.id][0].Duration
+        elif self.dict_obj[ctx.guild.id] and not self.looper:
+            self.dict_obj[ctx.guild.id].pop(0)
+        await Music.player(self, ctx)
 
     # Update client's status
     #Cuz why not ?
     async def StatusUpdate(self, ctx: commands.Context):
-        if ctx.voice_client is not None and len(self.dict_obj[ctx.guild.id]):
+        if len(self.dict_obj[ctx.guild.id]):
             await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=self.dict_obj[ctx.guild.id][0].Title))
         else: await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="yall Homies."))
 
     #Skip
     @commands.command()
-    async def skip(self, ctx: commands.Context, arg=0):
-        if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
-            embed=Embed(title='Removed',colour=0xff7f50)
-            embed.add_field(name=f'{self.dict_obj[ctx.guild.id][arg].Title} from Queue.',value=f'by {ctx.message.author.display_name}')
-            if arg>0 and arg<len(self.dict_obj[ctx.guild.id]):
-                await ctx.send(embed=embed, delete_after=60)
-                self.dict_obj[ctx.guild.id].pop(arg)
-            elif arg==0:
-                ctx.voice_client.stop()
-                self.dict_obj[ctx.guild.id][0].SongIn = 0
-                await asyncio.sleep(1)
-                await ctx.send(embed=embed, delete_after=60)
-            else:
-                embed.add_field(name='Nothing',value=':p')
-                await ctx.send(embed=embed, delete_after=30)
+    async def skip(self, ctx: commands.Context, arg: int=0):
+        if len(self.dict_obj[ctx.guild.id]) == 0 or arg > len(self.dict_obj[ctx.guild.id]): return
+        await ctx.send(f"{ctx.author.display_name} removed `{self.dict_obj[ctx.guild.id][arg].Title}` from Queue.")
+        if arg>0 and arg<=len(self.dict_obj[ctx.guild.id]):
+            self.dict_obj[ctx.guild.id].pop(arg)
+        elif arg==0:
+            ctx.voice_client.stop()
+            self.dict_obj[ctx.guild.id][0].SongIn = 0
+            await asyncio.sleep(1)
 
     #Stop
     @commands.command(aliases=['dc', 'kelambu'])
     async def stop(self, ctx: commands.Context):
-        if ctx.voice_client is not None:
-            if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
-                ctx.voice_client.stop()
-                # clean list
-                self.dict_obj[ctx.guild.id][0].SongIn = 0
-                await asyncio.sleep(2)
-                self.dict_obj[ctx.guild.id].clear()
-            await ctx.message.add_reaction('👋'), await ctx.voice_client.disconnect()
-            self.looper=False
+        if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
+            ctx.voice_client.stop()
+            # clean list
+            self.dict_obj[ctx.guild.id][0].SongIn = 0
+            await asyncio.sleep(2)
+            self.dict_obj[ctx.guild.id].clear()
+        await ctx.message.add_reaction('👋'), await ctx.voice_client.disconnect()
+        self.looper=False
 
     #Pause
     @commands.command()
     async def pause(self, ctx: commands.Context):
-        if ctx.voice_client is not None and ctx.voice_client.is_paused() is False:
+        if ctx.voice_client.is_playing():
             ctx.voice_client.pause()
-            embed=Embed(title='Paused:',colour=0x4169e1)
-            embed.add_field(name=self.dict_obj[ctx.guild.id][0].Title,value='\u200b')
-            await ctx.send(embed=embed, delete_after=180)
+            await ctx.send(f"{ctx.author.display_name} paused `{self.dict_obj[ctx.guild.id][0].Title}`")
             # we addin 1 every second to wait :p
             while ctx.voice_client.is_paused():
                 self.dict_obj[ctx.guild.id][0].SongIn+=1
                 await asyncio.sleep(1)
         else:
             ctx.voice_client.resume()
-            embed=Embed(title='Resumed:',colour=0x4169e1)
-            embed.add_field(name=self.dict_obj[ctx.guild.id][0].Title,value='\u200b')
-            return await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].SongIn)
+            await ctx.send(f"{ctx.author.display_name} resumed `{self.dict_obj[ctx.guild.id][0].Title}`")
 
     #Loop
     @commands.command(aliases=['repeat'])
@@ -351,11 +350,12 @@ class Music(commands.Cog):
         else:
             self.looper=True
             embed=Embed(title='Loop Enabled.',colour=0x800080)
-        await ctx.send(embed=embed, delete_after=300)
+        await ctx.send(embed=embed)
 
     #Now Playing
     @commands.command(aliases=['nowplaying'])
     async def np(self, ctx: commands.Context):
+        await ctx.message.delete()
         if self.dict_obj[ctx.guild.id]:
             percentile=20-round((self.dict_obj[ctx.guild.id][0].SongIn/self.dict_obj[ctx.guild.id][0].Duration)*20)
             bar='────────────────────'
@@ -371,7 +371,6 @@ class Music(commands.Cog):
             await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].SongIn)
         else:
             await ctx.reply('Queue is Empty', delete_after=30)
-            await ctx.message.delete()
 
     #Jump
     @commands.command(aliases=['skipto'])
@@ -380,7 +379,18 @@ class Music(commands.Cog):
             if song_index >=2: del self.dict_obj[ctx.guild.id][1:song_index]
             self.dict_obj[ctx.guild.id][0].SongIn = 1
             await asyncio.sleep(2)
-            await ctx.send("Skipped", delete_after=6)
+            await ctx.send("Skipped")
+
+    #Volume
+    @commands.command(aliases=['vol','v'])
+    async def volume(self, ctx: commands.Context, volume_int: int=None):
+        if volume_int is None:
+            return await ctx.send(f'Volume: {round(self.volume_float*100)}%')
+        elif volume_int>0 and volume_int<=100:
+            self.volume_float = round(volume_int)/100
+            ctx.voice_client.source.volume = self.volume_float
+            return await ctx.send(f'Volume is set to `{round(self.volume_float*100)}%`')
+        else: await ctx.send("Set Volume between `1 and 100`.")
 
     # Add Tags to Current Song
     @commands.is_owner()
@@ -399,6 +409,7 @@ class Music(commands.Cog):
     @np.before_invoke
     @jump.before_invoke
     @addtag.before_invoke
+    @volume.before_invoke
     async def check_voice(self, ctx: commands.Context):
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('Bot is not connect to VC.')
