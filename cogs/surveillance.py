@@ -1,8 +1,20 @@
 ﻿# Imports
 from disnake.ext import commands
-from disnake import Embed, Colour, Client
-from disnake import Message, Member, User, VoiceState, TextChannel
-from disnake import CustomActivity, Activity, Spotify, Streaming, Game
+from disnake import (
+	Activity,
+	Client,
+	Colour,
+	CustomActivity,
+	Embed,
+	Game,
+	Member,
+	Message,
+	Spotify,
+	Streaming,
+	TextChannel,
+	User,
+	VoiceState
+	)
 from disnake.activity import ActivityTypes
 
 from datetime import datetime
@@ -18,7 +30,7 @@ class Surveillance(commands.Cog):
 		self.client = client
 
 	@commands.Cog.listener()
-	async def on_message_edit(self, before: Message, after: Message):
+	async def on_message_edit(self, before: Message, after: Message) -> None:
 		if before.author.bot: return
 		if before.author.id == OWNERID: return
 		if before.clean_content == after.clean_content: return
@@ -31,7 +43,7 @@ class Surveillance(commands.Cog):
 		await log_channel.send(embed=embed)
 
 	@commands.Cog.listener()
-	async def on_message_delete(self, message: Message):
+	async def on_message_delete(self, message: Message) -> None:
 		if message.author.bot: return
 		if message.author.id == OWNERID: return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
@@ -42,7 +54,7 @@ class Surveillance(commands.Cog):
 		await log_channel.send(embed=embed)
 
 	@commands.Cog.listener()
-	async def on_member_update(self, before: Member, after: Member):
+	async def on_member_update(self, before: Member, after: Member) -> None:
 		if before.bot: return
 		if before.id == OWNERID: return
 		if before.display_name == after.display_name: return
@@ -55,7 +67,7 @@ class Surveillance(commands.Cog):
 		await log_channel.send(embed=embed)
 
 	@commands.Cog.listener()
-	async def on_user_update(self, before: User, after: User):
+	async def on_user_update(self, before: User, after: User) -> None:
 		if before.bot: return
 		if before.id == OWNERID: return
 		if before.name == after.name and before.discriminator == after.discriminator: return
@@ -68,7 +80,7 @@ class Surveillance(commands.Cog):
 		await log_channel.send(embed=embed)
 
 	@commands.Cog.listener()
-	async def on_presence_update(self, before: Member, after: Member):
+	async def on_presence_update(self, before: Member, after: Member) -> None:
 		if before.bot: return
 		if before.id == OWNERID: return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
@@ -120,7 +132,7 @@ class Surveillance(commands.Cog):
 			await log_channel.send(embed=embed, delete_after=delete_after)
 
 	@commands.Cog.listener()
-	async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
+	async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
 		if member.bot: return
 		if after.channel == before.channel: return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
@@ -132,14 +144,14 @@ class Surveillance(commands.Cog):
 			await log_channel.send(f"{member.display_name} moved to {after.channel.mention} from {before.channel.mention}",delete_after = 900)
 
 	@commands.Cog.listener()
-	async def on_typing(self, channel: TextChannel, user: Member, when: datetime):
+	async def on_typing(self, channel: TextChannel, user: Member, when: datetime) -> None:
 		if user.bot: return
 		if user.id == OWNERID: return
 		if channel.name != "general-shit" and channel.name != "private-chat": return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
 		await log_channel.send(f"{user.display_name} started typing in {channel.mention}", delete_after = 120)
 
-	def AvailableClients(user: Member):
+	def AvailableClients(user: Member) -> str:
 		clients = []
 		if user.desktop_status.name != 'offline':
 			clients.append('Desktop')
@@ -150,13 +162,13 @@ class Surveillance(commands.Cog):
 		if clients == []: return "Offline"
 		return f"{', '.join(clients)}"
 
-	def StatusUpdate(user: Member):
+	def StatusUpdate(user: Member) -> str:
 		if user.raw_status == 'online': return "Online"
 		elif user.raw_status == 'idle': return "Idle"
 		elif user.raw_status == 'dnd': return "Do not Disturb"
 		elif user.raw_status == 'offline': return "Offline"
 
-	def CustomActVal(activity: CustomActivity):
+	def CustomActVal(activity: CustomActivity) -> str:
 		value: str = ''
 		if activity.emoji is not None:
 			value += f"[{activity.emoji}]({activity.emoji.url}) "
@@ -164,7 +176,7 @@ class Surveillance(commands.Cog):
 			value += activity.name
 		return value
 
-	def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()):
+	def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()) -> list:
 		activitiesList = []
 		for activity in activities:
 			if isinstance(activity, Game):

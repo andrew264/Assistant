@@ -1,7 +1,14 @@
 ﻿# Import
 from disnake.ext import commands
-from disnake import Embed, Colour, Client
-from disnake import Button, ButtonStyle, Interaction, ApplicationCommandInteraction
+from disnake import (
+	ApplicationCommandInteraction,
+	Button,
+	ButtonStyle,
+	Client,
+	Colour,
+	Embed,
+	Interaction,
+	)
 from disnake.ui import View, button
 
 class HelpMe(commands.Cog):
@@ -16,22 +23,22 @@ class HelpMe(commands.Cog):
 				self.timeout = 120
 
 			@button(label='General Commands', style=ButtonStyle.blurple)
-			async def user(self, button: Button, interaction: Interaction):
+			async def user(self, button: Button, interaction: Interaction) -> None:
 				self.value = 'general'
 				self.stop()
 
 			@button(label='Music Commands', style=ButtonStyle.blurple)
-			async def msuic(self, button: Button, interaction: Interaction):
+			async def msuic(self, button: Button, interaction: Interaction) -> None:
 				self.value = 'music'
 				self.stop()
 
 			@button(label='Fun Commands', style=ButtonStyle.blurple)
-			async def fun(self, button: Button, interaction: Interaction):
+			async def fun(self, button: Button, interaction: Interaction) -> None:
 				self.value = 'fun'
 				self.stop()
 
 	@commands.slash_command(description="How may I help you ?")
-	async def help(self, inter: ApplicationCommandInteraction):
+	async def help(self, inter: ApplicationCommandInteraction) -> None:
 		view = HelpMe.HelpButtons()
 		await inter.response.send_message('How may I help you ?', view=view)
 		await view.wait()

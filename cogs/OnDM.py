@@ -1,6 +1,6 @@
 ﻿# Imports
 from disnake.ext import commands
-from disnake import User, Message, Client
+from disnake import Client, Message, User
 
 from EnvVariables import DM_Channel
 
@@ -11,7 +11,7 @@ class OnDM(commands.Cog):
 
 	# Replies
 	@commands.Cog.listener()
-	async def on_message(self, message: Message):
+	async def on_message(self, message: Message) -> None:
 		if message.guild: return
 		if message.author.bot: return
 		if message.author == self.client.user: return
@@ -32,7 +32,10 @@ class OnDM(commands.Cog):
 	# slide to dms
 	@commands.command()
 	@commands.is_owner()
-	async def dm(self, ctx: commands.Context,  user: User, *, msg):
+	async def dm(self,
+			  ctx: commands.Context,
+			  user: User,
+			  *, msg) -> None:
 		msg_content = ''
 		channel = await user.create_dm()
 		msg_content = f'{msg}\n'

@@ -1,7 +1,14 @@
 ﻿# Imports
 from disnake.ext import commands
-from disnake import Embed, RawReactionActionEvent, Client
-from disnake import Member, PartialMessage, TextChannel
+from disnake import (
+	Client,
+	Embed,
+	Member,
+	PartialMessage,
+	RawReactionActionEvent,
+	TextChannel
+	)
+
 from disnake.utils import get
 
 CHANNEL_ID = 826931734645440562
@@ -24,7 +31,7 @@ class ReactionRoles(commands.Cog):
 		self.client = client
 
 	@commands.Cog.listener()
-	async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
+	async def on_raw_reaction_add(self, payload: RawReactionActionEvent) -> None:
 		if payload.channel_id != CHANNEL_ID: return
 		if payload.message_id != MESSAGE_ID: return
 		if payload.member.bot == True: return
@@ -51,7 +58,7 @@ class ReactionRoles(commands.Cog):
 		await payload.member.add_roles(role)
 
 	@commands.Cog.listener()
-	async def on_raw_reaction_remove(self, payload: RawReactionActionEvent):
+	async def on_raw_reaction_remove(self, payload: RawReactionActionEvent) -> None:
 		if payload.channel_id != CHANNEL_ID: return
 		if payload.message_id != MESSAGE_ID: return
 		# filter out other emojis
@@ -68,7 +75,7 @@ class ReactionRoles(commands.Cog):
 
 	@commands.command()
 	@commands.is_owner()
-	async def reactionroles(self, ctx: commands.Context):
+	async def reactionroles(self, ctx: commands.Context) -> None:
 		await ctx.message.delete()
 		embed = Embed(title = "Reaction Roles", colour = 0xffffff, description = "Claim a colour of your choice!")
 		msg = await ctx.send(embed=embed)

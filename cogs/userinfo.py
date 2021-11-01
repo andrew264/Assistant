@@ -2,10 +2,21 @@
 from disnake.ext import commands
 from disnake.ext.commands import Param
 from disnake.utils import get
-from disnake import __version__ as library_version
-from disnake import Member, Embed, Client
-from disnake import Spotify, Game, CustomActivity, Streaming, Activity
-from disnake import Option, OptionType, ApplicationCommandInteraction, UserCommandInteraction
+import disnake
+from disnake import (
+	Activity,
+	ApplicationCommandInteraction,
+	Client,
+	CustomActivity,
+	Embed,
+	Game,
+	Member,
+	Option,
+	OptionType,
+	Spotify,
+	Streaming,
+	UserCommandInteraction
+	)
 
 from datetime import datetime, timezone
 import sqlite3
@@ -19,17 +30,18 @@ class UserInfo(commands.Cog):
 	@commands.slash_command(description="Luk wat he be doin ovar der")
 	@commands.guild_only()
 	@commands.bot_has_permissions(embed_links=True)
-	async def whois(self, inter: ApplicationCommandInteraction,
-				 user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)):
+	async def whois(self,
+				 inter: ApplicationCommandInteraction,
+				 user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)) -> None:
 		return await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, user))
 
 	@commands.user_command(name="Who is this Guy?")
 	@commands.guild_only()
 	@commands.bot_has_permissions(embed_links=True)
-	async def ContextWhoIs(self, inter: UserCommandInteraction):
+	async def ContextWhoIs(self, inter: UserCommandInteraction) -> None:
 		return await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, inter.target))
 
-	def WhoIsEmbed(self, user: Member):
+	def WhoIsEmbed(self, user: Member) -> Embed:
 		# Fetch activity. I really wish i don't have to do this.
 		user: Member = get(self.client.get_all_members(), id=user.id)
 
@@ -71,13 +83,13 @@ class UserInfo(commands.Cog):
 		embed.set_footer(text=f'User ID: {user.id}')
 		return embed
 
-	def ActivityVal(activity: Activity):
+	def ActivityVal(activity: Activity) -> str:
 		value: str = f"**{activity.name}**\n"
 		if activity.start is not None:
 			value += UserInfo.timeDelta(activity.start)
 		return value
 
-	def timeDelta(timestamp: datetime):
+	def timeDelta(timestamp: datetime) -> str:
 		sec = (datetime.now(timezone.utc) - timestamp).seconds
 		value:str = ""
 		if sec < 60:
@@ -88,7 +100,7 @@ class UserInfo(commands.Cog):
 			value += f"({sec//3600} hrs {(sec//60)%60} mins)"
 		return value
 
-	def CustomActVal(activity: CustomActivity):
+	def CustomActVal(activity: CustomActivity) -> str:
 		value: str = ''
 		if activity.emoji is not None:
 			value += f"[{activity.emoji}]({activity.emoji.url}) "
@@ -97,7 +109,7 @@ class UserInfo(commands.Cog):
 		value += f"\n{UserInfo.timeDelta(activity.created_at)}"
 		return value
 
-	def AvailableClients(user: Member):
+	def AvailableClients(user: Member) -> str:
 		clients = []
 		if user.desktop_status.name != 'offline':
 			clients.append('Desktop')
@@ -112,20 +124,21 @@ class UserInfo(commands.Cog):
 		return value
 
 	@commands.slash_command(description="Shows the avatar of the user")
-	async def avatar(self, inter: ApplicationCommandInteraction,
-				  user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)):
+	async def avatar(self,
+				  inter: ApplicationCommandInteraction,
+				  user: Member = Param(description= "Mention a User", default=lambda inter: inter.author)) -> None:
 		avatar=Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
 		avatar.set_image(url=user.display_avatar.url)
 		await inter.response.send_message(embed=avatar)
 
 	@commands.user_command(name='Avatar')
-	async def ContextAvatar(self, inter: UserCommandInteraction):
+	async def ContextAvatar(self, inter: UserCommandInteraction) -> None:
 		avatar=Embed(title=f"{inter.target.display_name}'s Avatar 🖼")
 		avatar.set_image(url=inter.target.display_avatar.url)
 		await inter.response.send_message(embed=avatar)
 
 	@commands.slash_command(description="Shows Bot's Info")
-	async def botinfo(self, inter: ApplicationCommandInteraction):
+	async def botinfo(self, inter: ApplicationCommandInteraction) -> None:
 		user = self.client.user
 		embed = Embed(color=0xFF0060, description=user.mention)
 		embed.set_author(name=user, icon_url=user.avatar.url)
@@ -133,17 +146,17 @@ class UserInfo(commands.Cog):
 		embed.add_field(name="Created by", value='Andrew', inline=False)
 		embed.add_field(name="Created on", value='21 Mar 2021', inline=False)
 		embed.add_field(name="Python Version", value=f'v. {python_version()}', inline=False)
-		embed.add_field(name="Library Version", value=f'v. {library_version}', inline=False)
+		embed.add_field(name="Library Version", value=f'v. {disnake.__version__}', inline=False)
 		embed.set_footer(text=f'User ID: {user.id}')
 		return await inter.response.send_message(embed=embed)
 	
 	@commands.slash_command(description = "Introduce Yourself to Others.",
 							options=[Option("message", "Enter a message", OptionType.string, required = True)])
-	async def introduce(self, inter: ApplicationCommandInteraction, message: str):
+	async def introduce(self, inter: ApplicationCommandInteraction, message: str) -> None:
 		UserInfo.AddDatatoDB(userID=inter.author.id, message=message.replace('"', ''))
 		await inter.response.send_message("Introduction Added.")
 
-	def AddDatatoDB(userID: int, message: str):
+	def AddDatatoDB(userID: int, message: str) -> None:
 		conn = sqlite3.connect('./data/database.sqlite3')
 		#conn.execute("CREATE TABLE Members (USERID INT PRIMARY KEY NOT NULL, ABOUT TEXT);")
 		alreadyExists = conn.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {userID})").fetchone()[0]
@@ -152,7 +165,7 @@ class UserInfo(commands.Cog):
 		conn.commit()
 		conn.close()
 	
-	def GetAboutfromDB(userID: int):
+	def GetAboutfromDB(userID: int) -> str:
 		conn = sqlite3.connect('./data/database.sqlite3')
 		alreadyExists = conn.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {userID})").fetchone()[0]
 		if alreadyExists:

@@ -1,8 +1,17 @@
 # Imports
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake import Client, Activity, ActivityType, Status, User, Member, Message
-from disnake import ApplicationCommandInteraction, MessageCommandInteraction
+from disnake import (
+	Activity,
+	ActivityType,
+	ApplicationCommandInteraction,
+	Client,
+	Status,
+	Member,
+	Message,
+	MessageCommandInteraction,
+	User,
+	)
 
 from typing import Optional
 
@@ -14,13 +23,15 @@ class Utility(commands.Cog):
 	# echo
 	@commands.command(hidden=True)
 	@commands.is_owner()
-	async def echo(self,ctx: commands.Context, *, args):
+	async def echo(self,
+				ctx: commands.Context,
+				*, args) -> None:
 		await ctx.send(args)
 		await ctx.message.delete()
 
 	# ping
 	@commands.slash_command(description = "Get Bot's Latency")
-	async def ping(self, inter: ApplicationCommandInteraction):
+	async def ping(self, inter: ApplicationCommandInteraction) -> None:
 		await inter.response.send_message(f'Client Latency: {round(self.client.latency * 1000)}  ms')
 
 	#Set Status
@@ -28,17 +39,21 @@ class Utility(commands.Cog):
 	ActType = commands.option_enum({"Playing": '0', "Streaming": '1', "Listening": '2', "Watching": '3'})
 	@commands.slash_command(description = "Set Bot's Activity")
 	@commands.is_owner()
-	async def status(self, inter: ApplicationCommandInteraction,
+	async def status(self,
+				  inter: ApplicationCommandInteraction,
 				  state: State = Param(description="Set Bot's Status"),
 				  type: ActType = Param(description="Set Bot's Activity Type"),
-				  name: str = Param(description="Set Bot's Activity Name", default="yall Homies")):
+				  name: str = Param(description="Set Bot's Activity Name", default="yall Homies")) -> None:
 		await self.client.change_presence(status=Status(state), activity=Activity(type=ActivityType(int(type)), name=name))
 		await inter.response.send_message(f'Status set to `{Status(state).name.capitalize()}` and `{ActivityType(int(type)).name.title()}: {name}`', ephemeral=True)
 
 	# clear
 	@commands.command(aliases=['delete'])
 	@commands.has_permissions(administrator=True)
-	async def clear(self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5):
+	async def clear(self,
+				 ctx: commands.Context,
+				 user: Optional[User],
+				 no_of_msgs: Optional[int] = 5) -> None:
 		if no_of_msgs > 420:
 			return await ctx.reply(f'No')
 		await ctx.message.delete()
@@ -54,13 +69,13 @@ class Utility(commands.Cog):
 	# Context Delete
 	@commands.message_command(name="Delete till HERE")
 	@commands.has_permissions(administrator=True)
-	async def ContextClear(self, inter: MessageCommandInteraction):
+	async def ContextClear(self, inter: MessageCommandInteraction) -> None:
 		await inter.channel.purge(after=inter.target)
 		await inter.response.send_message(f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}\'s` message", ephemeral=True)
 
 	@commands.command(aliases=['yeet'])
 	@commands.is_owner()
-	async def purge_user(self, ctx: commands.Context, user: Member= None):
+	async def purge_user(self, ctx: commands.Context, user: Member= None) -> None:
 		if user is None:
 			return await ctx.send("Mention Someone")
 		await ctx.send(f'Fetching messages from {ctx.channel.mention}', delete_after=30)

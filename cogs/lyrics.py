@@ -1,10 +1,18 @@
 ﻿# Imports
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake import Spotify, Embed, Member, Client
+from disnake import (
+    ApplicationCommandInteraction,
+    Button,
+    ButtonStyle,
+    Client,
+    Embed,
+    Interaction,
+    Member,
+    Spotify,
+    )
 from disnake.utils import get
-from disnake import Button, ButtonStyle, Interaction, ApplicationCommandInteraction
-from disnake.ui import View, button
+import disnake
 
 from EnvVariables import GENIUS_TOKEN
 
@@ -19,47 +27,59 @@ class LyricsProcess():
     def __init__(self):
         pass
 
-    def SongTolist(song: Song):
+    def SongTolist(song: Song) -> list[str]:
         lyrics = re.sub(r"[0-9]*EmbedShare*",'',song.lyrics)
         lyrics = re.sub(r"URLCopyEmbedCopy",'',lyrics)
         lyricsList = list(lyrics.split("\n\n"))
         return lyricsList
 
-    def fetchlyrics(song_title, artist_name):
+    def fetchlyrics(song_title: str, artist_name: str) -> Song:
         song = genius.search_song(song_title, artist_name)
         if song is not None and song.lyrics is not None:
             return song
 
-    def generate_embed(title, track_url, album_art, lyricsList: list, pgno:int):
-        embed = Embed(title = f'{title} ({pgno+1}/{len(lyricsList)})', url= track_url, color=0x1DB954, description=lyricsList[pgno])
+    def generate_embed(title: str,
+                       track_url: str,
+                       album_art: str,
+                       lyricsList: list,
+                       pgno: int) -> Embed:
+        embed = Embed(title = f'{title}', url= track_url, color=0x1DB954, description=lyricsList[pgno])
         embed.set_thumbnail(url = album_art)
+        embed.set_footer(text = f'({pgno+1}/{len(lyricsList)})', icon_url = album_art) 
         return embed
 
-class Pages(View):
-    def __init__(self, title: str, track_url: str, album_art: str, lyricsList: list):
-        super().__init__()
+class Pages(disnake.ui.View):
+    def __init__(self, song: Song, lyricsList: list[str]):
+        super().__init__(timeout=10.0)
         self.page_no = 0
-        self.timeout = 360
-        self.title = title
-        self.track_url = track_url
-        self.album_art = album_art
+        self.song = song
         self.lyricsList = lyricsList
 
-    @button(label='◀️', style=ButtonStyle.blurple)
-    async def prev_page(self, button: Button, interaction: Interaction):
+    async def on_timeout(self):
+        await self.inter.edit_original_message(view=None)
+        self.stop()
+
+    @disnake.ui.button(label='◀️', style=ButtonStyle.blurple)
+    async def prev_page(self, button: Button, interaction: Interaction) -> None:
         if self.page_no > 0:
             self.page_no -= 1
         else: self.page_no = len(self.lyricsList)-1
+        await interaction.response.edit_message(embed=LyricsProcess.generate_embed(title=self.song.title,
+                                                                                   track_url=self.song.url,
+                                                                                   album_art=self.song.song_art_image_url,
+                                                                                   lyricsList=self.lyricsList,
+                                                                                   pgno=self.page_no), view=self)
 
-        await interaction.response.edit_message(embed=LyricsProcess.generate_embed(title=self.title, track_url=self.track_url, album_art=self.album_art, lyricsList=self.lyricsList, pgno=self.page_no),view=self)
-
-    @button(label='▶️', style=ButtonStyle.blurple)
-    async def next_page(self, button: Button, interaction: Interaction):
+    @disnake.ui.button(label='▶️', style=ButtonStyle.blurple)
+    async def next_page(self, button: Button, interaction: Interaction) -> None:
         if self.page_no < len(self.lyricsList)-1:
             self.page_no += 1
         else: self.page_no = 0
-        
-        await interaction.response.edit_message(embed=LyricsProcess.generate_embed(title=self.title, track_url=self.track_url, album_art=self.album_art, lyricsList=self.lyricsList, pgno=self.page_no),view=self)
+        await interaction.response.edit_message(embed=LyricsProcess.generate_embed(title=self.song.title,
+                                                                                   track_url=self.song.url,
+                                                                                   album_art=self.song.song_art_image_url,
+                                                                                   lyricsList=self.lyricsList,
+                                                                                   pgno=self.page_no), view=self)
 
 class Lyrics(commands.Cog):
 
@@ -67,27 +87,35 @@ class Lyrics(commands.Cog):
         self.client = client
 
     @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")
-    async def lyrics(self, inter: ApplicationCommandInteraction,
+    async def lyrics(self,
+                     inter: ApplicationCommandInteraction,
                      title: str = Param(description="Song Title", default=None),
-                     author: str = Param(description="Song Author", default="")):
+                     author: str = Param(description="Song Author", default="")) -> None:
         self.page_no = 0
         await inter.response.defer()
         loop = asyncio.get_event_loop()
         user: Member = get(self.client.get_all_members(), id=inter.author.id)
         if title is not None:
             song: Song = await loop.run_in_executor(None, LyricsProcess.fetchlyrics, title, author)
-            title, track_url, album_art = song.title, song.url, song.song_art_image_url
         else:        
             for activity in user.activities:
                 if isinstance(activity, Spotify):
                     title = re.sub(r'\([^)]*\)', '', activity.title)
-                    author, track_url, album_art = activity.artist, activity.track_url, activity.album_cover_url
-                    song = await loop.run_in_executor(None, LyricsProcess.fetchlyrics, title, author)
+                    song: Song = await loop.run_in_executor(None, LyricsProcess.fetchlyrics, title, activity.artist)
+                    song.url = activity.track_url
 
-        if isinstance(song, Song) is False: return await inter.edit_original_message("Lyrics not Found :(")
+        if isinstance(song, Song) is False:
+            return await inter.edit_original_message("Lyrics not Found :(")
         else:
             lyricsList = LyricsProcess.SongTolist(song)
-            await inter.edit_original_message(embed = LyricsProcess.generate_embed(title=title, track_url=track_url, album_art=album_art, lyricsList=lyricsList, pgno=0), view=Pages(title=title, track_url=track_url, album_art=album_art, lyricsList=lyricsList))
+            MyPages = Pages(song, lyricsList)
+            MyPages.inter = inter
+            await inter.edit_original_message(embed = LyricsProcess.generate_embed(title=song.title,
+                                                                                   track_url=song.url,
+                                                                                   album_art=song.song_art_image_url,
+                                                                                   lyricsList=lyricsList,
+                                                                                   pgno=0),
+                                              view = MyPages)
 
 def setup(client):
     client.add_cog(Lyrics(client))

@@ -1,7 +1,12 @@
 # Imports
 import disnake
 from disnake.ext import commands
-from disnake import Client, Embed, ApplicationCommandInteraction, Member
+from disnake import (
+	ApplicationCommandInteraction,
+	Client,
+	Embed,
+	Member
+	)
 from disnake.utils import find
 
 class PrivateChat(commands.Cog):
@@ -11,11 +16,11 @@ class PrivateChat(commands.Cog):
 
 	#Create private category for DMs
 	@commands.slash_command(description="Create a Private Chat & VC.")
-	async def chat(self, inter: ApplicationCommandInteraction):
+	async def chat(self, inter: ApplicationCommandInteraction) -> None:
 		pass
 
 	@chat.sub_command(description="Create a new Private Chat.")
-	async def create(self, inter: ApplicationCommandInteraction):
+	async def create(self, inter: ApplicationCommandInteraction) -> None:
 		overwrites_readEnable = disnake.PermissionOverwrite()
 		overwrites_readEnable.read_messages = True
 		for category in inter.guild.categories:
@@ -37,7 +42,7 @@ class PrivateChat(commands.Cog):
 		await textChannel.send(embed=embed)
 
 	@chat.sub_command(description="Delete existing Private Chat.")
-	async def delete(self, inter: ApplicationCommandInteraction):
+	async def delete(self, inter: ApplicationCommandInteraction) -> None:
 		overwrites_readFalse = disnake.PermissionOverwrite()
 		overwrites_readFalse.read_messages = False
 		category = None

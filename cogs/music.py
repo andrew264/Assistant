@@ -1,9 +1,18 @@
 # Imports
 from disnake.ext import commands
 from disnake.utils import get
-from disnake import Embed, Activity, ActivityType, Status, Client
-from disnake import Button, ButtonStyle, Interaction
-from disnake import FFmpegPCMAudio, PCMVolumeTransformer
+from disnake import (
+    Activity,
+    ActivityType,
+    Button,
+    ButtonStyle,
+    Client,
+    Embed,
+    FFmpegPCMAudio,
+    Interaction,
+    PCMVolumeTransformer,
+    Status,
+    )
 import disnake
 
 import time, asyncio, re, math, json
@@ -50,7 +59,7 @@ class InputType(Enum):
 
 class VideoInfo:
     '''Fetch Info from API'''
-    def __init__(self, video_id, author):
+    def __init__(self, video_id: str, author: str):
         videoData = api.get_video_by_id(video_id=video_id).items[0]
         self.Title:str = videoData.snippet.title
         self.pURL:str = f'https://www.youtube.com/watch?v={videoData.id}'
@@ -80,7 +89,7 @@ class VideoInfofromDict:
         self.SongIn:int = int(data["SongIn"])
         self.Author:str = author
 
-def VideoInfotoDict(video: VideoInfo, query: str|None):
+def VideoInfotoDict(video: VideoInfo, query: str|None) -> dict:
     '''returns Video Details as Dictionary'''
     video_id = vid_id_regex.search(video.pURL).group(1)
     dict1: dict ={video_id:{"Title": video.Title,
@@ -97,7 +106,7 @@ def VideoInfotoDict(video: VideoInfo, query: str|None):
         dict1[video_id]["Tags"] = [query]
     return dict1
 
-def Search(query: str, author: str):
+def Search(query: str, author: str) -> (VideoInfo|VideoInfofromDict):
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in data:
@@ -113,7 +122,7 @@ def Search(query: str, author: str):
         jsonFile.close()
         return video_info
 
-def FetchVideo(query: str, author: str):
+def FetchVideo(query: str, author: str) -> (VideoInfo|VideoInfofromDict):
     video_id = vid_id_regex.search(query).group(1)
     with open('MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
@@ -128,7 +137,7 @@ def FetchVideo(query: str, author: str):
             jsonFile.close()
             return video_info
 
-def FetchPlaylist(query: str, author: str):
+def FetchPlaylist(query: str, author: str) -> list[VideoInfo|VideoInfofromDict]:
     playlist_videos: List[VideoInfo|VideoInfofromDict] = []
     playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
     video_items: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
@@ -156,7 +165,7 @@ def AddTagstoJSON(videoID: str, tag: str):
         json.dump(data, jsonFile, indent=4, sort_keys=True)
         jsonFile.close()
 
-def StreamURL(url: str):
+def StreamURL(url: str) -> str:
     '''Fetch Stream URL'''
     with YDL(ydl_opts) as ydl:
         return str(ydl.extract_info(url, download=False)["formats"][0]["url"])
@@ -171,14 +180,15 @@ class QueuePages(disnake.ui.View):
         for child in self.children:
             child.disabled = True
         await self.message.edit(view=self)
+        self.stop()
 
-    def page_index(obj, pgno):
+    def page_index(obj, pgno) -> list[int]:
         first = (pgno*4)-3
         if (pgno*4)+1 <= len(obj): last = (pgno*4)+1
         else: last = len(obj)
         return [i for i in range(first, last)]
 
-    def embed_gen(obj, page_no):
+    def embed_gen(obj, page_no) -> Embed:
         if len(obj) == 0: return Embed(title = "Queue is Empty", colour=0xffa31a)
         embed=Embed(title="Now Playing", description = f"[{obj[0].Title}]({obj[0].pURL}) (Requested by {obj[0].Author})", colour=0xffa31a)
         if len(obj)>1:
@@ -218,7 +228,7 @@ class Music(commands.Cog):
 
     #Play
     @commands.command(pass_context=True, aliases=['p'])
-    async def play(self, ctx: commands.Context, *, query:str=None):
+    async def play(self, ctx: commands.Context, *, query:str=None) -> None:
 
         # create Dictionary
         if not self.dict_obj:
@@ -261,12 +271,12 @@ class Music(commands.Cog):
 
     #Queue
     @commands.command(aliases=['q'])
-    async def queue(self, ctx):
+    async def queue(self, ctx) -> None:
         view = QueuePages(self.dict_obj[ctx.guild.id])
         view.message = await ctx.send(embed = QueuePages.embed_gen(self.dict_obj[ctx.guild.id], 1), view=view)
 
     #Play from Queue
-    async def player(self, ctx: commands.Context):
+    async def player(self, ctx: commands.Context) -> None:
         await Music.StatusUpdate(self, ctx)
         if len(self.dict_obj[ctx.guild.id]) == 0: return
         loop = asyncio.get_event_loop()
@@ -298,14 +308,14 @@ class Music(commands.Cog):
 
     # Update client's status
     #Cuz why not ?
-    async def StatusUpdate(self, ctx: commands.Context):
+    async def StatusUpdate(self, ctx: commands.Context) -> None:
         if len(self.dict_obj[ctx.guild.id]):
             await self.client.change_presence(activity=Activity(type=ActivityType.listening, name=self.dict_obj[ctx.guild.id][0].Title))
         else: await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching, name="yall Homies."))
 
     #Skip
     @commands.command()
-    async def skip(self, ctx: commands.Context, arg: int=0):
+    async def skip(self, ctx: commands.Context, arg: int=0) -> None:
         if len(self.dict_obj[ctx.guild.id]) == 0 or arg > len(self.dict_obj[ctx.guild.id]): return
         await ctx.send(f"{ctx.author.display_name} removed `{self.dict_obj[ctx.guild.id][arg].Title}` from Queue.")
         if arg>0 and arg<=len(self.dict_obj[ctx.guild.id]):
@@ -317,7 +327,7 @@ class Music(commands.Cog):
 
     #Stop
     @commands.command(aliases=['dc', 'kelambu'])
-    async def stop(self, ctx: commands.Context):
+    async def stop(self, ctx: commands.Context) -> None:
         if ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True:
             ctx.voice_client.stop()
             # clean list
@@ -329,7 +339,7 @@ class Music(commands.Cog):
 
     #Pause
     @commands.command()
-    async def pause(self, ctx: commands.Context):
+    async def pause(self, ctx: commands.Context) -> None:
         if ctx.voice_client.is_playing():
             ctx.voice_client.pause()
             await ctx.send(f"{ctx.author.display_name} paused `{self.dict_obj[ctx.guild.id][0].Title}`")
@@ -343,7 +353,7 @@ class Music(commands.Cog):
 
     #Loop
     @commands.command(aliases=['repeat'])
-    async def loop(self, ctx: commands.Context):
+    async def loop(self, ctx: commands.Context) -> None:
         if self.looper:
             self.looper=False
             embed=Embed(title='Loop Disabled.',colour=0x1abc9c)
@@ -354,7 +364,7 @@ class Music(commands.Cog):
 
     #Now Playing
     @commands.command(aliases=['nowplaying'])
-    async def np(self, ctx: commands.Context):
+    async def np(self, ctx: commands.Context) -> None:
         await ctx.message.delete()
         if self.dict_obj[ctx.guild.id]:
             percentile=20-round((self.dict_obj[ctx.guild.id][0].SongIn/self.dict_obj[ctx.guild.id][0].Duration)*20)
@@ -374,7 +384,7 @@ class Music(commands.Cog):
 
     #Jump
     @commands.command(aliases=['skipto'])
-    async def jump(self, ctx: commands.Context, song_index: int=1):
+    async def jump(self, ctx: commands.Context, song_index: int=1) -> None:
         if ctx.voice_client is not None and ctx.voice_client.is_playing() is True or ctx.voice_client.is_paused() is True and song_index >1:
             if song_index >=2: del self.dict_obj[ctx.guild.id][1:song_index]
             self.dict_obj[ctx.guild.id][0].SongIn = 1
@@ -383,7 +393,7 @@ class Music(commands.Cog):
 
     #Volume
     @commands.command(aliases=['vol','v'])
-    async def volume(self, ctx: commands.Context, volume_int: int=None):
+    async def volume(self, ctx: commands.Context, volume_int: int=None) -> None:
         if volume_int is None:
             return await ctx.send(f'Volume: {round(self.volume_float*100)}%')
         elif volume_int>0 and volume_int<=100:
@@ -395,7 +405,7 @@ class Music(commands.Cog):
     # Add Tags to Current Song
     @commands.is_owner()
     @commands.command(aliases=['tag'])
-    async def addtag(self, ctx: commands.Context,* , tag: str):
+    async def addtag(self, ctx: commands.Context,* , tag: str) -> None:
         video_id = vid_id_regex.search(self.dict_obj[ctx.guild.id][0].pURL).group(1)
         AddTagstoJSON(video_id, tag)
         await ctx.reply(f"TAG: **{tag}** added to **{self.dict_obj[ctx.guild.id][0].Title}**")
@@ -410,7 +420,7 @@ class Music(commands.Cog):
     @jump.before_invoke
     @addtag.before_invoke
     @volume.before_invoke
-    async def check_voice(self, ctx: commands.Context):
+    async def check_voice(self, ctx: commands.Context) -> None:
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
             raise commands.CommandError('Bot is not connect to VC.')
         if ctx.author.voice is None:
@@ -421,7 +431,7 @@ class Music(commands.Cog):
 
     # Play Checks
     @play.before_invoke
-    async def check_play(self, ctx: commands.Context):
+    async def check_play(self, ctx: commands.Context) -> None:
         if ctx.author.voice is None:
             raise commands.CommandError('You are not connected to a voice channel.')
         if ctx.voice_client is not None and ctx.author.voice is not None:

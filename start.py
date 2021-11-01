@@ -7,14 +7,13 @@ from EnvVariables import TOKEN
 from os import listdir
 
 # Client
-intents = Intents.all()
-client = commands.Bot(command_prefix = commands.when_mentioned_or('.'), intents = intents, help_command=None, case_insensitive=True, test_guilds=[821758346054467584], owner_id=493025015445454868)
+client = commands.Bot(command_prefix = commands.when_mentioned_or('.'), intents = Intents.all(), help_command=None, case_insensitive=True, test_guilds=[821758346054467584], owner_id=493025015445454868)
 client.description = "Andrew's Assistant"
 
 # Load Extention
 @client.command(hidden=True)
 @commands.is_owner()
-async def load(ctx: commands.Context, extension):
+async def load(ctx: commands.Context, extension) -> None:
     try: client.load_extension(f'cogs.{extension}')
     except Exception as e:
         await ctx.message.add_reaction('☠️')
@@ -24,7 +23,7 @@ async def load(ctx: commands.Context, extension):
 # Unload Extention
 @client.command(hidden=True)
 @commands.is_owner()
-async def unload(ctx: commands.Context, extension):
+async def unload(ctx: commands.Context, extension) -> None:
     try: client.unload_extension(f'cogs.{extension}')
     except Exception as e:
         await ctx.message.add_reaction('☠️')
@@ -34,7 +33,7 @@ async def unload(ctx: commands.Context, extension):
 # Reload Extention
 @client.command(hidden=True)
 @commands.is_owner()
-async def reload(ctx: commands.Context, extension):
+async def reload(ctx: commands.Context, extension) -> None:
     try:
         client.reload_extension(f'cogs.{extension}')
     except Exception as e:

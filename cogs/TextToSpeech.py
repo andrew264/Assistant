@@ -13,8 +13,9 @@ class TextToSpeech(commands.Cog):
 		self.client = client
 
 	@commands.slash_command(description = "Text To Speach")
-	async def tts(self, inter: ApplicationCommandInteraction,
-			   message : str = Param(description="Enter a message")):
+	async def tts(self,
+			   inter: ApplicationCommandInteraction,
+			   message : str = Param(description="Enter a message")) -> None:
 		if isinstance(inter.author, Member) and inter.author.voice is None:
 			return await inter.response.send_message("You are not connected to a Voice Channel.", ephemeral=True)
 		voice = get(self.client.voice_clients, guild=inter.guild)
