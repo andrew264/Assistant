@@ -50,7 +50,7 @@ class LyricsProcess():
 
 class Pages(disnake.ui.View):
     def __init__(self, song: Song, lyricsList: list[str]):
-        super().__init__(timeout=10.0)
+        super().__init__(timeout=180.0)
         self.page_no = 0
         self.song = song
         self.lyricsList = lyricsList
