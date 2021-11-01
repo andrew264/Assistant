@@ -113,7 +113,7 @@ class Ready(commands.Cog):
 			await ctx.send(f'***{error}***')
 			channel = self.client.get_channel(DM_Channel)
 			embed = Embed(
-				title=f"Command `{ctx.command}` failed due to `{error}`",
+				title=f"Command `{ctx.command.name}` failed due to `{error}`",
 				description=fancy_traceback(error),
 				color=Color.red())
 			await channel.send(embed=embed)
@@ -130,7 +130,7 @@ class Ready(commands.Cog):
 		else:
 			channel = self.client.get_channel(DM_Channel)
 			embed = Embed(
-				title=f"Command `{ctx.command}` failed due to `{error}`",
+				title=f"Command `{inter.application_command.name}` failed due to `{error}`",
 				description=fancy_traceback(error),
 				color=Color.red())
 			await channel.send(embed=embed)
@@ -147,7 +147,7 @@ class Ready(commands.Cog):
 		else:
 			channel = self.client.get_channel(DM_Channel)
 			embed = Embed(
-				title=f"Command `{ctx.command}` failed due to `{error}`",
+				title=f"Command `{inter.application_command.name}` failed due to `{error}`",
 				description=fancy_traceback(error),
 				color=Color.red())
 			await channel.send(embed=embed)
@@ -164,7 +164,7 @@ class Ready(commands.Cog):
 		else:
 			channel = self.client.get_channel(DM_Channel)
 			embed = Embed(
-				title=f"Command `{ctx.command}` failed due to `{error}`",
+				title=f"Command `{inter.application_command.name}` failed due to `{error}`",
 				description=fancy_traceback(error),
 				color=Color.red())
 			await channel.send(embed=embed)
