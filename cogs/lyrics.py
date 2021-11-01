@@ -42,10 +42,11 @@ class LyricsProcess():
                        track_url: str,
                        album_art: str,
                        lyricsList: list,
+                       avatar: str,
                        pgno: int) -> Embed:
         embed = Embed(title = f'{title}', url= track_url, color=0x1DB954, description=lyricsList[pgno])
         embed.set_thumbnail(url = album_art)
-        embed.set_footer(text = f'({pgno+1}/{len(lyricsList)})', icon_url = album_art) 
+        embed.set_footer(text = f'({pgno+1}/{len(lyricsList)})', icon_url = avatar) 
         return embed
 
 class Pages(disnake.ui.View):
@@ -68,6 +69,7 @@ class Pages(disnake.ui.View):
                                                                                    track_url=self.song.url,
                                                                                    album_art=self.song.song_art_image_url,
                                                                                    lyricsList=self.lyricsList,
+                                                                                   avatar=self.avatar,
                                                                                    pgno=self.page_no), view=self)
 
     @disnake.ui.button(label='▶️', style=ButtonStyle.blurple)
@@ -79,6 +81,7 @@ class Pages(disnake.ui.View):
                                                                                    track_url=self.song.url,
                                                                                    album_art=self.song.song_art_image_url,
                                                                                    lyricsList=self.lyricsList,
+                                                                                   avatar=self.avatar,
                                                                                    pgno=self.page_no), view=self)
 
 class Lyrics(commands.Cog):
@@ -91,10 +94,10 @@ class Lyrics(commands.Cog):
                      inter: ApplicationCommandInteraction,
                      title: str = Param(description="Song Title", default=None),
                      author: str = Param(description="Song Author", default="")) -> None:
-        self.page_no = 0
         await inter.response.defer()
         loop = asyncio.get_event_loop()
         user: Member = get(self.client.get_all_members(), id=inter.author.id)
+        song: Song = None
         if title is not None:
             song: Song = await loop.run_in_executor(None, LyricsProcess.fetchlyrics, title, author)
         else:        
@@ -104,16 +107,18 @@ class Lyrics(commands.Cog):
                     song: Song = await loop.run_in_executor(None, LyricsProcess.fetchlyrics, title, activity.artist)
                     song.url = activity.track_url
 
-        if isinstance(song, Song) is False:
+        if song is None:
             return await inter.edit_original_message("Lyrics not Found :(")
         else:
             lyricsList = LyricsProcess.SongTolist(song)
             MyPages = Pages(song, lyricsList)
             MyPages.inter = inter
+            MyPages.avatar = inter.author.default_avatar.url
             await inter.edit_original_message(embed = LyricsProcess.generate_embed(title=song.title,
                                                                                    track_url=song.url,
                                                                                    album_art=song.song_art_image_url,
                                                                                    lyricsList=lyricsList,
+                                                                                   avatar=inter.author.default_avatar.url,
                                                                                    pgno=0),
                                               view = MyPages)
 
