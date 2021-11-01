@@ -108,17 +108,17 @@ class Lyrics(commands.Cog):
                     if hasattr(song, 'url'): song.url = activity.track_url
 
         if song is None:
-            return await inter.edit_original_message("Lyrics not Found :(")
+            return await inter.edit_original_message(content="Lyrics not Found :(")
         else:
             lyricsList = LyricsProcess.SongTolist(song)
             MyPages = Pages(song, lyricsList)
             MyPages.inter = inter
-            MyPages.avatar = inter.author.default_avatar.url
+            MyPages.avatar = inter.author.display_avatar.url
             await inter.edit_original_message(embed = LyricsProcess.generate_embed(title=song.title,
                                                                                    track_url=song.url,
                                                                                    album_art=song.song_art_image_url,
                                                                                    lyricsList=lyricsList,
-                                                                                   avatar=inter.author.default_avatar.url,
+                                                                                   avatar=inter.author.display_avatar.url,
                                                                                    pgno=0),
                                               view = MyPages)
 
