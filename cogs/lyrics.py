@@ -44,7 +44,7 @@ class LyricsProcess():
                        lyricsList: list,
                        avatar: str,
                        pgno: int) -> Embed:
-        embed = Embed(title = f'{title}', url= track_url, color=0x1DB954, description=lyricsList[pgno])
+        embed = Embed(title = f'{title}', url=track_url, color=0x1DB954, description=lyricsList[pgno])
         embed.set_thumbnail(url = album_art)
         embed.set_footer(text = f'({pgno+1}/{len(lyricsList)})', icon_url = avatar) 
         return embed
@@ -105,7 +105,7 @@ class Lyrics(commands.Cog):
                 if isinstance(activity, Spotify):
                     title = re.sub(r'\([^)]*\)', '', activity.title)
                     song: Song = await loop.run_in_executor(None, LyricsProcess.fetchlyrics, title, activity.artist)
-                    song.url = activity.track_url
+                    if hasattr(song, 'url'): song.url = activity.track_url
 
         if song is None:
             return await inter.edit_original_message("Lyrics not Found :(")
