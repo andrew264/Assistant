@@ -38,9 +38,16 @@ class EvalCommand(commands.Cog):
             "disnake": disnake,
             "sys": sys,
             "os": os,
-            "imp": __import__,
+            "import": __import__,
             "self": self,
-            "ctx": ctx
+            "ctx": ctx,
+            'channel': ctx.channel,
+            'author': ctx.author,
+            'guild': ctx.guild,
+            'message': ctx.message,
+            'Embed': disnake.Embed,
+            'get': disnake.utils.get,
+            'find': disnake.utils.find,
         }
         
         try:
