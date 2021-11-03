@@ -23,6 +23,29 @@ def fancy_traceback(exc: Exception) -> str:
     text = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     return f"```py\n{text[-4086:]}\n```"
 
+# Show Clients
+def AvailableClients(user: Member) -> str:
+	clients = []
+	if user.desktop_status.name != 'offline':
+		clients.append('Desktop')
+	if user.mobile_status.name != 'offline':
+		clients.append('Mobile')
+	if user.web_status.name != 'offline':
+		clients.append('Web')
+	if clients == []: clients.append('Offline')
+	if user.raw_status == 'online': value = "🟢"
+	elif user.raw_status == 'idle': value = "🌙"
+	elif user.raw_status == 'dnd': value = "⛔"
+	elif user.raw_status == 'offline': value = "🔘"
+	return f"{value} {', '.join(clients)}"
+
+# Custom Act
+def CustomActVal(activity: CustomActivity) -> str:
+	value: str = 'Status: '
+	if activity.emoji is not None: value += str(activity.emoji)
+	if activity.name is not None: value += activity.name
+	return value
+
 class Ready(commands.Cog):
 
 	def __init__(self, client: Client):
@@ -56,34 +79,14 @@ class Ready(commands.Cog):
 					if member.voice.self_video : str1 += '📷'
 					for activity in member.activities:
 						str1 += f'\n\t\t\t> '
-						if isinstance(activity, Spotify): str1 += f"Listening to {activity.title} by {', '.join(activity.artists)}"
-						elif isinstance(activity, CustomActivity): str1 += Ready.CustomActVal(member.activity)
-						else: str1 += f'Playing {activity.name}'
-					str1 += f'\n\t\t\t> {Ready.AvailableClients(member)}\n'
+						if isinstance(activity, Spotify):
+							str1 += f"Listening to {activity.title} by {', '.join(activity.artists)}"
+						elif isinstance(activity, CustomActivity):
+							str1 += CustomActVal(member.activity)
+						else:
+							str1 += f'Playing {activity.name}'
+					str1 += f'\n\t\t\t> {AvailableClients(member)}\n'
 		return str1
-
-	# Show Clients
-	def AvailableClients(user: Member) -> str:
-		clients = []
-		if user.desktop_status.name != 'offline':
-			clients.append('Desktop')
-		if user.mobile_status.name != 'offline':
-			clients.append('Mobile')
-		if user.web_status.name != 'offline':
-			clients.append('Web')
-		if clients == []: clients.append('Offline')
-		if user.raw_status == 'online': value = "🟢"
-		elif user.raw_status == 'idle': value = "🌙"
-		elif user.raw_status == 'dnd': value = "⛔"
-		elif user.raw_status == 'offline': value = "🔘"
-		return f"{value} {', '.join(clients)}"
-
-	# Custom Act
-	def CustomActVal(activity: CustomActivity) -> str:
-		value: str = 'Status: '
-		if activity.emoji is not None: value += str(activity.emoji)
-		if activity.name is not None: value += activity.name
-		return value
 
 	# Start
 	@commands.Cog.listener()
@@ -101,32 +104,40 @@ class Ready(commands.Cog):
 
 	# Unknown commands
 	@commands.Cog.listener()
-	async def on_command_error(self,
-							ctx: commands.Context,
-							error: commands.CommandError) -> None:
+	async def on_command_error(
+		self,
+		ctx: commands.Context,
+		error: commands.CommandError
+		) -> None:
 		if isinstance(error, commands.CommandNotFound): return
 		elif isinstance(error, commands.MissingPermissions):
-			return await ctx.send(error, delete_after=60)
+			await ctx.send(error, delete_after=60)
+			return
 		elif isinstance(error, commands.NotOwner):
-			return await ctx.send("🚫 You can\'t do that.", delete_after=60)
+			await ctx.send("🚫 You can\'t do that.", delete_after=60)
+			return
 		elif isinstance(error, commands.UserInputError):
-			return await ctx.send(f'Error: Invalid {error.args[0]} Argument.')
+			await ctx.send(f'Error: Invalid {error.args[0]} Argument.')
+			return
 		elif isinstance(error, commands.CheckFailure):
-			return await ctx.send(f'***{error}***')
+			await ctx.send(f'***{error}***')
+			return
 		else:
 			await ctx.send(f'***{error}***')
 			channel = self.client.get_channel(DM_Channel)
 			embed = Embed(
-				title=f"Command `{ctx.command.name}` failed due to `{error}`",
+				title=f"Command `{ctx.command}` failed due to `{error}`",
 				description=fancy_traceback(error),
 				color=Color.red())
 			await channel.send(embed=embed)
 
 	# slash errors
 	@commands.Cog.listener()
-	async def on_slash_command_error(self,
-								  inter: ApplicationCommandInteraction,
-								  error: commands.CommandError) -> None:
+	async def on_slash_command_error(
+		self,
+		inter: ApplicationCommandInteraction,
+		error: commands.CommandError
+		) -> None:
 		if isinstance(error, commands.NotOwner):
 			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
 		elif isinstance(error, commands.MissingPermissions):
@@ -141,9 +152,11 @@ class Ready(commands.Cog):
 
 	# Message Context Error
 	@commands.Cog.listener()
-	async def on_message_command_error(self,
-									inter: ApplicationCommandInteraction,
-									error: commands.CommandError) -> None:
+	async def on_message_command_error(
+		self,
+		inter: ApplicationCommandInteraction,
+		error: commands.CommandError
+		) -> None:
 		if isinstance(error, commands.NotOwner):
 			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
 		elif isinstance(error, commands.MissingPermissions):
@@ -158,9 +171,11 @@ class Ready(commands.Cog):
 
 	# User Context Error
 	@commands.Cog.listener()
-	async def on_user_command_error(self,
-								 inter: ApplicationCommandInteraction,
-								 error: commands.CommandError) -> None:
+	async def on_user_command_error(
+		self,
+		inter: ApplicationCommandInteraction,
+		error: commands.CommandError
+		) -> None:
 		if isinstance(error, commands.NotOwner):
 			return await inter.response.send_message("🚫 You can\'t do that.", ephemeral=True)
 		elif isinstance(error, commands.MissingPermissions):

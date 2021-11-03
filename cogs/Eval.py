@@ -28,7 +28,7 @@ class EvalCommand(commands.Cog):
     
     @commands.command(pass_context=True, aliases=['eval', 'exec', 'evaluate'])
     @commands.is_owner()
-    async def _eval(self, ctx, *, code: str):
+    async def _eval(self, ctx: commands.Context, *, code: str):
         silent = ("-s" in code)
         
         code = self.prepare(code.replace("-s", ""))

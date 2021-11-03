@@ -1,4 +1,5 @@
 ﻿# Imports
+from disnake.channel import TextChannel
 from disnake.ext import commands
 from disnake import Client, Message, User
 
@@ -27,15 +28,18 @@ class OnDM(commands.Cog):
 				for attachment in message.attachments:
 					msg_content += f"\n{str(attachment)}"
 			msg_content += "\n──────────────────────────────"
-			await channel.send(msg_content)
+			if isinstance(channel, TextChannel):
+				await channel.send(msg_content)
 
 	# slide to dms
 	@commands.command()
 	@commands.is_owner()
-	async def dm(self,
-			  ctx: commands.Context,
-			  user: User,
-			  *, msg) -> None:
+	async def dm(
+		self,
+		ctx: commands.Context,
+		user: User,
+		*, msg: str
+		) -> None:
 		msg_content = ''
 		channel = await user.create_dm()
 		msg_content = f'{msg}\n'

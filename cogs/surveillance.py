@@ -24,6 +24,48 @@ from typing import Tuple
 OWNERID = 493025015445454868
 CHANNEL_ID = 891369472101863494
 
+def AvailableClients(user: Member) -> str:
+	clients = []
+	if user.desktop_status.name != 'offline':
+		clients.append('Desktop')
+	if user.mobile_status.name != 'offline':
+		clients.append('Mobile')
+	if user.web_status.name != 'offline':
+		clients.append('Web')
+	if clients == []: return "Offline"
+	return f"{', '.join(clients)}"
+
+def StatusUpdate(user: Member):
+	if user.raw_status == 'online': return "Online"
+	elif user.raw_status == 'idle': return "Idle"
+	elif user.raw_status == 'dnd': return "Do not Disturb"
+	elif user.raw_status == 'offline': return "Offline"
+
+def CustomActVal(activity: CustomActivity) -> str:
+	value: str = ''
+	if activity.emoji is not None:
+		value += f"[{activity.emoji}]({activity.emoji.url}) "
+	if activity.name is not None:
+		value += activity.name
+	return value
+
+def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()) -> list:
+	activitiesList = []
+	for activity in activities:
+		if isinstance(activity, Game):
+			activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
+		elif isinstance(activity, Streaming):
+			activitiesList.append(f"Streaming {activity.name}")
+		elif isinstance(activity, Spotify):
+			# we dont need spotify activities
+			continue
+		elif isinstance(activity, CustomActivity):
+			# handle CustomActivity Seperately
+			continue
+		elif isinstance(activity, Activity):
+			activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
+	return activitiesList
+
 class Surveillance(commands.Cog):
 
 	def __init__(self, client: Client):
@@ -87,11 +129,11 @@ class Surveillance(commands.Cog):
 		delete_after = 300
 		embed = Embed(colour = Colour.gold())
 		embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url)
-		if Surveillance.StatusUpdate(before) != Surveillance.StatusUpdate(after):
-			embed.add_field(name=f"Status Update", value=f"{Surveillance.StatusUpdate(before)} ──> {Surveillance.StatusUpdate(after)}")
+		if StatusUpdate(before) != StatusUpdate(after):
+			embed.add_field(name=f"Status Update", value=f"{StatusUpdate(before)} ──> {StatusUpdate(after)}")
 			if delete_after ==300: delete_after += 43200
-		if Surveillance.AvailableClients(before) != Surveillance.AvailableClients(after) :
-			embed.add_field(name=f"Client Update", value=f"{Surveillance.AvailableClients(before)} ──> {Surveillance.AvailableClients(after)}", inline=False)
+		if AvailableClients(before) != AvailableClients(after) :
+			embed.add_field(name=f"Client Update", value=f"{AvailableClients(before)} ──> {AvailableClients(after)}", inline=False)
 			if delete_after ==300: delete_after +=86400
 		
 		# Custom Activity
@@ -103,17 +145,17 @@ class Surveillance(commands.Cog):
 			if isinstance(activity, CustomActivity):
 				after_custom = activity
 		if before_custom is None and isinstance(after_custom, CustomActivity):
-			embed.add_field(name=f"Custom Status added", value=f"{Surveillance.CustomActVal(after_custom)}", inline=False)
+			embed.add_field(name=f"Custom Status added", value=f"{CustomActVal(after_custom)}", inline=False)
 			if delete_after ==300: delete_after +=43200
 		elif after_custom is None and isinstance(before_custom, CustomActivity):
-			embed.add_field(name=f"Custom Status removed", value=f"{Surveillance.CustomActVal(before_custom)}", inline=False)
-		elif before_custom is not None and after_custom is not None and Surveillance.CustomActVal(before_custom) != Surveillance.CustomActVal(after_custom):
-			embed.add_field(name=f"Custom Status modified", value=f"{Surveillance.CustomActVal(before_custom)}\n──>\n{Surveillance.CustomActVal(after_custom)}", inline=False)
+			embed.add_field(name=f"Custom Status removed", value=f"{CustomActVal(before_custom)}", inline=False)
+		elif before_custom is not None and after_custom is not None and CustomActVal(before_custom) != CustomActVal(after_custom):
+			embed.add_field(name=f"Custom Status modified", value=f"{CustomActVal(before_custom)}\n──>\n{CustomActVal(after_custom)}", inline=False)
 			if delete_after ==300: delete_after +=43200
 
 		# Other Activities
-		before_activities = Surveillance.ActivityVal(before.activities)
-		after_activities = Surveillance.ActivityVal(after.activities)
+		before_activities = ActivityVal(before.activities)
+		after_activities = ActivityVal(after.activities)
 		for before_activity in before_activities:
 			for after_activity in after_activities:
 				if before_activity == after_activity:
@@ -150,48 +192,6 @@ class Surveillance(commands.Cog):
 		if channel.name != "general-shit" and channel.name != "private-chat": return
 		log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
 		await log_channel.send(f"{user.display_name} started typing in {channel.mention}", delete_after = 120)
-
-	def AvailableClients(user: Member) -> str:
-		clients = []
-		if user.desktop_status.name != 'offline':
-			clients.append('Desktop')
-		if user.mobile_status.name != 'offline':
-			clients.append('Mobile')
-		if user.web_status.name != 'offline':
-			clients.append('Web')
-		if clients == []: return "Offline"
-		return f"{', '.join(clients)}"
-
-	def StatusUpdate(user: Member) -> str:
-		if user.raw_status == 'online': return "Online"
-		elif user.raw_status == 'idle': return "Idle"
-		elif user.raw_status == 'dnd': return "Do not Disturb"
-		elif user.raw_status == 'offline': return "Offline"
-
-	def CustomActVal(activity: CustomActivity) -> str:
-		value: str = ''
-		if activity.emoji is not None:
-			value += f"[{activity.emoji}]({activity.emoji.url}) "
-		if activity.name is not None:
-			value += activity.name
-		return value
-
-	def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()) -> list:
-		activitiesList = []
-		for activity in activities:
-			if isinstance(activity, Game):
-				activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
-			elif isinstance(activity, Streaming):
-				activitiesList.append(f"Streaming {activity.name}")
-			elif isinstance(activity, Spotify):
-				# we dont need spotify activities
-				continue
-			elif isinstance(activity, CustomActivity):
-				# handle CustomActivity Seperately
-				continue
-			elif isinstance(activity, Activity):
-				activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
-		return activitiesList
 
 def setup(client):
 	client.add_cog(Surveillance(client))

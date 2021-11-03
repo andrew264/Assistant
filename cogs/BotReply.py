@@ -1,4 +1,5 @@
 # Imports
+import disnake
 from disnake.ext import commands
 from disnake import (
 	Message,
@@ -21,6 +22,8 @@ class BotReply(commands.Cog):
 	async def on_message(self, message: Message) -> None:
 		if message.author == self.client.user: return
 		if message.author.bot: return
+		if isinstance(message.channel, disnake.DMChannel): return
+		if isinstance(message.channel, disnake.Thread): return
 		if any(word in message.content.lower().split() for word in hiMsgs):
 			response = choice(hiMsgReplys)
 			return await BotReply.ReplyWebhook(self, message.channel, response)
@@ -33,8 +36,15 @@ class BotReply(commands.Cog):
 
 	async def ReplyWebhook(self, channel: TextChannel, response: str) -> None:
 		webhook: Webhook = await BotReply.FetchHook(self, channel)
-		avatarURL = self.client.get_user(493025015445454868).display_avatar.url
-		await webhook.send(content=response, username='Andrew', avatar_url = avatarURL)
+		member = self.client.get_user(493025015445454868)
+		if member:
+			disply_name = member.display_name
+			avatarURL = member.display_avatar.url
+			await webhook.send(
+				content=response,
+				username=disply_name,
+				avatar_url=avatarURL
+				)
 
 	async def FetchHook(self, channel: TextChannel) -> Webhook:
 		channel_hooks = await channel.webhooks()

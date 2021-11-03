@@ -7,8 +7,15 @@ from EnvVariables import TOKEN
 from os import listdir
 
 # Client
-client = commands.Bot(command_prefix = commands.when_mentioned_or('.'), intents = Intents.all(), help_command=None, case_insensitive=True, test_guilds=[821758346054467584], owner_id=493025015445454868)
-client.description = "Andrew's Assistant"
+client = commands.Bot(
+    command_prefix = commands.when_mentioned_or('.'),
+    intents = Intents.all(),
+    help_command=None,
+    case_insensitive=True,
+    test_guilds=[821758346054467584],
+    owner_id=493025015445454868,
+    description = "Andrew's Assistant",
+    )
 
 # Load Extention
 @client.command(hidden=True)
