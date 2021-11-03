@@ -4,8 +4,6 @@ from disnake.ext import commands
 from disnake import Client
 import disnake
 
-import sys, os
-
 class EvalCommand(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
@@ -36,8 +34,6 @@ class EvalCommand(commands.Cog):
         code = self.prepare(code.replace("-s", ""))
         args = {
             "disnake": disnake,
-            "sys": sys,
-            "os": os,
             "import": __import__,
             "self": self,
             "ctx": ctx,
@@ -58,7 +54,7 @@ class EvalCommand(commands.Cog):
                 del args, code
                 return
             
-            await ctx.send(f"```py\n{self.resolve_variable(response)}````{type(response).__name__} | {(time() - a) / 1000} ms`")
+            await ctx.send(f"```py\n{self.resolve_variable(response)}````{type(response).__name__} | {(time() - a)} ms`")
         except Exception as e:
             await ctx.send(f"Error occurred:```\n{type(e).__name__}: {str(e)}```")
         
