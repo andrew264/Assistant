@@ -109,6 +109,10 @@ class Ready(commands.Cog):
 			return await ctx.send(error, delete_after=60)
 		elif isinstance(error, commands.NotOwner):
 			return await ctx.send("🚫 You can\'t do that.", delete_after=60)
+		elif isinstance(error, commands.UserInputError):
+			return await ctx.send(f'Error: Invalid {error.args[0]} Argument.')
+		elif isinstance(error, commands.CheckFailure):
+			return await ctx.send(f'***{error}***')
 		else:
 			await ctx.send(f'***{error}***')
 			channel = self.client.get_channel(DM_Channel)

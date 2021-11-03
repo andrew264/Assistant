@@ -422,21 +422,21 @@ class Music(commands.Cog):
     @volume.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
         if ctx.voice_client is None or not ctx.voice_client.is_connected():
-            raise commands.CommandError('Bot is not connect to VC.')
+            raise commands.CheckFailure('Bot is not connect to VC.')
         if ctx.author.voice is None:
-            raise commands.CommandError('You are not connected to a voice channel.')
+            raise commands.CheckFailure('You are not connected to a voice channel.')
         if ctx.voice_client is not None and ctx.author.voice is not None:
             if ctx.voice_client.channel.id != ctx.author.voice.channel.id:
-                raise commands.CommandError('You must be in same VC as Bot.') 
+                raise commands.CheckFailure('You must be in same VC as Bot.') 
 
     # Play Checks
     @play.before_invoke
     async def check_play(self, ctx: commands.Context) -> None:
         if ctx.author.voice is None:
-            raise commands.CommandError('You are not connected to a voice channel.')
+            raise commands.CheckFailure('You are not connected to a voice channel.')
         if ctx.voice_client is not None and ctx.author.voice is not None:
             if ctx.voice_client.channel.id != ctx.author.voice.channel.id:
-                raise commands.CommandError('You must be in same VC as Bot.') 
+                raise commands.CheckFailure('You must be in same VC as Bot.') 
 
 def setup(client):
 	client.add_cog(Music(client))
