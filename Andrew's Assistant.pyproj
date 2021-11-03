@@ -23,6 +23,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="cogs\Eval.py" />
     <Compile Include="cogs\Fun.py" />
     <Compile Include="cogs\Help.py" />
     <Compile Include="cogs\Lyrics.py" />
