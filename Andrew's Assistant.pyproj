@@ -23,6 +23,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="cogs\AndrewWebs.py" />
     <Compile Include="cogs\Eval.py" />
     <Compile Include="cogs\Fun.py" />
     <Compile Include="cogs\Help.py" />
@@ -45,6 +46,7 @@
     <Folder Include="cogs\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="AndrewReplies.json" />
     <Content Include="MusicCache.json" />
     <Content Include="requirements.txt" />
   </ItemGroup>

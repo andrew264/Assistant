@@ -4,3 +4,5 @@ yt-dlp
 gTTS
 lyricsgenius
 python-youtube
+emoji
+sounddevice
