@@ -254,9 +254,10 @@ class Music(commands.Cog):
                 and isinstance(ctx.voice_client, VoiceClient)
                 and ctx.voice_client.is_paused() is True):
                 if ctx.voice_client is None: return
-                return await Music.pause(self, ctx)
+                await Music.pause(self, ctx)
+                return
             else:
-                await ctx.send('Queue is Empty.')
+                await ctx.send('Nothing to Play')
                 return
 
         async with ctx.typing():
@@ -316,7 +317,8 @@ class Music(commands.Cog):
     #Play from Queue
     async def player(self, ctx: commands.Context) -> None:
         await Music.StatusUpdate(self, ctx)
-        if len(self.dict_obj[ctx.guild.id]) == 0: return
+        if not self.dict_obj[ctx.guild.id]: return
+        current_song: (VideoInfo|VideoInfofromDict) = self.dict_obj[ctx.guild.id][0]
         loop = asyncio.get_event_loop()
         streamurl = await loop.run_in_executor(
             None,
@@ -329,13 +331,13 @@ class Music(commands.Cog):
         voice.source=PCMVolumeTransformer(voice.source)
         voice.source.volume = self.volume_float
         embed=Embed(title="", color=0xff0000)
-        embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
-        embed.set_author(name=f'Playing: {self.dict_obj[ctx.guild.id][0].Title}',
-                         url=self.dict_obj[ctx.guild.id][0].pURL,
+        embed.set_thumbnail(url=f'{current_song.Thumbnail}')
+        embed.set_author(name=f'Playing: {current_song.Title}',
+                         url=current_song.pURL,
                          icon_url='')
-        embed.add_field(name="Duration:", value=self.dict_obj[ctx.guild.id][0].FDuration, inline=True)
-        embed.add_field(name="Requested by:", value=self.dict_obj[ctx.guild.id][0].Author, inline=True)
-        await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].Duration)
+        embed.add_field(name="Duration:", value=current_song.FDuration, inline=True)
+        embed.add_field(name="Requested by:", value=current_song.Author, inline=True)
+        await ctx.send(embed=embed, delete_after=current_song.Duration)
         while self.dict_obj[ctx.guild.id][0].SongIn>0:
             await asyncio.sleep(1)
             self.dict_obj[ctx.guild.id][0].SongIn-=1
@@ -425,18 +427,19 @@ class Music(commands.Cog):
     async def np(self, ctx: commands.Context) -> None:
         await ctx.message.delete()
         if self.dict_obj[ctx.guild.id]:
-            percentile=20-round((self.dict_obj[ctx.guild.id][0].SongIn/self.dict_obj[ctx.guild.id][0].Duration)*20)
+            current_song: (VideoInfo|VideoInfofromDict) = self.dict_obj[ctx.guild.id][0]
+            percentile=20-round((current_song.SongIn/current_song.Duration)*20)
             bar='────────────────────'
             progbar=bar[:percentile]+'⚪'+bar[percentile+1:]
-            song_on = time.strftime('%M:%S', time.gmtime(self.dict_obj[ctx.guild.id][0].Duration-self.dict_obj[ctx.guild.id][0].SongIn))
+            song_on = time.strftime('%M:%S', time.gmtime(current_song.Duration-current_song.SongIn))
             embed=Embed(color=0xeb459e)
-            embed.set_thumbnail(url=f'{self.dict_obj[ctx.guild.id][0].Thumbnail}')
-            embed.set_author(name=f'{self.dict_obj[ctx.guild.id][0].Title}', url=self.dict_obj[ctx.guild.id][0].pURL, icon_url='')
-            embed.add_field(name=f'{song_on} {progbar} {self.dict_obj[ctx.guild.id][0].FDuration}',value='\u200b',inline=False)
-            embed.add_field(name="Views:", value=f'{human_format(int(self.dict_obj[ctx.guild.id][0].Views))}', inline=True)
-            embed.add_field(name="Likes:", value=f'{human_format(int(self.dict_obj[ctx.guild.id][0].Likes))}', inline=True)
-            embed.add_field(name="Uploaded on:", value=f'{self.dict_obj[ctx.guild.id][0].UploadDate}', inline=True)
-            await ctx.send(embed=embed, delete_after=self.dict_obj[ctx.guild.id][0].SongIn)
+            embed.set_thumbnail(url=f'{current_song.Thumbnail}')
+            embed.set_author(name=f'{current_song.Title}', url=current_song.pURL, icon_url='')
+            embed.add_field(name=f'{song_on} {progbar} {current_song.FDuration}',value='\u200b',inline=False)
+            embed.add_field(name="Views:", value=f'{human_format(int(current_song.Views))}', inline=True)
+            embed.add_field(name="Likes:", value=f'{human_format(int(current_song.Likes))}', inline=True)
+            embed.add_field(name="Uploaded on:", value=f'{current_song.UploadDate}', inline=True)
+            await ctx.send(embed=embed, delete_after=current_song.SongIn)
         else:
             await ctx.reply('Queue is Empty', delete_after=30)
 
