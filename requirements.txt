@@ -1,5 +1,4 @@
 disnake[voice]
-python-dotenv
 yt-dlp
 gTTS
 lyricsgenius
