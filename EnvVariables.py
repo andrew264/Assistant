@@ -1,14 +1,18 @@
-from os import getenv
-from dotenv import load_dotenv
-load_dotenv()
-TOKEN = getenv('DISCORD_TOKEN')
+from os.path import exists
+import json
 
-DM_Channel = getenv('DM_CHANNEL_ID')
-if DM_Channel:
-    DM_Channel = int(DM_Channel)
+if exists("config.json") is False:
+    raise FileNotFoundError
+
+with open("config.json", "r") as configFile:
+    config: dict = json.load(configFile)
+    configFile.close()
+
+TOKEN = config["DISCORD_TOKEN"]
+DM_Channel = config["DM_CHANNEL_ID"]
 
 # Genius API
-GENIUS_TOKEN = getenv('GENIUS_API_KEY')
+GENIUS_TOKEN = config["GENIUS_API_KEY"]
 
 # Youtube Data API
-YT_TOKEN = getenv('YOUTUBE_API_KEY')
+YT_TOKEN = config["YOUTUBE_API_KEY"]

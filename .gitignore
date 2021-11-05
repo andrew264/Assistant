@@ -1,5 +1,5 @@
 # Environment Variables
-.env
+config.json
 
 # Visual Studio 
 /.vs
