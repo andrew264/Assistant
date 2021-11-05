@@ -11,7 +11,7 @@ references = ['andrew', 'santhosh',
               '<:datsshaawt:804242984383545344>',
               '<:andrew_damnboii:794247753445802004>']
 
-with open('AndrewReplies.json', 'r') as replyJSON:
+with open('data/AndrewReplies.json', 'r') as replyJSON:
     replies = json.load(replyJSON)
     keys = list(replies.keys())
     replyJSON.close()

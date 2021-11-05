@@ -1,10 +1,10 @@
 from os.path import exists
 import json
 
-if exists("config.json") is False:
+if exists("config/config.json") is False:
     raise FileNotFoundError
 
-with open("config.json", "r") as configFile:
+with open("config/config.json", "r") as configFile:
     config: dict = json.load(configFile)
     configFile.close()
 

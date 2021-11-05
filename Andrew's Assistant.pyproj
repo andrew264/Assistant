@@ -39,15 +39,19 @@
     <Compile Include="cogs\UserInfo.py" />
     <Compile Include="cogs\Utility.py" />
     <Compile Include="EnvVariables.py" />
-    <Compile Include="ReplyMsgs.py" />
     <Compile Include="start.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="cogs\" />
+    <Folder Include="config\" />
+    <Folder Include="data\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="AndrewReplies.json" />
-    <Content Include="MusicCache.json" />
+    <Content Include="data\AndrewReplies.json" />
+    <Content Include="config\config.json" />
+    <Content Include="config\config.json.example" />
+    <Content Include="data\database.sqlite3" />
+    <Content Include="data\MusicCache.json" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <ItemGroup>

@@ -123,7 +123,7 @@ def FindInputType(query: str):
     else: return InputType.Search
 
 def Search(query: str, author: str) -> (VideoInfo|VideoInfofromDict):
-    with open('MusicCache.json', 'r+') as jsonFile:
+    with open('data/MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in data:
             if query.lower() in data[video_id]["Title"].lower() or "Tags" in data[video_id] and query.lower() in data[video_id]["Tags"]:
@@ -140,7 +140,7 @@ def Search(query: str, author: str) -> (VideoInfo|VideoInfofromDict):
 
 def FetchVideo(query: str, author: str) -> (VideoInfo|VideoInfofromDict):
     video_id = vid_id_regex.search(query).group(1)
-    with open('MusicCache.json', 'r+') as jsonFile:
+    with open('data/MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         if video_id in data:
             jsonFile.close()
@@ -158,7 +158,7 @@ def FetchPlaylist(query: str, author: str) -> list[VideoInfo|VideoInfofromDict]:
     playlist_id = query.replace('https://www.youtube.com/playlist?list=','')
     video_items: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
     video_ids = [video.snippet.resourceId.videoId for video in video_items]
-    with open('MusicCache.json', 'r+') as jsonFile:
+    with open('data/MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in video_ids:
             if video_id in data:
@@ -174,7 +174,7 @@ def FetchPlaylist(query: str, author: str) -> list[VideoInfo|VideoInfofromDict]:
 
 def AddTagstoJSON(videoID: str, tag: str):
     '''Add Tags to Videos for Search'''
-    with open('MusicCache.json', 'r+') as jsonFile:
+    with open('data/MusicCache.json', 'r+') as jsonFile:
         data: dict = json.load(jsonFile)
         data[videoID]["Tags"].append(tag.lower())
         jsonFile.seek(0)
