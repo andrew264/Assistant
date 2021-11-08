@@ -17,3 +17,6 @@ config.json
 
 # ignore Music Cache
 MusicCache.json
+
+# PyCharm
+/.idea

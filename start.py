@@ -1,10 +1,10 @@
 ﻿# Imports
+from os import listdir
+
 from disnake import Intents
 from disnake.ext import commands
 
 from EnvVariables import TOKEN
-
-from os import listdir
 
 # Client
 client = commands.Bot(
@@ -17,7 +17,8 @@ client = commands.Bot(
     description="Andrew's Assistant",
 )
 
-# Load Extention
+
+# Load Extension
 @client.command(hidden=True)
 @commands.is_owner()
 async def load(ctx: commands.Context, extension) -> None:
@@ -30,7 +31,7 @@ async def load(ctx: commands.Context, extension) -> None:
         await ctx.message.add_reaction("✅")
 
 
-# Unload Extention
+# Unload Extension
 @client.command(hidden=True)
 @commands.is_owner()
 async def unload(ctx: commands.Context, extension) -> None:
@@ -43,7 +44,7 @@ async def unload(ctx: commands.Context, extension) -> None:
         await ctx.message.add_reaction("✅")
 
 
-# Reload Extention
+# Reload Extension
 @client.command(hidden=True)
 @commands.is_owner()
 async def reload(ctx: commands.Context, extension) -> None:

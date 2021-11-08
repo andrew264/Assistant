@@ -1,5 +1,7 @@
 ﻿# Imports
-from disnake.ext import commands
+from datetime import datetime
+from typing import Tuple
+
 from disnake import (
     Activity,
     Client,
@@ -15,13 +17,10 @@ from disnake import (
     User,
     VoiceState,
 )
-from disnake.activity import ActivityTypes
-
-from datetime import datetime
-from typing import Tuple
+from disnake.ext import commands
 
 # ID Numbers
-OWNERID = 493025015445454868
+OWNER_ID = 493025015445454868
 CHANNEL_ID = 891369472101863494
 
 
@@ -33,7 +32,7 @@ def AvailableClients(user: Member) -> str:
         clients.append("Mobile")
     if user.web_status.name != "offline":
         clients.append("Web")
-    if clients == []:
+    if not clients:
         return "Offline"
     return f"{', '.join(clients)}"
 
@@ -58,7 +57,8 @@ def CustomActVal(activity: CustomActivity) -> str:
     return value
 
 
-def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()) -> list:
+def ActivityVal(activities: Tuple[Activity | Game | CustomActivity | Streaming | Spotify, ...]
+                ) -> list:
     activitiesList = []
     for activity in activities:
         if isinstance(activity, Game):
@@ -66,10 +66,10 @@ def ActivityVal(activities: Tuple[ActivityTypes, ...] = tuple()) -> list:
         elif isinstance(activity, Streaming):
             activitiesList.append(f"Streaming {activity.name}")
         elif isinstance(activity, Spotify):
-            # we dont need spotify activities
+            # we don't need spotify activities
             continue
         elif isinstance(activity, CustomActivity):
-            # handle CustomActivity Seperately
+            # handle CustomActivity Separately
             continue
         elif isinstance(activity, Activity):
             activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
@@ -84,11 +84,11 @@ class Surveillance(commands.Cog):
     async def on_message_edit(self, before: Message, after: Message) -> None:
         if before.author.bot:
             return
-        if before.author.id == OWNERID:
+        if before.author.id == OWNER_ID:
             return
         if before.clean_content == after.clean_content:
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.teal())
         embed.set_author(
             name=f"{before.author} edited a message in #{before.channel.name}",
@@ -105,9 +105,9 @@ class Surveillance(commands.Cog):
     async def on_message_delete(self, message: Message) -> None:
         if message.author.bot:
             return
-        if message.author.id == OWNERID:
+        if message.author.id == OWNER_ID:
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.orange())
         embed.set_author(
             name=f"{message.author} deleted a message in #{message.channel.name}",
@@ -121,11 +121,11 @@ class Surveillance(commands.Cog):
     async def on_member_update(self, before: Member, after: Member) -> None:
         if before.bot:
             return
-        if before.id == OWNERID:
+        if before.id == OWNER_ID:
             return
         if before.display_name == after.display_name:
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.dark_orange())
         embed.set_author(
             name=f"{before} updated their Nickname", icon_url=before.display_avatar.url
@@ -139,11 +139,11 @@ class Surveillance(commands.Cog):
     async def on_user_update(self, before: User, after: User) -> None:
         if before.bot:
             return
-        if before.id == OWNERID:
+        if before.id == OWNER_ID:
             return
         if before.name == after.name and before.discriminator == after.discriminator:
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.brand_green())
         embed.set_author(
             name=f"{before} updated their Username", icon_url=before.display_avatar.url
@@ -165,9 +165,9 @@ class Surveillance(commands.Cog):
     async def on_presence_update(self, before: Member, after: Member) -> None:
         if before.bot:
             return
-        if before.id == OWNERID:
+        if before.id == OWNER_ID:
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         delete_after = 300
         embed = Embed(colour=Colour.gold())
         embed.set_author(
@@ -213,9 +213,9 @@ class Surveillance(commands.Cog):
                 inline=False,
             )
         elif (
-            before_custom is not None
-            and after_custom is not None
-            and CustomActVal(before_custom) != CustomActVal(after_custom)
+                before_custom is not None
+                and after_custom is not None
+                and CustomActVal(before_custom) != CustomActVal(after_custom)
         ):
             embed.add_field(
                 name=f"Custom Status modified",
@@ -237,7 +237,7 @@ class Surveillance(commands.Cog):
             for before_activity in before_activities:
                 embed.add_field(
                     name=f"Activity Update",
-                    value=f"Stoped: {before_activity}",
+                    value=f"Stopped: {before_activity}",
                     inline=False,
                 )
                 delete_after = 300
@@ -256,13 +256,13 @@ class Surveillance(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(
-        self, member: Member, before: VoiceState, after: VoiceState
+            self, member: Member, before: VoiceState, after: VoiceState
     ) -> None:
         if member.bot:
             return
         if after.channel == before.channel:
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         if after.channel is None:
             await log_channel.send(
                 f"{member.display_name} left {before.channel.mention}", delete_after=900
@@ -280,15 +280,15 @@ class Surveillance(commands.Cog):
 
     @commands.Cog.listener()
     async def on_typing(
-        self, channel: TextChannel, user: Member, when: datetime
+            self, channel: TextChannel, user: Member, when: datetime
     ) -> None:
         if user.bot:
             return
-        if user.id == OWNERID:
+        if user.id == OWNER_ID:
             return
         if channel.name != "general-shit" and channel.name != "private-chat":
             return
-        log_channel: TextChannel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(CHANNEL_ID)
         await log_channel.send(
             f"{user.display_name} started typing in {channel.mention}", delete_after=120
         )

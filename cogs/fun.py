@@ -1,14 +1,14 @@
 # Imports
+from random import randint, choice
+
+from disnake import Embed, Member, Client, ApplicationCommandInteraction
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake import Embed, Member, Client, ApplicationCommandInteraction
 from disnake.utils import find
-
-from random import randint, choice
 
 
 def DeathMsgGen(victim: str, killer: str) -> str:
-    deathMsgs = [
+    death_msgs: list[str] = [
         " was shot by ",
         " drowned whilst trying to escape ",
         " was blown up by ",
@@ -26,9 +26,9 @@ def DeathMsgGen(victim: str, killer: str) -> str:
         " was drowned by ",
     ]
     if randint(0, 6):
-        return victim + choice(deathMsgs) + killer
+        return victim + choice(death_msgs) + killer
     else:
-        return killer + choice(deathMsgs) + victim
+        return killer + choice(death_msgs) + victim
 
 
 class Fun(commands.Cog):
@@ -37,11 +37,11 @@ class Fun(commands.Cog):
 
     @commands.slash_command(description="Measure them PPs")
     async def pp(
-        self,
-        inter: ApplicationCommandInteraction,
-        user: Member = Param(
-            description="Mention a User", default=lambda inter: inter.author
-        ),
+            self,
+            inter: ApplicationCommandInteraction,
+            user: Member = Param(
+                description="Mention a User", default=lambda inter: inter.author
+            ),
     ) -> None:
         pp404 = find(lambda r: r.id == 838868317779394560, user.roles)
         ppembed = Embed(colour=user.color)
@@ -52,18 +52,18 @@ class Fun(commands.Cog):
             ppembed.add_field(name="There is no sign of life in here.", value="\u200b")
         else:
             ppembed.add_field(
-                name=f"{user.display_name}'s PP:", value=f"8{'='*randint(0,9)}D"
+                name=f"{user.display_name}'s PP:", value=f"8{'=' * randint(0, 9)}D"
             )
         ppembed.set_footer(text=f"Inspected by: {inter.author.display_name}")
         await inter.response.send_message(embed=ppembed)
 
-    @commands.slash_command(description="Delete their existance")
+    @commands.slash_command(description="Delete their existence")
     async def kill(
-        self,
-        inter: ApplicationCommandInteraction,
-        user: Member = Param(
-            description="Mention a User", default=lambda inter: inter.author
-        ),
+            self,
+            inter: ApplicationCommandInteraction,
+            user: Member = Param(
+                description="Mention a User", default=lambda inter: inter.author
+            ),
     ):
         if user is None or user == inter.author:
             return await inter.response.send_message("Stop, Get some Help.")

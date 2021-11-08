@@ -1,5 +1,8 @@
 # Imports
-from disnake.ext import commands
+import os
+import platform
+import traceback
+
 from disnake import (
     Activity,
     ActivityType,
@@ -12,8 +15,7 @@ from disnake import (
     Spotify,
     Status,
 )
-
-import os, platform, traceback
+from disnake.ext import commands
 
 from EnvVariables import DM_Channel
 
@@ -34,7 +36,7 @@ def AvailableClients(user: Member) -> str:
         clients.append("Mobile")
     if user.web_status.name != "offline":
         clients.append("Web")
-    if clients == []:
+    if not clients:
         clients.append("Offline")
     if user.raw_status == "online":
         value = "🟢"
@@ -42,7 +44,7 @@ def AvailableClients(user: Member) -> str:
         value = "🌙"
     elif user.raw_status == "dnd":
         value = "⛔"
-    elif user.raw_status == "offline":
+    else:
         value = "🔘"
     return f"{value} {', '.join(clients)}"
 
@@ -63,7 +65,7 @@ class Ready(commands.Cog):
 
     async def Output(self) -> None:
         global old_str1
-        str1 = Ready.printstuff(self)
+        str1 = Ready.print_stuff(self)
         if old_str1 != str1:
             if platform.system() == "Windows":
                 clear = lambda: os.system("cls")
@@ -74,7 +76,7 @@ class Ready(commands.Cog):
             old_str1 = str1
 
     # Print Text Generator
-    def printstuff(self) -> str:
+    def print_stuff(self) -> str:
         str1 = f"{self.client.user} is connected to the following guild:"
         for guild in self.client.guilds:
             str1 += f"\n\t{guild.name} (ID: {guild.id}) (Member Count: {guild.member_count})"
@@ -125,22 +127,18 @@ class Ready(commands.Cog):
     # Unknown commands
     @commands.Cog.listener()
     async def on_command_error(
-        self, ctx: commands.Context, error: commands.CommandError
+            self, ctx: commands.Context, error: commands.CommandError
     ) -> None:
         if isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, commands.MissingPermissions):
             await ctx.send(error, delete_after=60)
-            return
         elif isinstance(error, commands.NotOwner):
             await ctx.send("🚫 You can't do that.", delete_after=60)
-            return
         elif isinstance(error, commands.UserInputError):
             await ctx.send(f"Error: Invalid {error.args[0]} Argument.")
-            return
         elif isinstance(error, commands.CheckFailure):
             await ctx.send(f"***{error}***")
-            return
         else:
             await ctx.send(f"***{error}***")
             channel = self.client.get_channel(DM_Channel)
@@ -154,14 +152,14 @@ class Ready(commands.Cog):
     # slash errors
     @commands.Cog.listener()
     async def on_slash_command_error(
-        self, inter: ApplicationCommandInteraction, error: commands.CommandError
+            self, inter: ApplicationCommandInteraction, error: commands.CommandError
     ) -> None:
         if isinstance(error, commands.NotOwner):
-            return await inter.response.send_message(
+            await inter.response.send_message(
                 "🚫 You can't do that.", ephemeral=True
             )
         elif isinstance(error, commands.MissingPermissions):
-            return await inter.response.send_message(error, ephemeral=True)
+            await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(
@@ -174,14 +172,14 @@ class Ready(commands.Cog):
     # Message Context Error
     @commands.Cog.listener()
     async def on_message_command_error(
-        self, inter: ApplicationCommandInteraction, error: commands.CommandError
+            self, inter: ApplicationCommandInteraction, error: commands.CommandError
     ) -> None:
         if isinstance(error, commands.NotOwner):
-            return await inter.response.send_message(
+            await inter.response.send_message(
                 "🚫 You can't do that.", ephemeral=True
             )
         elif isinstance(error, commands.MissingPermissions):
-            return await inter.response.send_message(error, ephemeral=True)
+            await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(
@@ -194,14 +192,14 @@ class Ready(commands.Cog):
     # User Context Error
     @commands.Cog.listener()
     async def on_user_command_error(
-        self, inter: ApplicationCommandInteraction, error: commands.CommandError
+            self, inter: ApplicationCommandInteraction, error: commands.CommandError
     ) -> None:
         if isinstance(error, commands.NotOwner):
-            return await inter.response.send_message(
+            await inter.response.send_message(
                 "🚫 You can't do that.", ephemeral=True
             )
         elif isinstance(error, commands.MissingPermissions):
-            return await inter.response.send_message(error, ephemeral=True)
+            await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(

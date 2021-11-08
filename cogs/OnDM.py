@@ -1,7 +1,8 @@
 ﻿# Imports
-from disnake.channel import TextChannel
-from disnake.ext import commands
 from disnake import Client, Message, User
+from disnake.channel import TextChannel
+from disnake.errors import Forbidden, HTTPException
+from disnake.ext import commands
 
 from EnvVariables import DM_Channel
 
@@ -46,7 +47,7 @@ class OnDM(commands.Cog):
                 msg_content += f"{str(attachment)}\n"
         try:
             await channel.send(msg_content)
-        except Exception:
+        except Forbidden or HTTPException:
             await ctx.send(f"Failed to DM {user}.")
 
 

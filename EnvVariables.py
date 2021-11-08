@@ -1,5 +1,5 @@
-from os.path import exists
 import json
+from os.path import exists
 
 if exists("config/config.json") is False:
     raise FileNotFoundError

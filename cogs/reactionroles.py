@@ -6,7 +6,6 @@ from disnake import (
     Member,
     PartialMessage,
     RawReactionActionEvent,
-    TextChannel,
 )
 
 from disnake.utils import get
@@ -35,10 +34,10 @@ class ReactionRoles(commands.Cog):
             return
         if payload.message_id != MESSAGE_ID:
             return
-        if payload.member.bot == True:
+        if payload.member.bot:
             return
 
-        channel: TextChannel = self.client.get_channel(payload.channel_id)
+        channel = self.client.get_channel(payload.channel_id)
         message: PartialMessage = channel.get_partial_message(payload.message_id)
 
         # filter out other emojis
@@ -71,7 +70,7 @@ class ReactionRoles(commands.Cog):
 
         # filter bots out
         member: Member = get(self.client.get_all_members(), id=payload.user_id)
-        if member.bot == True:
+        if member.bot:
             return
 
         # just remove all colour roles for member
@@ -81,7 +80,7 @@ class ReactionRoles(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def reactionroles(self, ctx: commands.Context) -> None:
+    async def reaction_roles(self, ctx: commands.Context) -> None:
         await ctx.message.delete()
         embed = Embed(
             title="Reaction Roles",

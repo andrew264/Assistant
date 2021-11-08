@@ -1,7 +1,7 @@
 # Imports
 import disnake
+from disnake import ApplicationCommandInteraction, Client, Embed, Member, VoiceRegion
 from disnake.ext import commands
-from disnake import ApplicationCommandInteraction, Client, Embed, Member
 from disnake.utils import find
 
 
@@ -19,8 +19,9 @@ class PrivateChat(commands.Cog):
         overwrites_readEnable = disnake.PermissionOverwrite()
         overwrites_readEnable.read_messages = True
         for category in inter.guild.categories:
-            if category.name == f"{inter.author.display_name}'s Chat" and isinstance(
-                inter.author, Member
+            if (
+                    category.name == f"{inter.author.display_name}'s Chat"
+                    and isinstance(inter.author, Member)
             ):
                 for channel in category.channels:
                     await channel.set_permissions(
@@ -43,7 +44,6 @@ class PrivateChat(commands.Cog):
             f"{inter.author.display_name}'s Chat",
             overwrites=overwrites_readTrue,
             reason=None,
-            position=None,
         )
         textChannel = await category.create_text_channel(
             "private-chat", overwrites=overwrites_readTrue
@@ -54,7 +54,7 @@ class PrivateChat(commands.Cog):
         await inter.response.send_message(
             f"Created a new Private Chat ({category.mention}).", ephemeral=True
         )
-        await voiceChannel.edit(rtc_region="india", bitrate=96000)
+        await voiceChannel.edit(rtc_region=VoiceRegion.india, bitrate=96000)
         embed = Embed(
             colour=0x002366,
             title=f"Welcome, {inter.author.display_name}!",
@@ -73,7 +73,7 @@ class PrivateChat(commands.Cog):
             else:
                 category = None
         if isinstance(category, disnake.CategoryChannel) and isinstance(
-            inter.author, Member
+                inter.author, Member
         ):
             for channel in category.channels:
                 await channel.set_permissions(

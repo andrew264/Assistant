@@ -1,6 +1,8 @@
 ﻿# Imports
-from disnake.ext import commands
-from disnake.ext.commands import Param
+import asyncio
+import re
+
+import disnake
 from disnake import (
     ApplicationCommandInteraction,
     Button,
@@ -10,14 +12,13 @@ from disnake import (
     Interaction,
     Spotify,
 )
+from disnake.ext import commands
+from disnake.ext.commands import Param
 from disnake.utils import get
-import disnake
-
-from EnvVariables import GENIUS_TOKEN
-
 from lyricsgenius import Genius
 from lyricsgenius.types import Song
-import re, asyncio
+
+from EnvVariables import GENIUS_TOKEN
 
 genius = Genius(GENIUS_TOKEN, verbose=False)
 
@@ -25,11 +26,11 @@ genius = Genius(GENIUS_TOKEN, verbose=False)
 def SongTolist(song: Song) -> list[str]:
     lyrics = re.sub(r"[0-9]*EmbedShare*", "", song.lyrics)
     lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
-    lyricsList = list(lyrics.split("\n\n"))
-    return lyricsList
+    lyrics_list = list(lyrics.split("\n\n"))
+    return lyrics_list
 
 
-def fetchlyrics(song_title: str, artist_name: str) -> Song | None:
+def fetch_lyrics(song_title: str, artist_name: str) -> Song | None:
     song = genius.search_song(song_title, artist_name)
     if song and song.lyrics:
         return song
@@ -37,13 +38,13 @@ def fetchlyrics(song_title: str, artist_name: str) -> Song | None:
 
 
 def generate_embed(
-    title: str, track_url: str, album_art: str, lyricsList: list, avatar: str, pgno: int
+        title: str, track_url: str, album_art: str, lyrics_list: list, avatar: str, pg_no: int
 ) -> Embed:
     embed = Embed(
-        title=f"{title}", url=track_url, color=0x1DB954, description=lyricsList[pgno]
+        title=f"{title}", url=track_url, color=0x1DB954, description=lyrics_list[pg_no]
     )
     embed.set_thumbnail(url=album_art)
-    embed.set_footer(text=f"({pgno+1}/{len(lyricsList)})", icon_url=avatar)
+    embed.set_footer(text=f"({pg_no + 1}/{len(lyrics_list)})", icon_url=avatar)
     return embed
 
 
@@ -51,10 +52,10 @@ class Pages(disnake.ui.View):
     def __init__(self):
         super().__init__(timeout=180.0)
         self.page_no = 0
-        self.song: Song
-        self.lyricsList: list[str]
-        self.inter: ApplicationCommandInteraction
-        self.display_avatar: str
+        self.song: Song | None = None
+        self.lyricsList: list[str] = []
+        self.inter: ApplicationCommandInteraction | None = None
+        self.display_avatar: str = ""
 
     async def on_timeout(self):
         await self.inter.edit_original_message(view=None)
@@ -71,9 +72,9 @@ class Pages(disnake.ui.View):
                 title=self.song.title,
                 track_url=self.song.url,
                 album_art=self.song.song_art_image_url,
-                lyricsList=self.lyricsList,
+                lyrics_list=self.lyricsList,
                 avatar=self.display_avatar,
-                pgno=self.page_no,
+                pg_no=self.page_no,
             ),
             view=self,
         )
@@ -89,9 +90,9 @@ class Pages(disnake.ui.View):
                 title=self.song.title,
                 track_url=self.song.url,
                 album_art=self.song.song_art_image_url,
-                lyricsList=self.lyricsList,
+                lyrics_list=self.lyricsList,
                 avatar=self.display_avatar,
-                pgno=self.page_no,
+                pg_no=self.page_no,
             ),
             view=self,
         )
@@ -105,10 +106,10 @@ class Lyrics(commands.Cog):
         description="Get Lyrics for the song you are currently listening to."
     )
     async def lyrics(
-        self,
-        inter: ApplicationCommandInteraction,
-        title: str = Param(description="Song Title", default=None),
-        author: str = Param(description="Song Author", default=""),
+            self,
+            inter: ApplicationCommandInteraction,
+            title: str = Param(description="Song Title", default=None),
+            author: str = Param(description="Song Author", default=""),
     ) -> None:
 
         await inter.response.defer()
@@ -120,13 +121,13 @@ class Lyrics(commands.Cog):
         song = None
         loop = asyncio.get_event_loop()
         if title:
-            song = await loop.run_in_executor(None, fetchlyrics, title, author)
+            song = await loop.run_in_executor(None, fetch_lyrics, title, author)
         else:
             for activity in user.activities:
                 if isinstance(activity, Spotify):
                     title = re.sub(r"\([^)]*\)", "", activity.title)
                     song = await loop.run_in_executor(
-                        None, fetchlyrics, title, activity.artist
+                        None, fetch_lyrics, title, activity.artist
                     )
                     if isinstance(song, Song) and hasattr(song, "url"):
                         song.url = activity.track_url
@@ -136,22 +137,22 @@ class Lyrics(commands.Cog):
             await inter.edit_original_message(content="Lyrics not Found :(")
             return
         else:
-            lyricsList = SongTolist(song)
-            MyPages = Pages()
-            MyPages.lyricsList = lyricsList
-            MyPages.song = song
-            MyPages.inter = inter
-            MyPages.display_avatar = inter.author.display_avatar.url
+            lyrics_list = SongTolist(song)
+            my_pages = Pages()
+            my_pages.lyricsList = lyrics_list
+            my_pages.song = song
+            my_pages.inter = inter
+            my_pages.display_avatar = inter.author.display_avatar.url
             await inter.edit_original_message(
                 embed=generate_embed(
                     title=song.title,
                     track_url=song.url,
                     album_art=song.song_art_image_url,
-                    lyricsList=lyricsList,
+                    lyrics_list=lyrics_list,
                     avatar=inter.author.display_avatar.url,
-                    pgno=0,
+                    pg_no=0,
                 ),
-                view=MyPages,
+                view=my_pages,
             )
 
 

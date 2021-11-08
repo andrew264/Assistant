@@ -1,6 +1,6 @@
 # Imports
-from disnake.ext import commands
-from disnake.ext.commands import Param
+from typing import Optional
+
 from disnake import (
     Activity,
     ActivityType,
@@ -12,8 +12,8 @@ from disnake import (
     MessageCommandInteraction,
     User,
 )
-
-from typing import Optional
+from disnake.ext import commands
+from disnake.ext.commands import Param
 
 
 class Utility(commands.Cog):
@@ -51,18 +51,18 @@ class Utility(commands.Cog):
     @commands.slash_command(description="Set Bot's Activity")
     @commands.is_owner()
     async def status(
-        self,
-        inter: ApplicationCommandInteraction,
-        state: State = Param(description="Set Bot's Status"),
-        type: ActType = Param(description="Set Bot's Activity Type"),
-        name: str = Param(description="Set Bot's Activity Name", default="yall Homies"),
+            self,
+            inter: ApplicationCommandInteraction,
+            state: State = Param(description="Set Bot's Status"),
+            activity: ActType = Param(description="Set Bot's Activity Type"),
+            name: str = Param(description="Set Bot's Activity Name", default="yall Homies"),
     ) -> None:
         await self.client.change_presence(
             status=Status(state),
-            activity=Activity(type=ActivityType(int(type)), name=name),
+            activity=Activity(type=ActivityType(int(activity)), name=name),
         )
         await inter.response.send_message(
-            f"Status set to `{Status(state).name.capitalize()}` and `{ActivityType(int(type)).name.title()}: {name}`",
+            f"Status set to `{Status(state).name.capitalize()}`|`{ActivityType(int(activity)).name.title()}: {name}`",
             ephemeral=True,
         )
 
@@ -70,7 +70,7 @@ class Utility(commands.Cog):
     @commands.command(aliases=["delete"])
     @commands.has_permissions(administrator=True)
     async def clear(
-        self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5
+            self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5
     ) -> None:
         if isinstance(no_of_msgs, int) and no_of_msgs > 420:
             await ctx.reply(f"No")
@@ -117,8 +117,7 @@ class Utility(commands.Cog):
             if message.author.id == user.id or str(user.id) in message.content:
                 await message.delete()
                 counter += 1
-        if counter > 0:
-            await ctx.send(f"Deleted {counter} messages.", delete_after=30)
+        await ctx.send(f"Deleted {counter} messages.", delete_after=30)
 
 
 def setup(client):

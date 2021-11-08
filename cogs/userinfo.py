@@ -1,7 +1,8 @@
 ﻿# Imports
-from disnake.ext import commands
-from disnake.ext.commands import Param
-from disnake.utils import get
+import sqlite3
+from datetime import datetime, timezone
+from platform import python_version
+
 import disnake
 from disnake import (
     Activity,
@@ -15,13 +16,12 @@ from disnake import (
     Streaming,
     UserCommandInteraction,
 )
+from disnake.ext import commands
+from disnake.ext.commands import Param
+from disnake.utils import get
 
-from datetime import datetime, timezone
-import sqlite3
-from platform import python_version
 
-
-def ActivityVal(activity: Activity) -> str:
+def ActivityVal(activity: Activity | Game) -> str:
     value: str = f"**{activity.name}**\n"
     if activity.start is not None:
         value += timeDelta(activity.start)
@@ -34,9 +34,9 @@ def timeDelta(timestamp: datetime) -> str:
     if sec < 60:
         value += f"({sec} s)"
     elif 60 <= sec < 3600:
-        value += f"({sec//60} mins {sec%60} sec)"
+        value += f"({sec // 60} mins {sec % 60} sec)"
     elif sec >= 3600:
-        value += f"({sec//3600} hrs {(sec//60)%60} mins)"
+        value += f"({sec // 3600} hrs {(sec // 60) % 60} mins)"
     return value
 
 
@@ -68,33 +68,33 @@ def AvailableClients(user: Member) -> str:
     return value
 
 
-def AddDatatoDB(userID: int, message: str) -> None:
+def AddDatatoDB(user_id: int, message: str) -> None:
     conn = sqlite3.connect("./data/database.sqlite3")
     # conn.execute("CREATE TABLE Members (USERID INT PRIMARY KEY NOT NULL, ABOUT TEXT);")
     alreadyExists = conn.execute(
-        f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {userID})"
+        f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})"
     ).fetchone()[0]
     if alreadyExists:
         conn.execute(
-            f"""UPDATE Members SET ABOUT = "{message}" WHERE USERID = {userID}"""
+            f"""UPDATE Members SET ABOUT = "{message}" WHERE USERID = {user_id}"""
         )
     else:
         conn.execute(
-            f"""INSERT INTO Members (USERID, ABOUT) VALUES ({userID}, "{message}")"""
+            f"""INSERT INTO Members (USERID, ABOUT) VALUES ({user_id}, "{message}")"""
         )
     conn.commit()
     conn.close()
 
 
-def GetAboutfromDB(userID: int) -> str | None:
+def GetAboutfromDB(user_id: int) -> str | None:
     conn = sqlite3.connect("./data/database.sqlite3")
     alreadyExists = conn.execute(
-        f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {userID})"
+        f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})"
     ).fetchone()[0]
     if alreadyExists:
         about = [
             row[1]
-            for row in conn.execute(f"SELECT * FROM Members WHERE USERID = {userID}")
+            for row in conn.execute(f"SELECT * FROM Members WHERE USERID = {user_id}")
         ]
         conn.close()
         return about[0]
@@ -106,15 +106,15 @@ class UserInfo(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(description="Luk wat he be doin ovar der")
+    @commands.slash_command(description="Luk wat he be doing over der")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
     async def whois(
-        self,
-        inter: ApplicationCommandInteraction,
-        user: Member = Param(
-            description="Mention a User", default=lambda inter: inter.author
-        ),
+            self,
+            inter: ApplicationCommandInteraction,
+            user: Member = Param(
+                description="Mention a User", default=lambda inter: inter.author
+            ),
     ) -> None:
         await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, user))
 
@@ -124,15 +124,15 @@ class UserInfo(commands.Cog):
     async def ContextWhoIs(self, inter: UserCommandInteraction) -> None:
         await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, inter.target))
 
-    def WhoIsEmbed(self, user_noPresence: Member) -> Embed:
+    def WhoIsEmbed(self, user: Member) -> Embed:
         # Fetch activity. I really wish i don't have to do this.
-        user: Member | None = get(self.client.get_all_members(), id=user_noPresence.id)
+        user_with_presence: Member | None = get(self.client.get_all_members(), id=user.id)
 
         date_format = "%a, %d %b %Y %I:%M %p"
         embed = Embed(color=user.colour)
         # Description
         about = GetAboutfromDB(user.id)
-        if about is not None:
+        if about:
             embed.description = f"{user.mention}: {about}"
         else:
             embed.description = user.mention
@@ -151,10 +151,10 @@ class UserInfo(commands.Cog):
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
-        if user.raw_status != "offline":
+        if user_with_presence.raw_status != "offline":
             embed.add_field(name="Available Clients", value=AvailableClients(user))
         # Activity
-        for activity in user.activities:
+        for activity in user_with_presence.activities:
             if isinstance(activity, Game):
                 embed.add_field(name="Playing", value=ActivityVal(activity))
             elif isinstance(activity, Streaming):
@@ -175,25 +175,25 @@ class UserInfo(commands.Cog):
                     value=ActivityVal(activity),
                 )
                 if (
-                    hasattr(activity, "large_image_url")
-                    and activity.large_image_url is not None
+                        hasattr(activity, "large_image_url")
+                        and activity.large_image_url is not None
                 ):
                     embed.set_thumbnail(url=activity.large_image_url)
         if len(user.roles) > 1:
             role_string = " ".join([r.mention for r in user.roles][1:])
             embed.add_field(
-                name=f"Roles [{len(user.roles)-1}]", value=role_string, inline=False
+                name=f"Roles [{len(user.roles) - 1}]", value=role_string, inline=False
             )
         embed.set_footer(text=f"User ID: {user.id}")
         return embed
 
     @commands.slash_command(description="Shows the avatar of the user")
     async def avatar(
-        self,
-        inter: ApplicationCommandInteraction,
-        user: Member = Param(
-            description="Mention a User", default=lambda inter: inter.author
-        ),
+            self,
+            inter: ApplicationCommandInteraction,
+            user: Member = Param(
+                description="Mention a User", default=lambda inter: inter.author
+            ),
     ) -> None:
         avatar = Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
         avatar.set_image(url=user.display_avatar.url)
@@ -224,11 +224,11 @@ class UserInfo(commands.Cog):
 
     @commands.slash_command(description="Introduce Yourself to Others.")
     async def introduce(
-        self,
-        inter: ApplicationCommandInteraction,
-        message: str = Param(description="Enter a message"),
+            self,
+            inter: ApplicationCommandInteraction,
+            message: str = Param(description="Enter a message"),
     ) -> None:
-        AddDatatoDB(userID=inter.author.id, message=message.replace('"', ""))
+        AddDatatoDB(user_id=inter.author.id, message=message.replace('"', ""))
         await inter.response.send_message("Introduction Added.")
 
 

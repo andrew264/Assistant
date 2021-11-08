@@ -1,8 +1,8 @@
 # Imports
-from disnake.ext import commands
-from disnake import Client, PCMAudio
-
 import sounddevice as sd
+from disnake import Client, PCMAudio
+from disnake.ext import commands
+
 
 # Gets audio from the microphone
 class MicrophoneAudioSource(PCMAudio):

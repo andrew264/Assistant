@@ -1,15 +1,17 @@
 # Imports
 from time import time
-from disnake.ext import commands
-from disnake import Client
+
 import disnake
+from disnake import Client
+from disnake.ext import commands
 
 
 class EvalCommand(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    def resolve_variable(self, variable):
+    @staticmethod
+    def resolve_variable(variable):
         if hasattr(variable, "__iter__"):
             var_length = len(list(variable))
             if (var_length > 100) and (not isinstance(variable, str)):
@@ -25,7 +27,8 @@ class EvalCommand(commands.Cog):
             else f"<a long {type(variable).__name__} object with the length of {len(f'{variable}'):,}>"
         )
 
-    def prepare(self, string):
+    @staticmethod
+    def prepare(string):
         arr = (
             string.strip("```").replace("py\n", "").replace("python\n", "").split("\n")
         )
@@ -62,7 +65,7 @@ class EvalCommand(commands.Cog):
                 return
 
             await ctx.send(
-                f"```py\n{self.resolve_variable(response)}````{type(response).__name__} | {round((time() - a)*1000,3)} ms`"
+                f"```py\n{self.resolve_variable(response)}````{type(response).__name__} | {round((time() - a) * 1000, 3)} ms` "
             )
         except Exception as e:
             await ctx.send(f"Error occurred:```\n{type(e).__name__}: {str(e)}```")
