@@ -158,7 +158,7 @@ class Ready(commands.Cog):
             await inter.response.send_message(
                 "🚫 You can't do that.", ephemeral=True
             )
-        elif isinstance(error, commands.MissingPermissions):
+        elif isinstance(error, commands.MissingPermissions) or isinstance(error, commands.BotMissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
