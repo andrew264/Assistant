@@ -1,81 +1,93 @@
 ﻿# Imports
-from disnake.ext import commands
 from disnake import (
     Client,
     Embed,
-    Member,
-    PartialMessage,
+    HTTPException,
+    NotFound,
+    PartialEmoji,
     RawReactionActionEvent,
 )
-
-from disnake.utils import get
-
-CHANNEL_ID = 826931734645440562
-MESSAGE_ID = 891793035959078932
-
-possibleEmojis = {
-    "🟥": "Colour-Red",
-    "🟦": "Colour-Blue",
-    "🟩": "Colour-Green",
-    "🟫": "Colour-Brown",
-    "🟧": "Colour-Orange",
-    "🟪": "Colour-Purple",
-    "🟨": "Colour-Yellow",
-}
+from disnake.ext import commands
 
 
 class ReactionRoles(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
+        self.role_message_id = 891793035959078932
+        self.emoji_to_role = {
+            PartialEmoji(name="🟥"): 891766305470971984,
+            PartialEmoji(name="🟦"): 891766503219798026,
+            PartialEmoji(name="🟩"): 891766413721759764,
+            PartialEmoji(name="🟫"): 891782414412697600,
+            PartialEmoji(name="🟧"): 891783123711455292,
+            PartialEmoji(name="🟪"): 891782622374678658,
+            PartialEmoji(name="🟨"): 891782804008992848,
+        }
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent) -> None:
-        if payload.channel_id != CHANNEL_ID:
-            return
-        if payload.message_id != MESSAGE_ID:
+        if payload.guild_id is None or payload.member is None:
             return
         if payload.member.bot:
             return
+        if payload.message_id != self.role_message_id:
+            return
+
+        guild = self.client.get_guild(payload.guild_id)
+        if guild is None:
+            return
 
         channel = self.client.get_channel(payload.channel_id)
-        message: PartialMessage = channel.get_partial_message(payload.message_id)
+        message = await channel.fetch_message(payload.message_id)
 
         # filter out other emojis
-        if payload.emoji.name not in possibleEmojis.keys():
-            return await message.remove_reaction(payload.emoji, payload.member)
-
-        # remove duplicate emojis
-        for emoji in possibleEmojis.keys():
-            if emoji != payload.emoji.name:
-                await message.remove_reaction(emoji, payload.member)
+        if payload.emoji not in self.emoji_to_role.keys():
+            await message.remove_reaction(payload.emoji, payload.member)
+            return
 
         # remove any colour roles
+        role_ids = list(self.emoji_to_role.values())
         for role in payload.member.roles:
-            if role.name.startswith("Colour-"):
+            if (role.id != self.emoji_to_role[payload.emoji]
+                    and role.id in role_ids):
                 await payload.member.remove_roles(role)
 
-        # assign the particular role
-        role = get(payload.member.guild.roles, name=possibleEmojis[payload.emoji.name])
-        await payload.member.add_roles(role)
+        # remove duplicate emojis
+        for emoji in self.emoji_to_role.keys():
+            if payload.emoji != emoji:
+                try:
+                    await message.remove_reaction(emoji, payload.member)
+                except NotFound:
+                    pass
+
+        # fetch role
+        role = guild.get_role(self.emoji_to_role[payload.emoji])
+        if role is None:
+            return
+
+        # assign the role
+        try:
+            await payload.member.add_roles(role)
+        except HTTPException:
+            pass
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: RawReactionActionEvent) -> None:
-        if payload.channel_id != CHANNEL_ID:
-            return
-        if payload.message_id != MESSAGE_ID:
+        if payload.message_id != self.role_message_id:
             return
         # filter out other emojis
-        if payload.emoji.name not in possibleEmojis.keys():
+        if payload.emoji not in self.emoji_to_role.keys():
             return
 
-        # filter bots out
-        member: Member = get(self.client.get_all_members(), id=payload.user_id)
-        if member.bot:
+        # fetch member
+        guild = self.client.get_guild(payload.guild_id)
+        if guild is None:
             return
+        member = await guild.fetch_member(payload.user_id)
 
         # just remove all colour roles for member
         for role in member.roles:
-            if role.name.startswith("Colour-"):
+            if role.id in list(self.emoji_to_role.values()):
                 await member.remove_roles(role)
 
     @commands.command()
@@ -88,7 +100,7 @@ class ReactionRoles(commands.Cog):
             description="Claim a colour of your choice!",
         )
         msg = await ctx.send(embed=embed)
-        for emoji in possibleEmojis.keys():
+        for emoji in self.emoji_to_role.keys():
             await msg.add_reaction(emoji)
 
 
