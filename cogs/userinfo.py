@@ -1,8 +1,8 @@
 ﻿# Imports
-import sqlite3
 from datetime import datetime, timezone
 from platform import python_version
 
+import aiosqlite
 import disnake
 from disnake import (
     Activity,
@@ -68,40 +68,6 @@ def AvailableClients(user: Member) -> str:
     return value
 
 
-def AddDatatoDB(user_id: int, message: str) -> None:
-    conn = sqlite3.connect("./data/database.sqlite3")
-    # conn.execute("CREATE TABLE Members (USERID INT PRIMARY KEY NOT NULL, ABOUT TEXT);")
-    alreadyExists = conn.execute(
-        f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})"
-    ).fetchone()[0]
-    if alreadyExists:
-        conn.execute(
-            f"""UPDATE Members SET ABOUT = "{message}" WHERE USERID = {user_id}"""
-        )
-    else:
-        conn.execute(
-            f"""INSERT INTO Members (USERID, ABOUT) VALUES ({user_id}, "{message}")"""
-        )
-    conn.commit()
-    conn.close()
-
-
-def GetAboutfromDB(user_id: int) -> str | None:
-    conn = sqlite3.connect("./data/database.sqlite3")
-    alreadyExists = conn.execute(
-        f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})"
-    ).fetchone()[0]
-    if alreadyExists:
-        about = [
-            row[1]
-            for row in conn.execute(f"SELECT * FROM Members WHERE USERID = {user_id}")
-        ]
-        conn.close()
-        return about[0]
-    else:
-        return None
-
-
 class UserInfo(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
@@ -116,22 +82,24 @@ class UserInfo(commands.Cog):
                 description="Mention a User", default=lambda inter: inter.author
             ),
     ) -> None:
-        await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, user))
+        embed = await self.WhoIsEmbed(user)
+        await inter.response.send_message(embed=embed)
 
     @commands.user_command(name="Who is this Guy?")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
     async def ContextWhoIs(self, inter: UserCommandInteraction) -> None:
-        await inter.response.send_message(embed=UserInfo.WhoIsEmbed(self, inter.target))
+        embed = await self.WhoIsEmbed(inter.target)
+        await inter.response.send_message(embed=embed)
 
-    def WhoIsEmbed(self, user: Member) -> Embed:
+    async def WhoIsEmbed(self, user: Member) -> Embed:
         # Fetch activity. I really wish i don't have to do this.
         user_with_presence: Member | None = get(self.client.get_all_members(), id=user.id)
 
         date_format = "%a, %d %b %Y %I:%M %p"
         embed = Embed(color=user.colour)
         # Description
-        about = GetAboutfromDB(user.id)
+        about = await self.GetAboutfromDB(user.id)
         if about:
             embed.description = f"{user.mention}: {about}"
         else:
@@ -152,7 +120,7 @@ class UserInfo(commands.Cog):
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
         if user_with_presence.raw_status != "offline":
-            embed.add_field(name="Available Clients", value=AvailableClients(user))
+            embed.add_field(name="Available Clients", value=AvailableClients(user_with_presence))
         # Activity
         for activity in user_with_presence.activities:
             if isinstance(activity, Game):
@@ -228,8 +196,32 @@ class UserInfo(commands.Cog):
             inter: ApplicationCommandInteraction,
             message: str = Param(description="Enter a message"),
     ) -> None:
-        AddDatatoDB(user_id=inter.author.id, message=message.replace('"', ""))
+        await self.AddDatatoDB(user_id=inter.author.id, message=message.replace('"', ''))
         await inter.response.send_message("Introduction Added.")
+
+    @staticmethod
+    async def AddDatatoDB(user_id: int, message: str) -> None:
+        async with aiosqlite.connect("./data/database.sqlite3") as db:
+            async with db.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})") as cursor:
+                alreadyExists = (await cursor.fetchone())[0]
+                if alreadyExists:
+                    await db.execute(f"""UPDATE Members SET ABOUT = "{message}" WHERE USERID = {user_id}""")
+                else:
+                    await db.execute(f"""INSERT INTO Members (USERID, ABOUT) VALUES ({user_id}, "{message}")""")
+                assert db.total_changes > 0
+                await db.commit()
+
+    @staticmethod
+    async def GetAboutfromDB(user_id: int) -> str | None:
+        async with aiosqlite.connect("./data/database.sqlite3") as db:
+            async with db.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})") as cursor:
+                alreadyExists = (await cursor.fetchone())[0]
+                if alreadyExists:
+                    async with db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
+                        async for row in cursor:
+                            return row[1]
+                else:
+                    return None
 
 
 def setup(client):

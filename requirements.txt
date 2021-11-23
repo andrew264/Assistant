@@ -5,3 +5,4 @@ lyricsgenius
 python-youtube
 emoji
 sounddevice
+aiosqlite
