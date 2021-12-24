@@ -23,7 +23,7 @@ from EnvVariables import GENIUS_TOKEN
 genius = Genius(GENIUS_TOKEN, verbose=False)
 
 
-def SongTolist(song: Song) -> list[str]:
+def song_to_list(song: Song) -> list[str]:
     lyrics = re.sub(r"[0-9]*EmbedShare*", "", song.lyrics)
     lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
     lyrics_list = list(lyrics.split("\n\n"))
@@ -37,25 +37,27 @@ def fetch_lyrics(song_title: str, artist_name: str) -> Song | None:
     return None
 
 
-def generate_embed(
-        title: str, track_url: str, album_art: str, lyrics_list: list, avatar: str, pg_no: int
-) -> Embed:
-    embed = Embed(
-        title=f"{title}", url=track_url, color=0x1DB954, description=lyrics_list[pg_no]
-    )
-    embed.set_thumbnail(url=album_art)
-    embed.set_footer(text=f"({pg_no + 1}/{len(lyrics_list)})", icon_url=avatar)
-    return embed
+class SongInfo:
+    def __init__(self, title: str, track_url: str, album_art: str, lyrics_list: list, avatar: str) -> None:
+        self.title = title
+        self.track_url = track_url
+        self.album_art = album_art
+        self.lyrics_list = lyrics_list
+        self.avatar = avatar
+
+    def generate_embed(self, pg_no: int, ) -> Embed:
+        embed = Embed(title=f"{self.title}", url=self.track_url, color=0x1DB954, description=self.lyrics_list[pg_no])
+        embed.set_thumbnail(url=self.album_art)
+        embed.set_footer(text=f"({pg_no + 1}/{len(self.lyrics_list)})", icon_url=self.avatar)
+        return embed
 
 
 class Pages(disnake.ui.View):
-    def __init__(self):
+    def __init__(self, song_info: SongInfo):
         super().__init__(timeout=180.0)
         self.page_no = 0
-        self.song: Song | None = None
-        self.lyricsList: list[str] = []
+        self.song_info = song_info
         self.inter: ApplicationCommandInteraction | None = None
-        self.display_avatar: str = ""
 
     async def on_timeout(self):
         await self.inter.edit_original_message(view=None)
@@ -63,39 +65,13 @@ class Pages(disnake.ui.View):
 
     @disnake.ui.button(label="◀️", style=ButtonStyle.blurple)
     async def prev_page(self, button: Button, interaction: Interaction) -> None:
-        if self.page_no > 0:
-            self.page_no -= 1
-        else:
-            self.page_no = len(self.lyricsList) - 1
-        await interaction.response.edit_message(
-            embed=generate_embed(
-                title=self.song.title,
-                track_url=self.song.url,
-                album_art=self.song.song_art_image_url,
-                lyrics_list=self.lyricsList,
-                avatar=self.display_avatar,
-                pg_no=self.page_no,
-            ),
-            view=self,
-        )
+        self.page_no -= 1 if self.page_no > 0 else len(self.song_info.lyrics_list) - 1
+        await interaction.response.edit_message(embed=self.song_info.generate_embed(self.page_no), view=self, )
 
     @disnake.ui.button(label="▶️", style=ButtonStyle.blurple)
     async def next_page(self, button: Button, interaction: Interaction) -> None:
-        if self.page_no < len(self.lyricsList) - 1:
-            self.page_no += 1
-        else:
-            self.page_no = 0
-        await interaction.response.edit_message(
-            embed=generate_embed(
-                title=self.song.title,
-                track_url=self.song.url,
-                album_art=self.song.song_art_image_url,
-                lyrics_list=self.lyricsList,
-                avatar=self.display_avatar,
-                pg_no=self.page_no,
-            ),
-            view=self,
-        )
+        self.page_no += 1 if self.page_no < len(self.song_info.lyrics_list) - 1 else 0
+        await interaction.response.edit_message(embed=self.song_info.generate_embed(self.page_no), view=self, )
 
 
 class Lyrics(commands.Cog):
@@ -114,21 +90,18 @@ class Lyrics(commands.Cog):
 
         await inter.response.defer()
 
-        user = get(self.client.get_all_members(), id=inter.author.id)
-        if user is None:
-            return
-
         song = None
         loop = asyncio.get_event_loop()
         if title:
             song = await loop.run_in_executor(None, fetch_lyrics, title, author)
         else:
+            user = get(self.client.get_all_members(), id=inter.author.id)
+            if user is None:
+                return
             for activity in user.activities:
                 if isinstance(activity, Spotify):
                     title = re.sub(r"\([^)]*\)", "", activity.title)
-                    song = await loop.run_in_executor(
-                        None, fetch_lyrics, title, activity.artist
-                    )
+                    song = await loop.run_in_executor(None, fetch_lyrics, title, activity.artist)
                     if isinstance(song, Song) and hasattr(song, "url"):
                         song.url = activity.track_url
                     break
@@ -136,24 +109,16 @@ class Lyrics(commands.Cog):
         if song is None:
             await inter.edit_original_message(content="Lyrics not Found :(")
             return
-        else:
-            lyrics_list = SongTolist(song)
-            my_pages = Pages()
-            my_pages.lyricsList = lyrics_list
-            my_pages.song = song
-            my_pages.inter = inter
-            my_pages.display_avatar = inter.author.display_avatar.url
-            await inter.edit_original_message(
-                embed=generate_embed(
-                    title=song.title,
-                    track_url=song.url,
-                    album_art=song.song_art_image_url,
-                    lyrics_list=lyrics_list,
-                    avatar=inter.author.display_avatar.url,
-                    pg_no=0,
-                ),
-                view=my_pages,
-            )
+
+        song_info: SongInfo = SongInfo(title=title,
+                                       track_url=song.url,
+                                       album_art=song.song_art_image_url,
+                                       lyrics_list=song_to_list(song),
+                                       avatar=inter.author.display_avatar.url, )
+
+        my_pages = Pages(song_info)
+        my_pages.inter = inter
+        await inter.edit_original_message(embed=song_info.generate_embed(0), view=my_pages, )
 
 
 def setup(client):
