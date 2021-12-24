@@ -192,9 +192,7 @@ def FetchPlaylist(query: str, author: str) -> list[VideoInfo | VideoInfofromDict
         data: dict = json.load(jsonFile)
         for video_id in video_ids:
             if video_id in data:
-                playlist_videos.append(
-                    VideoInfofromDict(data=data[video_id], author=author)
-                )
+                playlist_videos.append(VideoInfofromDict(data=data[video_id], author=author))
             else:
                 video_info = VideoInfo(video_id, author)
                 playlist_videos.append(video_info)
@@ -240,9 +238,7 @@ def QueueEmbed(song_list: list, page_no) -> Embed:
         max_page = math.ceil((len(song_list) - 1) / 4)
         for i in song_index:
             next_songs += f"{i}. [{song_list[i].Title}]({song_list[i].pURL} \"by {song_list[i].Author}\")\n"
-        embed.add_field(
-            name=f"Next Up ({page_no}/{max_page})", value=next_songs, inline=False
-        )
+        embed.add_field(name=f"Next Up ({page_no}/{max_page})", value=next_songs, inline=False)
     return embed
 
 
@@ -252,9 +248,7 @@ def NPEmbed(
     percentile = 20 - round((current_song.SongIn / current_song.Duration) * 20)
     bar = "────────────────────"
     progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]
-    song_on = time.strftime(
-        "%M:%S", time.gmtime(current_song.Duration - current_song.SongIn)
-    )
+    song_on = time.strftime("%M:%S", time.gmtime(current_song.Duration - current_song.SongIn))
     embed = Embed(color=0xEB459E)
     embed.set_thumbnail(url=f"{current_song.Thumbnail}")
     embed.set_author(name=f"{current_song.Title}", url=current_song.pURL, icon_url="")
@@ -263,23 +257,13 @@ def NPEmbed(
         value="\u200b",
         inline=False,
     )
-    embed.add_field(
-        name="Views:", value=f"{human_format(int(current_song.Views))}", inline=True
-    )
-    embed.add_field(
-        name="Likes:", value=f"{human_format(int(current_song.Likes))}", inline=True
-    )
-    embed.add_field(
-        name="Uploaded on:", value=f"{current_song.UploadDate}", inline=True
-    )
+    embed.add_field(name="Views:", value=f"{human_format(int(current_song.Views))}", inline=True)
+    embed.add_field(name="Likes:", value=f"{human_format(int(current_song.Likes))}", inline=True)
+    embed.add_field(name="Uploaded on:", value=f"{current_song.UploadDate}", inline=True)
     if voice_client.is_playing() and voice_client.source:
-        embed.set_footer(
-            text=f"Playing (Volume: {round(voice_client.source.volume * 100)}%)"
-        )
+        embed.set_footer(text=f"Playing (Volume: {round(voice_client.source.volume * 100)}%)")
     elif voice_client.is_paused() and voice_client.source:
-        embed.set_footer(
-            text=f"Paused (Volume: {round(voice_client.source.volume * 100)}%)"
-        )
+        embed.set_footer(text=f"Paused (Volume: {round(voice_client.source.volume * 100)}%)")
     return embed
 
 
@@ -300,9 +284,7 @@ class QueuePages(disnake.ui.View):
             self.page_no -= 1
         else:
             self.page_no = math.ceil((len(self.obj) - 1) / 4)
-        await interaction.response.edit_message(
-            embed=QueueEmbed(self.obj, self.page_no), view=self
-        )
+        await interaction.response.edit_message(embed=QueueEmbed(self.obj, self.page_no), view=self)
 
     @disnake.ui.button(label="▶", style=ButtonStyle.secondary)
     async def next_page(self, button: Button, interaction: Interaction):
@@ -310,9 +292,7 @@ class QueuePages(disnake.ui.View):
             self.page_no += 1
         else:
             self.page_no = 1
-        await interaction.response.edit_message(
-            embed=QueueEmbed(self.obj, self.page_no), view=self
-        )
+        await interaction.response.edit_message(embed=QueueEmbed(self.obj, self.page_no), view=self)
 
 
 class NowPlayingButtons(disnake.ui.View):
@@ -330,10 +310,7 @@ class NowPlayingButtons(disnake.ui.View):
 
     # Pause
     @staticmethod
-    async def play_pause(
-            current_song: (VideoInfo | VideoInfofromDict),
-            voice_client: VoiceProtocol
-    ) -> None:
+    async def play_pause(current_song: (VideoInfo | VideoInfofromDict), voice_client: VoiceProtocol) -> None:
         if voice_client.is_playing():
             voice_client.pause()
             while voice_client.is_paused():
@@ -342,27 +319,24 @@ class NowPlayingButtons(disnake.ui.View):
         else:
             voice_client.resume()
 
-    @disnake.ui.button(label="Play ▶️", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Play/Pause \u23EF", style=ButtonStyle.primary)
     async def play_button(self, button: Button, interaction: Interaction):
-        await interaction.response.edit_message(
-            embed=NPEmbed(self.current_song, interaction.guild.voice_client), view=self
-        )
+        await interaction.response.edit_message(embed=NPEmbed(self.current_song, interaction.guild.voice_client),
+                                                view=self)
         await self.play_pause(self.current_song, interaction.guild.voice_client)
 
-    @disnake.ui.button(label="Pause ⏸️", style=ButtonStyle.primary)
-    async def pause_button(self, button: Button, interaction: Interaction):
-        await interaction.response.edit_message(
-            embed=NPEmbed(self.current_song, interaction.guild.voice_client), view=self
-        )
-        await self.play_pause(self.current_song, interaction.guild.voice_client)
-
-    @disnake.ui.button(label="Skip ⏭️", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Skip \u23ED", style=ButtonStyle.primary)
     async def skip_button(self, button: Button, interaction: Interaction):
         interaction.guild.voice_client.stop()
         self.current_song.SongIn = 0
-        await interaction.response.edit_message(
-            embed=NPEmbed(self.current_song, interaction.guild.voice_client), view=self
-        )
+        await interaction.response.edit_message(embed=NPEmbed(self.current_song, interaction.guild.voice_client),
+                                                view=self)
+
+    @disnake.ui.button(label="Stop \u25A0", style=ButtonStyle.danger)
+    async def stop_button(self, button: Button, interaction: Interaction):
+        interaction.guild.voice_client.stop()
+        await interaction.guild.voice_client.disconnect()
+        await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
 
 
 class Music(commands.Cog):
@@ -404,19 +378,13 @@ class Music(commands.Cog):
             loop = asyncio.get_event_loop()
             match input_type:
                 case InputType.Playlist:
-                    video_info = await loop.run_in_executor(
-                        None, FetchPlaylist, query, ctx.author.display_name
-                    )
+                    video_info = await loop.run_in_executor(None, FetchPlaylist, query, ctx.author.display_name)
                     self.dict_obj[ctx.guild.id].extend(video_info)
                 case InputType.Search:
-                    video_info = await loop.run_in_executor(
-                        None, Search, query, ctx.author.display_name
-                    )
+                    video_info = await loop.run_in_executor(None, Search, query, ctx.author.display_name)
                     self.dict_obj[ctx.guild.id].append(video_info)
                 case InputType.URL:
-                    video_info = await loop.run_in_executor(
-                        None, FetchVideo, query, ctx.author.display_name
-                    )
+                    video_info = await loop.run_in_executor(None, FetchVideo, query, ctx.author.display_name)
                     self.dict_obj[ctx.guild.id].append(video_info)
 
         if input_type == InputType.Playlist:
@@ -429,7 +397,7 @@ class Music(commands.Cog):
         if voice and voice.is_connected():
             pass
         elif voice is None:
-            voice_channel = ctx.message.author.voice.channel
+            voice_channel = ctx.author.voice.channel
             voice = await voice_channel.connect()
         if (
                 self.dict_obj[ctx.guild.id][0]
@@ -443,9 +411,7 @@ class Music(commands.Cog):
     @commands.guild_only()
     async def queue(self, ctx: commands.Context) -> None:
         view = QueuePages(self.dict_obj[ctx.guild.id])
-        view.message = await ctx.send(
-            embed=QueueEmbed(self.dict_obj[ctx.guild.id], 1), view=view
-        )
+        view.message = await ctx.send(embed=QueueEmbed(self.dict_obj[ctx.guild.id], 1), view=view)
 
     # Play from Queue
     async def player(self, ctx: commands.Context) -> None:
@@ -455,22 +421,16 @@ class Music(commands.Cog):
         current_song: (VideoInfo | VideoInfofromDict) = self.dict_obj[ctx.guild.id][0]
         # get stream url
         loop = asyncio.get_event_loop()
-        stream_url = await loop.run_in_executor(
-            None, StreamURL, self.dict_obj[ctx.guild.id][0].pURL
-        )
+        stream_url = await loop.run_in_executor(None, StreamURL, self.dict_obj[ctx.guild.id][0].pURL)
         # voice
         voice = ctx.voice_client
-        if voice is None: return
-        if voice.is_playing():
+        if voice is None or voice.is_playing():
             return
         voice.play(FFmpegPCMAudio(stream_url, **FFMPEG_OPTIONS))
-        voice.source = PCMVolumeTransformer(voice.source)
-        voice.source.volume = self.volume_float
+        voice.source = PCMVolumeTransformer(voice.source, self.volume_float)
         # embed
         embed = Embed(title="", color=0xFF0000)
-        embed.set_author(
-            name=f"Playing: {current_song.Title}", url=current_song.pURL, icon_url=""
-        )
+        embed.set_author(name=f"Playing: {current_song.Title}", url=current_song.pURL, icon_url="")
         await ctx.send(embed=embed, delete_after=current_song.Duration)
         # countdown
         while self.dict_obj[ctx.guild.id][0].SongIn > 0:
@@ -493,16 +453,10 @@ class Music(commands.Cog):
     async def StatusUpdate(self, ctx: commands.Context) -> None:
         if self.dict_obj[ctx.guild.id]:
             await self.client.change_presence(
-                activity=Activity(
-                    type=ActivityType.listening,
-                    name=self.dict_obj[ctx.guild.id][0].Title,
-                )
-            )
+                activity=Activity(type=ActivityType.listening, name=self.dict_obj[ctx.guild.id][0].Title, ))
         else:
-            await self.client.change_presence(
-                status=Status.online,
-                activity=Activity(type=ActivityType.watching, name="yall Homies."),
-            )
+            await self.client.change_presence(status=Status.online,
+                                              activity=Activity(type=ActivityType.watching, name="yall Homies."), )
 
     # Skip
     @commands.command()
@@ -510,9 +464,7 @@ class Music(commands.Cog):
     async def skip(self, ctx: commands.Context, arg: int = 0) -> None:
         if not self.dict_obj[ctx.guild.id] or arg > len(self.dict_obj[ctx.guild.id]):
             return
-        await ctx.send(
-            f"{ctx.author.display_name} removed `{self.dict_obj[ctx.guild.id][arg].Title}` from Queue."
-        )
+        await ctx.send(f"{ctx.author.display_name} removed `{self.dict_obj[ctx.guild.id][arg].Title}` from Queue.")
         if 0 < arg <= len(self.dict_obj[ctx.guild.id]):
             self.dict_obj[ctx.guild.id].pop(arg)
         elif arg == 0:
@@ -541,18 +493,14 @@ class Music(commands.Cog):
     async def pause(self, ctx: commands.Context) -> None:
         if ctx.voice_client.is_playing():
             ctx.voice_client.pause()
-            await ctx.send(
-                f"{ctx.author.display_name} paused `{self.dict_obj[ctx.guild.id][0].Title}`"
-            )
+            await ctx.send(f"{ctx.author.display_name} paused `{self.dict_obj[ctx.guild.id][0].Title}`")
             # we are adding 1 every second to wait :p
             while ctx.voice_client.is_paused():
                 self.dict_obj[ctx.guild.id][0].SongIn += 1
                 await asyncio.sleep(1)
         else:
             ctx.voice_client.resume()
-            await ctx.send(
-                f"{ctx.author.display_name} resumed `{self.dict_obj[ctx.guild.id][0].Title}`"
-            )
+            await ctx.send(f"{ctx.author.display_name} resumed `{self.dict_obj[ctx.guild.id][0].Title}`")
 
     # Loop
     @commands.command(aliases=["repeat"])
@@ -579,7 +527,11 @@ class Music(commands.Cog):
         view.current_song = current_song
         msg = await ctx.send(embed=NPEmbed(current_song, ctx.voice_client), view=view)
         view.message = msg
-        while self.dict_obj[ctx.guild.id]:
+        while True:
+            if self.dict_obj[ctx.guild.id] and ctx.voice_client:
+                pass
+            else:
+                break
             if view.current_song.Title != self.dict_obj[ctx.guild.id][0].Title:
                 current_song = self.dict_obj[ctx.guild.id][0]
                 view.current_song = current_song
