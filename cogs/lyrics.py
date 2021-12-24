@@ -63,14 +63,20 @@ class Pages(disnake.ui.View):
         await self.inter.edit_original_message(view=None)
         self.stop()
 
-    @disnake.ui.button(label="◀️", style=ButtonStyle.blurple)
+    @disnake.ui.button(label="◀", style=ButtonStyle.blurple)
     async def prev_page(self, button: Button, interaction: Interaction) -> None:
-        self.page_no -= 1 if self.page_no > 0 else len(self.song_info.lyrics_list) - 1
+        if self.page_no > 0:
+            self.page_no -= 1
+        else:
+            self.page_no = len(self.song_info.lyrics_list) - 1
         await interaction.response.edit_message(embed=self.song_info.generate_embed(self.page_no), view=self, )
 
-    @disnake.ui.button(label="▶️", style=ButtonStyle.blurple)
+    @disnake.ui.button(label="▶", style=ButtonStyle.blurple)
     async def next_page(self, button: Button, interaction: Interaction) -> None:
-        self.page_no += 1 if self.page_no < len(self.song_info.lyrics_list) - 1 else 0
+        if self.page_no < len(self.song_info.lyrics_list) - 1:
+            self.page_no += 1
+        else:
+            self.page_no = 0
         await interaction.response.edit_message(embed=self.song_info.generate_embed(self.page_no), view=self, )
 
 
