@@ -18,7 +18,6 @@ from disnake import (
 )
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake.utils import get
 
 
 def ActivityVal(activity: Activity | Game) -> str:
@@ -75,13 +74,8 @@ class UserInfo(commands.Cog):
     @commands.slash_command(description="Luk wat he be doing over der")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
-    async def whois(
-            self,
-            inter: ApplicationCommandInteraction,
-            user: Member = Param(
-                description="Mention a User", default=lambda inter: inter.author
-            ),
-    ) -> None:
+    async def whois(self, inter: ApplicationCommandInteraction,
+                    user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ) -> None:
         embed = await self.WhoIsEmbed(user)
         await inter.response.send_message(embed=embed)
 
@@ -93,8 +87,6 @@ class UserInfo(commands.Cog):
         await inter.response.send_message(embed=embed)
 
     async def WhoIsEmbed(self, user: Member) -> Embed:
-        # Fetch activity. I really wish i don't have to do this.
-        user_with_presence: Member | None = get(self.client.get_all_members(), id=user.id)
 
         date_format = "%a, %d %b %Y %I:%M %p"
         embed = Embed(color=user.colour)
@@ -119,10 +111,10 @@ class UserInfo(commands.Cog):
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
-        if user_with_presence.raw_status != "offline":
-            embed.add_field(name="Available Clients", value=AvailableClients(user_with_presence))
+        if user.raw_status != "offline":
+            embed.add_field(name="Available Clients", value=AvailableClients(user))
         # Activity
-        for activity in user_with_presence.activities:
+        for activity in user.activities:
             if isinstance(activity, Game):
                 embed.add_field(name="Playing", value=ActivityVal(activity))
             elif isinstance(activity, Streaming):
@@ -156,13 +148,8 @@ class UserInfo(commands.Cog):
         return embed
 
     @commands.slash_command(description="Shows the avatar of the user")
-    async def avatar(
-            self,
-            inter: ApplicationCommandInteraction,
-            user: Member = Param(
-                description="Mention a User", default=lambda inter: inter.author
-            ),
-    ) -> None:
+    async def avatar(self, inter: ApplicationCommandInteraction,
+                     user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ) -> None:
         avatar = Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
         avatar.set_image(url=user.display_avatar.url)
         await inter.response.send_message(embed=avatar)
@@ -181,21 +168,14 @@ class UserInfo(commands.Cog):
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Created by", value="Andrew", inline=False)
         embed.add_field(name="Created on", value="21 Mar 2021", inline=False)
-        embed.add_field(
-            name="Python Version", value=f"v. {python_version()}", inline=False
-        )
-        embed.add_field(
-            name="Library Version", value=f"v. {disnake.__version__}", inline=False
-        )
+        embed.add_field(name="Python Version", value=f"v. {python_version()}", inline=False)
+        embed.add_field(name="Library Version", value=f"v. {disnake.__version__}", inline=False)
         embed.set_footer(text=f"User ID: {user.id}")
         return await inter.response.send_message(embed=embed)
 
     @commands.slash_command(description="Introduce Yourself to Others.")
-    async def introduce(
-            self,
-            inter: ApplicationCommandInteraction,
-            message: str = Param(description="Enter a message"),
-    ) -> None:
+    async def introduce(self, inter: ApplicationCommandInteraction,
+                        message: str = Param(description="Enter a message"), ) -> None:
         await self.AddDatatoDB(user_id=inter.author.id, message=message.replace('"', ''))
         await inter.response.send_message("Introduction Added.")
 
@@ -217,8 +197,8 @@ class UserInfo(commands.Cog):
             async with db.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})") as cursor:
                 alreadyExists = (await cursor.fetchone())[0]
                 if alreadyExists:
-                    async with db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
-                        async for row in cursor:
+                    async with db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor1:
+                        async for row in cursor1:
                             return row[1]
                 else:
                     return None
