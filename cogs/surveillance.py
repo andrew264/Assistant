@@ -90,13 +90,9 @@ class Surveillance(commands.Cog):
             return
         log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.teal())
-        embed.set_author(
-            name=f"{before.author} edited a message in #{before.channel.name}",
-            icon_url=before.author.display_avatar.url,
-        )
-        embed.add_field(
-            name="Original Message", value=before.clean_content, inline=False
-        )
+        embed.set_author(name=f"{before.author} edited a message in #{before.channel.name}",
+                         icon_url=before.author.display_avatar.url, )
+        embed.add_field(name="Original Message", value=before.clean_content, inline=False)
         embed.add_field(name="Altered Message", value=after.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
         await log_channel.send(embed=embed)
@@ -109,10 +105,8 @@ class Surveillance(commands.Cog):
             return
         log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.orange())
-        embed.set_author(
-            name=f"{message.author} deleted a message in #{message.channel.name}",
-            icon_url=message.author.display_avatar.url,
-        )
+        embed.set_author(name=f"{message.author} deleted a message in #{message.channel.name}",
+                         icon_url=message.author.display_avatar.url, )
         embed.add_field(name="Message Content", value=message.content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
         await log_channel.send(embed=embed)
@@ -127,9 +121,7 @@ class Surveillance(commands.Cog):
             return
         log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.dark_orange())
-        embed.set_author(
-            name=f"{before} updated their Nickname", icon_url=before.display_avatar.url
-        )
+        embed.set_author(name=f"{before} updated their Nickname", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
         embed.add_field(name="New Name", value=after.display_name, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
@@ -145,19 +137,9 @@ class Surveillance(commands.Cog):
             return
         log_channel = self.client.get_channel(CHANNEL_ID)
         embed = Embed(colour=Colour.brand_green())
-        embed.set_author(
-            name=f"{before} updated their Username", icon_url=before.display_avatar.url
-        )
-        embed.add_field(
-            name="Old Username",
-            value=f"{before.name} #{before.discriminator}",
-            inline=False,
-        )
-        embed.add_field(
-            name="New Username",
-            value=f"{after.name} #{after.discriminator}",
-            inline=False,
-        )
+        embed.set_author(name=f"{before} updated their Username", icon_url=before.display_avatar.url)
+        embed.add_field(name="Old Username", value=f"{before.name} #{before.discriminator}", inline=False, )
+        embed.add_field(name="New Username", value=f"{after.name} #{after.discriminator}", inline=False, )
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
         await log_channel.send(embed=embed)
 
@@ -170,23 +152,14 @@ class Surveillance(commands.Cog):
         log_channel = self.client.get_channel(CHANNEL_ID)
         delete_after = 300
         embed = Embed(colour=Colour.gold())
-        embed.set_author(
-            name=f"{before.display_name}'s Presence update",
-            icon_url=before.display_avatar.url,
-        )
+        embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url, )
         if StatusUpdate(before) != StatusUpdate(after):
-            embed.add_field(
-                name=f"Status Update",
-                value=f"{StatusUpdate(before)} ──> {StatusUpdate(after)}",
-            )
+            embed.add_field(name=f"Status Update", value=f"{StatusUpdate(before)} ──> {StatusUpdate(after)}", )
             if delete_after == 300:
                 delete_after += 43200
         if AvailableClients(before) != AvailableClients(after):
-            embed.add_field(
-                name=f"Client Update",
-                value=f"{AvailableClients(before)} ──> {AvailableClients(after)}",
-                inline=False,
-            )
+            embed.add_field(name=f"Client Update", value=f"{AvailableClients(before)} ──> {AvailableClients(after)}",
+                            inline=False, )
             if delete_after == 300:
                 delete_after += 86400
 
@@ -199,29 +172,18 @@ class Surveillance(commands.Cog):
             if isinstance(activity, CustomActivity):
                 after_custom = activity
         if before_custom is None and isinstance(after_custom, CustomActivity):
-            embed.add_field(
-                name=f"Custom Status added",
-                value=f"{CustomActVal(after_custom)}",
-                inline=False,
-            )
+            embed.add_field(name=f"Custom Status added", value=f"{CustomActVal(after_custom)}", inline=False, )
             if delete_after == 300:
                 delete_after += 43200
         elif after_custom is None and isinstance(before_custom, CustomActivity):
-            embed.add_field(
-                name=f"Custom Status removed",
-                value=f"{CustomActVal(before_custom)}",
-                inline=False,
-            )
+            embed.add_field(name=f"Custom Status removed", value=f"{CustomActVal(before_custom)}", inline=False, )
         elif (
                 before_custom is not None
                 and after_custom is not None
                 and CustomActVal(before_custom) != CustomActVal(after_custom)
         ):
-            embed.add_field(
-                name=f"Custom Status modified",
-                value=f"{CustomActVal(before_custom)}\n──>\n{CustomActVal(after_custom)}",
-                inline=False,
-            )
+            embed.add_field(name=f"Custom Status modified",
+                            value=f"{CustomActVal(before_custom)}\n──>\n{CustomActVal(after_custom)}", inline=False, )
             if delete_after == 300:
                 delete_after += 43200
 
@@ -235,19 +197,11 @@ class Surveillance(commands.Cog):
                     after_activities.remove(after_activity)
         if before_activities:
             for before_activity in before_activities:
-                embed.add_field(
-                    name=f"Activity Update",
-                    value=f"Stopped: {before_activity}",
-                    inline=False,
-                )
+                embed.add_field(name=f"Activity Update", value=f"Stopped: {before_activity}", inline=False, )
                 delete_after = 300
         if after_activities:
             for after_activity in after_activities:
-                embed.add_field(
-                    name=f"Activity Update",
-                    value=f"Started: {after_activity}",
-                    inline=False,
-                )
+                embed.add_field(name=f"Activity Update", value=f"Started: {after_activity}", inline=False, )
                 if delete_after == 300:
                     delete_after += 1800
 
@@ -264,24 +218,16 @@ class Surveillance(commands.Cog):
             return
         log_channel = self.client.get_channel(CHANNEL_ID)
         if after.channel is None:
-            await log_channel.send(
-                f"{member.display_name} left {before.channel.mention}", delete_after=900
-            )
+            await log_channel.send(f"{member.display_name} left {before.channel.mention}", delete_after=900)
         if before.channel is None:
-            await log_channel.send(
-                f"{member.display_name} joined {after.channel.mention}",
-                delete_after=900,
-            )
+            await log_channel.send(f"{member.display_name} joined {after.channel.mention}", delete_after=900, )
         elif after.channel is not None and before.channel is not None:
             await log_channel.send(
                 f"{member.display_name} moved to {after.channel.mention} from {before.channel.mention}",
-                delete_after=900,
-            )
+                delete_after=900, )
 
     @commands.Cog.listener()
-    async def on_typing(
-            self, channel: TextChannel, user: Member, when: datetime
-    ) -> None:
+    async def on_typing(self, channel: TextChannel, user: Member, when: datetime) -> None:
         if user.bot:
             return
         if user.id == OWNER_ID:

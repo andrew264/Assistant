@@ -14,15 +14,11 @@ class TextToSpeech(commands.Cog):
         self.client = client
 
     @commands.slash_command(description="Text To Speech")
-    async def tts(
-            self,
-            inter: ApplicationCommandInteraction,
-            message: str = Param(description="Enter a message"),
-    ) -> None:
+    async def tts(self, inter: ApplicationCommandInteraction,
+                  message: str = Param(description="Enter a message"), ) -> None:
         if isinstance(inter.author, Member) and inter.author.voice is None:
-            return await inter.response.send_message(
-                "You are not connected to a Voice Channel.", ephemeral=True
-            )
+            await inter.response.send_message("You are not connected to a Voice Channel.", ephemeral=True)
+            return
         voice = get(self.client.voice_clients, guild=inter.guild)
         if voice and voice.is_connected():
             pass
@@ -41,9 +37,7 @@ class TextToSpeech(commands.Cog):
             gTTS(f"{name} says {new_str}").save("tts.mp3")
             if voice.is_playing() is False & voice.is_playing() is False:
                 voice.play(FFmpegPCMAudio("tts.mp3"))
-            await inter.response.send_message(
-                f"{inter.author.display_name} says: {message}"
-            )
+            await inter.response.send_message(f"{inter.author.display_name} says: {message}")
 
 
 def setup(client):

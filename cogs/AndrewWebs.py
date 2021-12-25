@@ -6,16 +6,14 @@ import emoji
 from disnake import Client, Message, TextChannel, Webhook
 from disnake.ext import commands
 
-references = [
-    "andrew",
-    "santhosh",
-    "@andrew",
-    "@andrew!#1901",
-    "<@!493025015445454868>",
-    493025015445454868,
-    "<:datsshaawt:804242984383545344>",
-    "<:andrew_damnboii:794247753445802004>",
-]
+references = ["andrew",
+              "santhosh",
+              "@andrew",
+              "@andrew!#1901",
+              "<@!493025015445454868>",
+              493025015445454868,
+              "<:datsshaawt:804242984383545344>",
+              "<:andrew_damnboii:794247753445802004>", ]
 
 with open("data/AndrewReplies.json", "r") as replyJSON:
     replies = json.load(replyJSON)
@@ -67,32 +65,23 @@ class AndrewWebs(commands.Cog):
                 for word in emoji.UNICODE_EMOJI_ENGLISH
         ):
             response = choice(["👍", "😂", "🥲", "🤨", "🙄", "😏", "👽", "💩", "🤌", "🤝"])
-            return await AndrewWebs.ReplyWebhook(
-                self, message.channel, f"{response * randint(1, 7)}"
-            )
+            return await AndrewWebs.ReplyWebhook(self, message.channel, f"{response * randint(1, 7)}")
 
         # just mentions
         if not message.attachments:
             for i in references:
                 if message.content.lower() == i:
-                    response = choice(
-                        [
-                            "No Not ME",
-                            "Yes Tell Me",
-                            "What ?",
-                            "Any Problem ?",
-                            "Why me ?",
-                            "yup yup",
-                        ]
-                    )
-                    return await AndrewWebs.ReplyWebhook(
-                        self, message.channel, response
-                    )
+                    response = choice(["No Not ME",
+                                       "Yes Tell Me",
+                                       "What ?",
+                                       "Any Problem ?",
+                                       "Why me ?",
+                                       "yup yup", ])
+                    await AndrewWebs.ReplyWebhook(self, message.channel, response)
+                    return
 
         await message.add_reaction("🤔")
-        return await AndrewWebs.ReplyWebhook(
-            self, message.channel, choice(["OK", "k", "mmm", "huh"])
-        )
+        return await AndrewWebs.ReplyWebhook(self, message.channel, choice(["OK", "k", "mmm", "huh"]))
 
     async def ReplyWebhook(self, channel: TextChannel, response: str):
         webhook: Webhook = await FetchHook(channel)

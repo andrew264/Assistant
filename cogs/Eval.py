@@ -29,9 +29,7 @@ class EvalCommand(commands.Cog):
 
     @staticmethod
     def prepare(string):
-        arr = (
-            string.strip("```").replace("py\n", "").replace("python\n", "").split("\n")
-        )
+        arr = (string.strip("```").replace("py\n", "").replace("python\n", "").split("\n"))
         if not arr[::-1][0].replace(" ", "").startswith("return"):
             arr[len(arr) - 1] = "return " + arr[::-1][0]
         return "".join(f"\n\t{i}" for i in arr)

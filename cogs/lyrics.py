@@ -54,7 +54,7 @@ class SongInfo:
 
 class Pages(disnake.ui.View):
     def __init__(self, song_info: SongInfo):
-        super().__init__(timeout=180.0)
+        super().__init__(timeout=120.0)
         self.page_no = 0
         self.song_info = song_info
         self.inter: ApplicationCommandInteraction | None = None
@@ -84,15 +84,10 @@ class Lyrics(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(
-        description="Get Lyrics for the song you are currently listening to."
-    )
-    async def lyrics(
-            self,
-            inter: ApplicationCommandInteraction,
-            title: str = Param(description="Song Title", default=None),
-            author: str = Param(description="Song Author", default=""),
-    ) -> None:
+    @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")
+    async def lyrics(self, inter: ApplicationCommandInteraction,
+                     title: str = Param(description="Song Title", default=None),
+                     author: str = Param(description="Song Author", default=""), ) -> None:
 
         await inter.response.defer()
 
@@ -116,11 +111,8 @@ class Lyrics(commands.Cog):
             await inter.edit_original_message(content="Lyrics not Found :(")
             return
 
-        song_info: SongInfo = SongInfo(title=title,
-                                       track_url=song.url,
-                                       album_art=song.song_art_image_url,
-                                       lyrics_list=song_to_list(song),
-                                       avatar=inter.author.display_avatar.url, )
+        song_info: SongInfo = SongInfo(title=title, track_url=song.url, album_art=song.song_art_image_url,
+                                       lyrics_list=song_to_list(song), avatar=inter.author.display_avatar.url, )
 
         my_pages = Pages(song_info)
         my_pages.inter = inter

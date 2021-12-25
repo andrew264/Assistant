@@ -110,10 +110,8 @@ class Ready(commands.Cog):
     # Start
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        await self.client.change_presence(
-            status=Status.online,
-            activity=Activity(type=ActivityType.watching, name="yall Homies."),
-        )
+        await self.client.change_presence(status=Status.online,
+                                          activity=Activity(type=ActivityType.watching, name="yall Homies."), )
         await Ready.Output(self)
 
     @commands.Cog.listener()
@@ -126,9 +124,7 @@ class Ready(commands.Cog):
 
     # Unknown commands
     @commands.Cog.listener()
-    async def on_command_error(
-            self, ctx: commands.Context, error: commands.CommandError
-    ) -> None:
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, commands.MissingPermissions):
@@ -142,71 +138,48 @@ class Ready(commands.Cog):
         else:
             await ctx.send(f"***{error}***")
             channel = self.client.get_channel(DM_Channel)
-            embed = Embed(
-                title=f"Command `{ctx.command}` failed due to `{error}`",
-                description=fancy_traceback(error),
-                color=Color.red(),
-            )
+            embed = Embed(title=f"Command `{ctx.command}` failed due to `{error}`", description=fancy_traceback(error),
+                          color=Color.red(), )
             await channel.send(embed=embed)
 
     # slash errors
     @commands.Cog.listener()
-    async def on_slash_command_error(
-            self, inter: ApplicationCommandInteraction, error: commands.CommandError
-    ) -> None:
+    async def on_slash_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError) -> None:
         if isinstance(error, commands.NotOwner):
-            await inter.response.send_message(
-                "🚫 You can't do that.", ephemeral=True
-            )
+            await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions) or isinstance(error, commands.BotMissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
-            embed = Embed(
-                title=f"Command `{inter.application_command.name}` failed due to `{error}`",
-                description=fancy_traceback(error),
-                color=Color.red(),
-            )
+            embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
+                          description=fancy_traceback(error), color=Color.red(), )
             await channel.send(embed=embed)
 
     # Message Context Error
     @commands.Cog.listener()
-    async def on_message_command_error(
-            self, inter: ApplicationCommandInteraction, error: commands.CommandError
-    ) -> None:
+    async def on_message_command_error(self, inter: ApplicationCommandInteraction,
+                                       error: commands.CommandError) -> None:
         if isinstance(error, commands.NotOwner):
-            await inter.response.send_message(
-                "🚫 You can't do that.", ephemeral=True
-            )
+            await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
-            embed = Embed(
-                title=f"Command `{inter.application_command.name}` failed due to `{error}`",
-                description=fancy_traceback(error),
-                color=Color.red(),
-            )
+            embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
+                          description=fancy_traceback(error), color=Color.red(), )
             await channel.send(embed=embed)
 
     # User Context Error
     @commands.Cog.listener()
-    async def on_user_command_error(
-            self, inter: ApplicationCommandInteraction, error: commands.CommandError
-    ) -> None:
+    async def on_user_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError) -> None:
         if isinstance(error, commands.NotOwner):
-            await inter.response.send_message(
-                "🚫 You can't do that.", ephemeral=True
-            )
+            await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
         else:
             channel = self.client.get_channel(DM_Channel)
-            embed = Embed(
-                title=f"Command `{inter.application_command.name}` failed due to `{error}`",
-                description=fancy_traceback(error),
-                color=Color.red(),
-            )
+            embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
+                          description=fancy_traceback(error), color=Color.red(), )
             await channel.send(embed=embed)
 
 

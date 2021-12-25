@@ -48,8 +48,7 @@ class ReactionRoles(commands.Cog):
         # remove any colour roles
         role_ids = list(self.emoji_to_role.values())
         for role in payload.member.roles:
-            if (role.id != self.emoji_to_role[payload.emoji]
-                    and role.id in role_ids):
+            if role.id != self.emoji_to_role[payload.emoji] and role.id in role_ids:
                 await payload.member.remove_roles(role)
 
         # remove duplicate emojis
@@ -94,11 +93,7 @@ class ReactionRoles(commands.Cog):
     @commands.is_owner()
     async def reaction_roles(self, ctx: commands.Context) -> None:
         await ctx.message.delete()
-        embed = Embed(
-            title="Reaction Roles",
-            colour=0xFFFFFF,
-            description="Claim a colour of your choice!",
-        )
+        embed = Embed(title="Reaction Roles", colour=0xFFFFFF, description="Claim a colour of your choice!", )
         msg = await ctx.send(embed=embed)
         for emoji in self.emoji_to_role.keys():
             await msg.add_reaction(emoji)

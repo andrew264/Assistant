@@ -31,9 +31,7 @@ class Utility(commands.Cog):
     # ping
     @commands.slash_command(description="Get Bot's Latency")
     async def ping(self, inter: ApplicationCommandInteraction) -> None:
-        await inter.response.send_message(
-            f"Client Latency: {round(self.client.latency * 1000)}  ms"
-        )
+        await inter.response.send_message(f"Client Latency: {round(self.client.latency * 1000)}  ms")
 
     # Set Status
     State = commands.option_enum(
@@ -50,28 +48,19 @@ class Utility(commands.Cog):
 
     @commands.slash_command(description="Set Bot's Activity")
     @commands.is_owner()
-    async def status(
-            self,
-            inter: ApplicationCommandInteraction,
-            state: State = Param(description="Set Bot's Status"),
-            activity: ActType = Param(description="Set Bot's Activity Type"),
-            name: str = Param(description="Set Bot's Activity Name", default="yall Homies"),
-    ) -> None:
-        await self.client.change_presence(
-            status=Status(state),
-            activity=Activity(type=ActivityType(int(activity)), name=name),
-        )
+    async def status(self, inter: ApplicationCommandInteraction, state: State = Param(description="Set Bot's Status"),
+                     activity: ActType = Param(description="Set Bot's Activity Type"),
+                     name: str = Param(description="Set Bot's Activity Name", default="yall Homies"), ) -> None:
+        await self.client.change_presence(status=Status(state),
+                                          activity=Activity(type=ActivityType(int(activity)), name=name), )
         await inter.response.send_message(
             f"Status set to `{Status(state).name.capitalize()}`|`{ActivityType(int(activity)).name.title()}: {name}`",
-            ephemeral=True,
-        )
+            ephemeral=True, )
 
     # clear
     @commands.command(aliases=["delete"])
     @commands.has_permissions(administrator=True)
-    async def clear(
-            self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5
-    ) -> None:
+    async def clear(self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5) -> None:
         if isinstance(no_of_msgs, int) and no_of_msgs > 420:
             await ctx.reply(f"No")
             return
@@ -82,16 +71,11 @@ class Utility(commands.Cog):
                 return msg.author.id == user.id
 
             await ctx.channel.purge(limit=no_of_msgs, check=check)
-            await ctx.send(
-                f"`{ctx.author.display_name}` deleted `{user.display_name}'s` `{no_of_msgs}` message(s).",
-                delete_after=30,
-            )
+            await ctx.send(f"`{ctx.author.display_name}` deleted `{user.display_name}'s` `{no_of_msgs}` message(s).",
+                           delete_after=30, )
         else:
             await ctx.channel.purge(limit=no_of_msgs)
-            await ctx.send(
-                f"`{ctx.author.display_name}` deleted `{no_of_msgs}` message(s).",
-                delete_after=30,
-            )
+            await ctx.send(f"`{ctx.author.display_name}` deleted `{no_of_msgs}` message(s).", delete_after=30, )
 
     # Context Delete
     @commands.message_command(name="Delete till HERE")
@@ -100,8 +84,7 @@ class Utility(commands.Cog):
         await inter.channel.purge(after=inter.target)
         await inter.response.send_message(
             f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}'s` message",
-            ephemeral=True,
-        )
+            ephemeral=True, )
 
     @commands.command(aliases=["yeet"])
     @commands.is_owner()
