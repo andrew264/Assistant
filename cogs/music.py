@@ -278,7 +278,7 @@ class QueuePages(disnake.ui.View):
         await self.message.edit(view=None)
         self.stop()
 
-    @disnake.ui.button(label="◀", style=ButtonStyle.secondary)
+    @disnake.ui.button(emoji="◀", style=ButtonStyle.secondary)
     async def prev_page(self, button: Button, interaction: Interaction):
         if self.page_no > 1:
             self.page_no -= 1
@@ -286,7 +286,7 @@ class QueuePages(disnake.ui.View):
             self.page_no = math.ceil((len(self.obj) - 1) / 4)
         await interaction.response.edit_message(embed=QueueEmbed(self.obj, self.page_no), view=self)
 
-    @disnake.ui.button(label="▶", style=ButtonStyle.secondary)
+    @disnake.ui.button(emoji="▶", style=ButtonStyle.secondary)
     async def next_page(self, button: Button, interaction: Interaction):
         if self.page_no < math.ceil((len(self.obj) - 1) / 4):
             self.page_no += 1
@@ -296,10 +296,10 @@ class QueuePages(disnake.ui.View):
 
 
 class NowPlayingButtons(disnake.ui.View):
-    def __init__(self):
+    def __init__(self, song_queue):
         super().__init__(timeout=120)
         self.message: Message
-        self.current_song: (VideoInfo | VideoInfofromDict)
+        self.song_queue: list[VideoInfo | VideoInfofromDict] = song_queue
 
     async def on_timeout(self):
         try:
@@ -319,23 +319,24 @@ class NowPlayingButtons(disnake.ui.View):
         else:
             voice_client.resume()
 
-    @disnake.ui.button(label="Play/Pause \u23EF", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Play/Pause", emoji="\u23EF", style=ButtonStyle.primary)
     async def play_button(self, button: Button, interaction: Interaction):
-        await interaction.response.edit_message(embed=NPEmbed(self.current_song, interaction.guild.voice_client),
+        await interaction.response.edit_message(embed=NPEmbed(self.song_queue[0], interaction.guild.voice_client),
                                                 view=self)
-        await self.play_pause(self.current_song, interaction.guild.voice_client)
+        await self.play_pause(self.song_queue[0], interaction.guild.voice_client)
 
-    @disnake.ui.button(label="Skip \u23ED", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Skip", emoji="\u23ED", style=ButtonStyle.primary)
     async def skip_button(self, button: Button, interaction: Interaction):
-        interaction.guild.voice_client.stop()
-        self.current_song.SongIn = 0
-        await interaction.response.edit_message(embed=NPEmbed(self.current_song, interaction.guild.voice_client),
+        await interaction.response.edit_message(embed=NPEmbed(self.song_queue[1], interaction.guild.voice_client),
                                                 view=self)
-
-    @disnake.ui.button(label="Stop \u25A0", style=ButtonStyle.danger)
-    async def stop_button(self, button: Button, interaction: Interaction):
         interaction.guild.voice_client.stop()
-        await interaction.guild.voice_client.disconnect()
+        self.song_queue[0].SongIn = 0
+
+    @disnake.ui.button(label="Stop", emoji="\u25A0", style=ButtonStyle.danger)
+    async def stop_button(self, button: Button, interaction: Interaction):
+        self.song_queue[0].SongIn = 0
+        self.song_queue.clear()
+        await interaction.guild.voice_client.disconnect(force=True)
         await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
 
 
@@ -398,7 +399,7 @@ class Music(commands.Cog):
             pass
         elif voice is None:
             voice_channel = ctx.author.voice.channel
-            voice = await voice_channel.connect()
+            await voice_channel.connect()
         if (
                 self.dict_obj[ctx.guild.id][0]
                 and ctx.voice_client.is_paused() is False
@@ -515,27 +516,23 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
 
     # Now Playing
-    @commands.command(aliases=["nowplaying"])
+    @commands.command(aliases=["np"])
     @commands.guild_only()
-    async def np(self, ctx: commands.Context) -> None:
+    async def nowplaying(self, ctx: commands.Context) -> None:
         await ctx.message.delete()
-        if not self.dict_obj[ctx.guild.id]:
+        song_queue: list[VideoInfo | VideoInfofromDict] = self.dict_obj[ctx.guild.id]
+        if not song_queue:
             await ctx.send("Queue is Empty", delete_after=30)
             return
-        view = NowPlayingButtons()
-        current_song: (VideoInfo | VideoInfofromDict) = self.dict_obj[ctx.guild.id][0]
-        view.current_song = current_song
-        msg = await ctx.send(embed=NPEmbed(current_song, ctx.voice_client), view=view)
+        view = NowPlayingButtons(song_queue)
+        msg = await ctx.send(embed=NPEmbed(song_queue[0], ctx.voice_client), view=view)
         view.message = msg
         while True:
             if self.dict_obj[ctx.guild.id] and ctx.voice_client:
                 pass
             else:
                 break
-            if view.current_song.Title != self.dict_obj[ctx.guild.id][0].Title:
-                current_song = self.dict_obj[ctx.guild.id][0]
-                view.current_song = current_song
-            await msg.edit(embed=NPEmbed(current_song, ctx.voice_client), view=view)
+            await msg.edit(embed=NPEmbed(song_queue[0], ctx.voice_client), view=view)
             await asyncio.sleep(5)
 
     # Jump
@@ -582,7 +579,7 @@ class Music(commands.Cog):
     @stop.before_invoke
     @pause.before_invoke
     @loop.before_invoke
-    @np.before_invoke
+    @nowplaying.before_invoke
     @jump.before_invoke
     @addtag.before_invoke
     @volume.before_invoke
