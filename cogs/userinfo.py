@@ -100,14 +100,10 @@ class UserInfo(commands.Cog):
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
         time_now = datetime.now(timezone.utc)
-        embed.add_field(
-            name=f"Joined {user.guild.name} on",
-            value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**",
-        )
-        embed.add_field(
-            name="Account created on",
-            value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**",
-        )
+        embed.add_field(name=f"Joined {user.guild.name} on",
+                        value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**", )
+        embed.add_field(name="Account created on",
+                        value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**", )
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
@@ -118,32 +114,20 @@ class UserInfo(commands.Cog):
             if isinstance(activity, Game):
                 embed.add_field(name="Playing", value=ActivityVal(activity))
             elif isinstance(activity, Streaming):
-                embed.add_field(
-                    name=f"Streaming", value=f"[{activity.name}]({activity.url})"
-                )
+                embed.add_field(name=f"Streaming", value=f"[{activity.name}]({activity.url})")
             elif isinstance(activity, Spotify):
-                embed.add_field(
-                    name="Spotify",
-                    value=f"Listening to [{activity.title} by {', '.join(activity.artists)}]({activity.track_url})",
-                )
+                embed.add_field(name="Spotify",
+                                value=f"Listening to [{activity.title} by {', '.join(activity.artists)}]({activity.track_url})", )
                 embed.set_thumbnail(url=activity.album_cover_url)
             elif isinstance(activity, CustomActivity):
                 embed.add_field(name="Status", value=CustomActVal(activity))
             elif isinstance(activity, Activity):
-                embed.add_field(
-                    name=f"{activity.type.name.capitalize()}",
-                    value=ActivityVal(activity),
-                )
-                if (
-                        hasattr(activity, "large_image_url")
-                        and activity.large_image_url is not None
-                ):
+                embed.add_field(name=f"{activity.type.name.capitalize()}", value=ActivityVal(activity), )
+                if hasattr(activity, "large_image_url") and activity.large_image_url is not None:
                     embed.set_thumbnail(url=activity.large_image_url)
         if len(user.roles) > 1:
-            role_string = " ".join([r.mention for r in user.roles][1:])
-            embed.add_field(
-                name=f"Roles [{len(user.roles) - 1}]", value=role_string, inline=False
-            )
+            role_string = " ".join([role.mention for role in user.roles][1:])
+            embed.add_field(name=f"Roles [{len(user.roles) - 1}]", value=role_string, inline=False)
         embed.set_footer(text=f"User ID: {user.id}")
         return embed
 
