@@ -319,20 +319,20 @@ class NowPlayingButtons(disnake.ui.View):
         else:
             voice_client.resume()
 
-    @disnake.ui.button(label="Play/Pause", emoji="\u23EF", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Play/Pause", emoji="▶", style=ButtonStyle.primary)
     async def play_button(self, button: Button, interaction: Interaction):
         await interaction.response.edit_message(embed=NPEmbed(self.song_queue[0], interaction.guild.voice_client),
                                                 view=self)
         await self.play_pause(self.song_queue[0], interaction.guild.voice_client)
 
-    @disnake.ui.button(label="Skip", emoji="\u23ED", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Skip", emoji="⏭", style=ButtonStyle.primary)
     async def skip_button(self, button: Button, interaction: Interaction):
-        await interaction.response.edit_message(embed=NPEmbed(self.song_queue[1], interaction.guild.voice_client),
-                                                view=self)
         interaction.guild.voice_client.stop()
         self.song_queue[0].SongIn = 0
+        await interaction.response.edit_message(embed=NPEmbed(self.song_queue[0], interaction.guild.voice_client),
+                                                view=self)
 
-    @disnake.ui.button(label="Stop", emoji="\u25A0", style=ButtonStyle.danger)
+    @disnake.ui.button(label="Stop", emoji="⏹", style=ButtonStyle.danger)
     async def stop_button(self, button: Button, interaction: Interaction):
         self.song_queue[0].SongIn = 0
         self.song_queue.clear()
