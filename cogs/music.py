@@ -216,7 +216,8 @@ def AddTagstoJSON(video_id: str, tag: str):
 def StreamURL(url: str) -> str:
     """Fetch Stream URL"""
     with YDL(ydl_opts) as ydl:
-        return str(ydl.extract_info(url, download=False)["formats"][0]["url"])
+        formats: list = ydl.extract_info(url, download=False)["formats"]
+        return next((f["url"] for f in formats if f["format_id"] == "251"), None)
 
 
 def QueueEmbed(song_list: list, page_no) -> Embed:
