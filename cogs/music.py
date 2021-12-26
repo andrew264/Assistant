@@ -346,7 +346,7 @@ class Music(commands.Cog):
         self.client = client
         self.looper: bool = False
         self.dict_obj: dict = {}
-        self.volume_float: float = 1.0
+        self.volume_float: float = 0.25
 
     # Play
     @commands.command(pass_context=True, aliases=["p"])
@@ -559,9 +559,12 @@ class Music(commands.Cog):
         if volume_int is None:
             await ctx.send(f"Volume: {round(ctx.voice_client.source.volume * 100)}%")
         elif 0 < volume_int <= 100:
-            ctx.voice_client.source.volume = round(volume_int) / 100
-            self.volume_float = ctx.voice_client.source.volume
-            await ctx.send(f"Volume is set to `{round(ctx.voice_client.source.volume * 100)}%`")
+            try:
+                ctx.voice_client.source.volume = round(volume_int) / 100
+                self.volume_float = ctx.voice_client.source.volume
+                await ctx.send(f"Volume is set to `{round(ctx.voice_client.source.volume * 100)}%`")
+            except AttributeError:
+                pass
         else:
             await ctx.send("Set Volume between `1 and 100`.")
 
