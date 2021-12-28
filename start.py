@@ -61,4 +61,7 @@ for filename in listdir("./cogs"):
     if filename.endswith(".py"):
         client.load_extension(f"cogs.{filename[:-3]}")
 
+# load music extension
+client.load_extension("cogs.music.commands")
+
 client.run(TOKEN)
