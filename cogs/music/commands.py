@@ -130,24 +130,24 @@ class Music(commands.Cog):
         embed.set_author(name=f"Playing: {current_song.Title}", url=current_song.pURL, icon_url="")
         await ctx.send(embed=embed, delete_after=current_song.Duration)
         # countdown
-        while self.song_queue[ctx.guild.id][0].SongIn > 0:
+        while True:
+            if self.song_queue[ctx.guild.id] and self.song_queue[ctx.guild.id][0].SongIn > 0:
+                self.song_queue[ctx.guild.id][0].SongIn -= 1
+            else:
+                voice.stop()
+                break  # song ends here
             await asyncio.sleep(1)
-            self.song_queue[ctx.guild.id][0].SongIn -= 1
-        # stop the player
-        voice.stop()
-        # song ends here
+
         l_type = self.queue_props[ctx.guild.id]["loop"]
-        # Loop ALl
         try:
             assert self.song_queue[ctx.guild.id]
         except AssertionError:
             return
         match l_type:
             case LoopType.All:
+                self.song_queue[ctx.guild.id][0].SongIn = self.song_queue[ctx.guild.id][0].Duration  # Temp Fix
                 self.song_queue[ctx.guild.id].append(self.song_queue[ctx.guild.id][0])
                 self.song_queue[ctx.guild.id].pop(0)
-                # Temp Fix
-                self.song_queue[ctx.guild.id][0].SongIn = self.song_queue[ctx.guild.id][0].Duration
 
             case LoopType.One:
                 self.song_queue[ctx.guild.id][0].SongIn = self.song_queue[ctx.guild.id][0].Duration
