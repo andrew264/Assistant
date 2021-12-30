@@ -25,7 +25,7 @@ from cogs.music.fetch import (
 )
 from cogs.music.loop import LoopType
 from cogs.music.misc import AddTagstoJSON
-from cogs.music.nowplaying import NowPlayingButtons, NPEmbed
+from cogs.music.nowplaying import NowPlayingButtons
 from cogs.music.queue import QueuePages, QueueEmbed
 from cogs.music.videoinfo import VideoInfo
 
@@ -240,15 +240,15 @@ class Music(commands.Cog):
         if not self.song_queue[ctx.guild.id]:
             await ctx.send("Queue is Empty", delete_after=30)
             return
-        view = NowPlayingButtons(self.song_queue[ctx.guild.id])
-        msg = await ctx.send(embed=NPEmbed(self.song_queue[ctx.guild.id][0], ctx.voice_client), view=view)
+        view = NowPlayingButtons(self.song_queue[ctx.guild.id], self.queue_props[ctx.guild.id])
+        msg = await ctx.send(embed=view.NPEmbed(), view=view)
         view.message = msg
         while True:
             if self.song_queue[ctx.guild.id] and ctx.voice_client:
                 pass
             else:
                 break
-            await msg.edit(embed=NPEmbed(self.song_queue[ctx.guild.id][0], ctx.voice_client))
+            await msg.edit(embed=view.NPEmbed())
             await asyncio.sleep(5)
 
     # Jump
