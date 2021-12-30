@@ -57,16 +57,19 @@ class NowPlayingButtons(disnake.ui.View):
         await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
         return False
 
-    @disnake.ui.button(label="Play/Pause", emoji="▶", style=ButtonStyle.primary)
+    @disnake.ui.button(label="Play/Pause ⏯️", style=ButtonStyle.primary)
     async def play_button(self, button: Button, interaction: Interaction):
-        await interaction.response.edit_message(embed=NPEmbed(self.song_queue[0], interaction.guild.voice_client))
         if interaction.guild.voice_client.is_playing():
             interaction.guild.voice_client.pause()
+            button.label = "Play ▶️"
+            await interaction.response.edit_message(view=self)
             while interaction.guild.voice_client.is_paused():
                 self.song_queue[0].SongIn += 1
                 await asyncio.sleep(1)
         else:
             interaction.guild.voice_client.resume()
+            button.label = "Pause ⏸️"
+            await interaction.response.edit_message(view=self)
 
     @disnake.ui.button(label="Skip", emoji="⏭", style=ButtonStyle.primary)
     async def skip_button(self, button: Button, interaction: Interaction):
