@@ -319,6 +319,9 @@ class Music(commands.Cog):
         if ctx.voice_client is not None and ctx.author.voice is not None:
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CheckFailure("You must be in same VC as Bot.")
+        permissions = ctx.author.voice.channel.permissions_for(ctx.me)
+        if not permissions.connect or not permissions.speak:
+            raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
 
 
 def setup(client):
