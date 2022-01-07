@@ -14,7 +14,6 @@ from disnake import (
 )
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake.utils import get
 from lyricsgenius import Genius
 from lyricsgenius.types import Song
 

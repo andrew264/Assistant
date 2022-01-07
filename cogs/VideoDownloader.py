@@ -1,11 +1,10 @@
 # Imports
 import os
 
+import yt_dlp.YoutubeDL as YDL
 from disnake import Client, ApplicationCommandInteraction, Embed, File
 from disnake.ext import commands
 from disnake.ext.commands import Param
-
-import yt_dlp.YoutubeDL as YDL
 
 ydl_opts = {
     'format': 'bestvideo[height<=240]+bestaudio/best[height<=240]',
