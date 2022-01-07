@@ -44,6 +44,7 @@
     <Compile Include="cogs\TextToSpeech.py" />
     <Compile Include="cogs\UserInfo.py" />
     <Compile Include="cogs\Utility.py" />
+    <Compile Include="cogs\VideoDownloader.py" />
     <Compile Include="EnvVariables.py" />
     <Compile Include="start.py" />
   </ItemGroup>

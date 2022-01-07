@@ -20,3 +20,6 @@ MusicCache.json
 
 # PyCharm
 /.idea
+
+#Downloaded Videos
+/downloads
