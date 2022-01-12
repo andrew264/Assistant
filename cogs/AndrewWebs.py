@@ -6,6 +6,8 @@ import emoji
 from disnake import Client, Message, TextChannel, Webhook
 from disnake.ext import commands
 
+from EnvVariables import Owner_ID
+
 references = ["andrew",
               "santhosh",
               "@andrew",
@@ -24,11 +26,11 @@ with open("data/AndrewReplies.json", "r") as replyJSON:
 def checks(message: Message) -> bool:
     if message.author.bot:
         return False
-    if message.author.id == 493025015445454868:
+    if message.author.id == Owner_ID:
         return False
     if message.content.startswith("pls ") or message.content.startswith("owo "):
         return False
-    if message.reference and message.reference.resolved.author.id == 493025015445454868:
+    if message.reference and message.reference.resolved.author.id == Owner_ID:
         return True
     if any(word in message.content.lower().split() for word in references):
         return True
@@ -36,8 +38,8 @@ def checks(message: Message) -> bool:
 
 
 async def FetchHook(channel: TextChannel) -> Webhook:
-    channel_hooks = await channel.webhooks()
-    for webhook in channel_hooks:
+    webhooks = await channel.webhooks()
+    for webhook in webhooks:
         if webhook.name == "Reply Hook":
             return webhook
     webhook: Webhook = await channel.create_webhook(name="Reply Hook")
@@ -57,35 +59,31 @@ class AndrewWebs(commands.Cog):
         for word in message.content.lower().split():
             if word in keys:
                 response = replies[word]
-                return await AndrewWebs.ReplyWebhook(self, message.channel, response)
+                await self.AndrewWebs.ReplyWebhook(message.channel, response)
+                return
 
         # Emoji tings
-        if any(
-                word in message.content.lower().split()
-                for word in emoji.UNICODE_EMOJI_ENGLISH
-        ):
+        if any(word in message.content.lower().split() for word in emoji.UNICODE_EMOJI_ENGLISH):
             response = choice(["👍", "😂", "🥲", "🤨", "🙄", "😏", "👽", "💩", "🤌", "🤝"])
-            return await AndrewWebs.ReplyWebhook(self, message.channel, f"{response * randint(1, 7)}")
+            await self.ReplyWebhook(message.channel, f"{response * randint(1, 7)}")
+            return
 
         # just mentions
         if not message.attachments:
             for i in references:
                 if message.content.lower() == i:
-                    response = choice(["No Not ME",
-                                       "Yes Tell Me",
-                                       "What ?",
-                                       "Any Problem ?",
-                                       "Why me ?",
-                                       "yup yup", ])
+                    response = choice(["No Not ME", "Yes Tell Me",
+                                       "What ?", "Any Problem ?",
+                                       "Why me ?", "yup yup", ])
                     await AndrewWebs.ReplyWebhook(self, message.channel, response)
                     return
 
         await message.add_reaction("🤔")
-        return await AndrewWebs.ReplyWebhook(self, message.channel, choice(["OK", "k", "mmm", "huh"]))
+        await self.ReplyWebhook(message.channel, choice(["😏", "🙄", "mmm", "huh"]))
 
     async def ReplyWebhook(self, channel: TextChannel, response: str):
         webhook: Webhook = await FetchHook(channel)
-        avatar_url: str = self.client.get_user(493025015445454868).display_avatar.url
+        avatar_url: str = self.client.get_user(Owner_ID).display_avatar.url
         await webhook.send(content=response, username="Andrew", avatar_url=avatar_url)
 
 

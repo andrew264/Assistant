@@ -16,8 +16,7 @@ class PrivateChat(commands.Cog):
 
     @chat.sub_command(description="Create a new Private Chat.")
     async def create(self, inter: ApplicationCommandInteraction) -> None:
-        overwrites_readEnable = disnake.PermissionOverwrite()
-        overwrites_readEnable.read_messages = True
+        overwrites_readEnable = disnake.PermissionOverwrite(read_messages=True)
         for category in inter.guild.categories:
             if category.name == f"{inter.author.display_name}'s Chat" and isinstance(inter.author, Member):
                 for channel in category.channels:
@@ -45,8 +44,7 @@ class PrivateChat(commands.Cog):
 
     @chat.sub_command(description="Delete existing Private Chat.")
     async def delete(self, inter: ApplicationCommandInteraction) -> None:
-        overwrites_readFalse = disnake.PermissionOverwrite()
-        overwrites_readFalse.read_messages = False
+        overwrites_readFalse = disnake.PermissionOverwrite(read_messages=False)
         category = None
         for i in inter.guild.categories:
             if i.name == f"{inter.author.display_name}'s Chat":

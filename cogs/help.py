@@ -26,7 +26,7 @@ class HelpMe(commands.Cog):
             self.stop()
 
         @button(label="General Commands", style=ButtonStyle.blurple)
-        async def user(self, button: Button, interaction: Interaction) -> None:
+        async def user(self, _button: Button, interaction: Interaction) -> None:
             # General Embed
             general_embed = Embed(color=Colour.blurple())
             general_embed.set_author(name="General Commands")
@@ -36,10 +36,13 @@ class HelpMe(commands.Cog):
             general_embed.add_field(name="`/introduce`", value="Introduce Yourself", inline=False)
             general_embed.add_field(name="`/help`", value="Get this help message", inline=False)
             general_embed.add_field(name="`/tts`", value="Generate a TTS message", inline=False)
+            for child in self.children:
+                child.disabled = False
+            _button.disabled = True
             await interaction.response.edit_message(embed=general_embed, view=self)
 
         @button(label="Music Commands", style=ButtonStyle.blurple)
-        async def music(self, button: Button, interaction: Interaction) -> None:
+        async def music(self, _button: Button, interaction: Interaction) -> None:
             # Music Commands
             music_embed = Embed(color=Colour.green())
             music_embed.set_author(name="Play Music from YouTube in VC")
@@ -49,12 +52,15 @@ class HelpMe(commands.Cog):
             music_embed.add_field(name="`.np`", value="Display Now Playing")
             music_embed.add_field(name="`.queue`", value="Songs in Queue")
             music_embed.add_field(name="`.skip`\t<song_index>", value="Skip Songs")
-            music_embed.add_field(name="`.loop`", value="Toggle Loop")
+            music_embed.add_field(name="`.loop`\t <all|one>", value="Toggle Loop")
             music_embed.add_field(name="`.jump`\t<song_index>", value="Skip to a Song")
+            for child in self.children:
+                child.disabled = False
+            _button.disabled = True
             await interaction.response.edit_message(embed=music_embed, view=self)
 
         @button(label="Fun Commands", style=ButtonStyle.blurple)
-        async def fun(self, button: Button, interaction: Interaction) -> None:
+        async def fun(self, _button: Button, interaction: Interaction) -> None:
             # Fun Commands
             fun_embed = Embed(color=Colour.dark_orange())
             fun_embed.set_author(name="Fun Stuff")
@@ -62,6 +68,9 @@ class HelpMe(commands.Cog):
             fun_embed.add_field(name="`/pp`", value="Measure someone in Inches 🤏", inline=False)
             fun_embed.add_field(name="`/lyrics`", value="Get lyrics from Spotify Activity", inline=False)
             fun_embed.add_field(name="`/ping`", value="Get Bot's Latency", inline=False)
+            for child in self.children:
+                child.disabled = False
+            _button.disabled = True
             await interaction.response.edit_message(embed=fun_embed, view=self)
 
     @commands.slash_command(description="How may I help you ?")

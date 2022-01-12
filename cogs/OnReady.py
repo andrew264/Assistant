@@ -1,4 +1,5 @@
 # Imports
+import asyncio
 import os
 import platform
 import traceback
@@ -17,36 +18,13 @@ from disnake import (
 )
 from disnake.ext import commands
 
-from EnvVariables import DM_Channel
-
-old_str1 = ""
+from EnvVariables import DM_Channel, Owner_ID
+from cogs.UserInfo import AvailableClients, timeDelta
 
 
 def fancy_traceback(exc: Exception) -> str:
     text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     return f"```py\n{text[-4086:]}\n```"
-
-
-# Show Clients
-def AvailableClients(user: Member) -> str:
-    clients = []
-    if user.desktop_status.name != "offline":
-        clients.append("Desktop")
-    if user.mobile_status.name != "offline":
-        clients.append("Mobile")
-    if user.web_status.name != "offline":
-        clients.append("Web")
-    if not clients:
-        clients.append("Offline")
-    if user.raw_status == "online":
-        value = "🟢"
-    elif user.raw_status == "idle":
-        value = "🌙"
-    elif user.raw_status == "dnd":
-        value = "⛔"
-    else:
-        value = "🔘"
-    return f"{value} {', '.join(clients)}"
 
 
 # Custom Act
@@ -59,21 +37,34 @@ def CustomActVal(activity: CustomActivity) -> str:
     return value
 
 
+# Activities
+def activity_string(member: Member):
+    str1 = ""
+    for activity in member.activities:
+        if isinstance(activity, Spotify):
+            str1 += f"\n\t\t\t> Listening to {activity.title} by {', '.join(activity.artists)} {timeDelta(activity.start)}"
+        elif isinstance(activity, CustomActivity):
+            str1 += f"\n\t\t\t> {CustomActVal(member.activity)} {timeDelta(activity.created_at)}"
+        else:
+            str1 += f"\n\t\t\t> Playing {activity.name} {timeDelta(activity.created_at)}"
+    return str1
+
+
 class Ready(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
+    # Update Printed Text
     async def Output(self) -> None:
-        global old_str1
-        str1 = Ready.print_stuff(self)
-        if old_str1 != str1:
-            if platform.system() == "Windows":
-                clear = lambda: os.system("cls")
-            else:
-                clear = lambda: os.system("clear")
-            clear()
-            print(str1)
-            old_str1 = str1
+        str1 = self.print_stuff()
+        if platform.system() == "Windows":
+            os.system("cls")
+        else:
+            os.system("clear")
+        print(str1)
+        while True:
+            await asyncio.sleep(2)
+            await self.Output()
 
     # Print Text Generator
     def print_stuff(self) -> str:
@@ -81,9 +72,14 @@ class Ready(commands.Cog):
         for guild in self.client.guilds:
             str1 += f"\n\t{guild.name} (ID: {guild.id}) (Member Count: {guild.member_count})"
         str1 += f"\n\nClient Latency: {round(self.client.latency * 1000)}  ms"
+        user = self.client.guilds[0].get_member(Owner_ID)
+        str1 += f"\n\t\t{str(user)} is {AvailableClients(user)}"
+        str1 += f"{activity_string(user)}"
         str1 += "\n\nPeople in VC:\n"
         for guild in self.client.guilds:
             for vc in guild.voice_channels:
+                if len(vc.members) == 1 and any(Owner_ID == member.id for member in vc.members):
+                    continue
                 if vc.members:
                     str1 += f"\t🔊 {vc.name}:\n"
                 for member in vc.members:
@@ -96,14 +92,7 @@ class Ready(commands.Cog):
                         str1 += " is live 🔴"
                     if member.voice.self_video:
                         str1 += "📷"
-                    for activity in member.activities:
-                        str1 += f"\n\t\t\t> "
-                        if isinstance(activity, Spotify):
-                            str1 += f"Listening to {activity.title} by {', '.join(activity.artists)}"
-                        elif isinstance(activity, CustomActivity):
-                            str1 += CustomActVal(member.activity)
-                        else:
-                            str1 += f"Playing {activity.name}"
+                    str1 += activity_string(member)
                     str1 += f"\n\t\t\t> {AvailableClients(member)}\n"
         return str1
 
@@ -112,15 +101,7 @@ class Ready(commands.Cog):
     async def on_ready(self) -> None:
         await self.client.change_presence(status=Status.online,
                                           activity=Activity(type=ActivityType.watching, name="yall Homies."), )
-        await Ready.Output(self)
-
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after) -> None:
-        await Ready.Output(self)
-
-    @commands.Cog.listener()
-    async def on_presence_update(self, before, after) -> None:
-        await Ready.Output(self)
+        await self.Output()
 
     # Unknown commands
     @commands.Cog.listener()

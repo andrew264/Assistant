@@ -40,7 +40,7 @@ class VidDownload(commands.Cog):
                 else:
                     await inter.channel.send(
                         f"{video_info['title']}\n" +
-                        f"File to Large({(os.path.getsize(f'./downloads/{file}'))/1024} KB) to send\n" +
+                        f"File to Large({(os.path.getsize(f'./downloads/{file}')) / 1024} KB) to send\n" +
                         f"{video_info['formats'][-1]['url']}")
                 os.remove(f"./downloads/{file}")
 

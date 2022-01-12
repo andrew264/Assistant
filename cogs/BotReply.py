@@ -10,6 +10,8 @@ from disnake import (
 )
 from disnake.ext import commands
 
+from EnvVariables import Owner_ID
+
 hiMsgs = ["hi",
           "hello",
           "allo",
@@ -87,17 +89,17 @@ class BotReply(commands.Cog):
             return
         if any(word in message.content.lower().split() for word in hiMsgs):
             response = choice(hiMsgReply)
-            return await BotReply.ReplyWebhook(self, message.channel, response)
+            await self.ReplyWebhook(message.channel, response)
         elif any(word in message.content.lower().split() for word in byeMsgs):
             response = choice(byeMsgReply)
-            return await BotReply.ReplyWebhook(self, message.channel, response)
+            await self.ReplyWebhook(message.channel, response)
         elif any(word in message.content.lower().split() for word in yeahMsgs):
             response = choice(yeahMsgReply)
-            return await BotReply.ReplyWebhook(self, message.channel, response)
+            await self.ReplyWebhook(message.channel, response)
 
     async def ReplyWebhook(self, channel: TextChannel, response: str) -> None:
         webhook: Webhook = await FetchHook(channel)
-        member = self.client.get_user(493025015445454868)
+        member = self.client.get_user(Owner_ID)
         if member:
             display_name = member.display_name
             avatar_url = member.display_avatar.url

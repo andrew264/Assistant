@@ -62,9 +62,8 @@ class EvalCommand(commands.Cog):
                 del args, code
                 return
 
-            await ctx.send(
-                f"```py\n{self.resolve_variable(response)}````{type(response).__name__} | {round((time() - a) * 1000, 3)} ms` "
-            )
+            await ctx.send(f"""```py{self.resolve_variable(response)}```
+            `{type(response).__name__} | {round((time() - a) * 1000, 3)} ms` """)
         except Exception as e:
             await ctx.send(f"Error occurred:```\n{type(e).__name__}: {str(e)}```")
 

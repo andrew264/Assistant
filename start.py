@@ -4,7 +4,7 @@ from os import listdir
 from disnake import Intents
 from disnake.ext import commands
 
-from EnvVariables import TOKEN
+from EnvVariables import TOKEN, Owner_ID
 
 # Client
 client = commands.Bot(
@@ -13,7 +13,7 @@ client = commands.Bot(
     help_command=None,
     case_insensitive=True,
     test_guilds=[821758346054467584],
-    owner_id=493025015445454868,
+    owner_id=Owner_ID,
     description="Andrew's Assistant",
 )
 

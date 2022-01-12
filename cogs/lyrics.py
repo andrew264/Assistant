@@ -22,13 +22,6 @@ from EnvVariables import GENIUS_TOKEN
 genius = Genius(GENIUS_TOKEN, verbose=False)
 
 
-def song_to_list(song: Song) -> list[str]:
-    lyrics = re.sub(r"[0-9]*EmbedShare*", "", song.lyrics)
-    lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
-    lyrics_list = list(lyrics.split("\n\n"))
-    return lyrics_list
-
-
 def fetch_lyrics(song_title: str, artist_name: str) -> Song | None:
     song = genius.search_song(song_title, artist_name)
     if song and song.lyrics:
@@ -37,17 +30,24 @@ def fetch_lyrics(song_title: str, artist_name: str) -> Song | None:
 
 
 class SongInfo:
-    def __init__(self, title: str, track_url: str, album_art: str, lyrics_list: list, avatar: str) -> None:
-        self.title = title
-        self.track_url = track_url
-        self.album_art = album_art
-        self.lyrics_list = lyrics_list
-        self.avatar = avatar
+    def __init__(self, song: Song, avatar_url: str) -> None:
+        self.song = song
+        self.title = song.title
+        self.track_url = song.track_url
+        self.album_art = song.album_art
+        self.lyrics_list = self.song_to_list()
+        self.avatar_url = avatar_url
+
+    def song_to_list(self) -> list[str]:
+        lyrics = re.sub(r"[0-9]*EmbedShare*", "", self.song.lyrics)
+        lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
+        lyrics_list = list(lyrics.split("\n\n"))
+        return lyrics_list
 
     def generate_embed(self, pg_no: int, ) -> Embed:
         embed = Embed(title=f"{self.title}", url=self.track_url, color=0x1DB954, description=self.lyrics_list[pg_no])
         embed.set_thumbnail(url=self.album_art)
-        embed.set_footer(text=f"({pg_no + 1}/{len(self.lyrics_list)})", icon_url=self.avatar)
+        embed.set_footer(text=f"({pg_no + 1}/{len(self.lyrics_list)})", icon_url=self.avatar_url)
         return embed
 
 
@@ -95,8 +95,7 @@ class Lyrics(commands.Cog):
         if title:
             song = await loop.run_in_executor(None, fetch_lyrics, title, author)
         else:
-            user = inter.author
-            for activity in user.activities:
+            for activity in inter.author.activities:
                 if isinstance(activity, Spotify):
                     title = re.sub(r"\([^)]*\)", "", activity.title)
                     song = await loop.run_in_executor(None, fetch_lyrics, title, activity.artist)
@@ -108,9 +107,7 @@ class Lyrics(commands.Cog):
             await inter.edit_original_message(content="Lyrics not Found :(")
             return
 
-        song_info: SongInfo = SongInfo(title=title, track_url=song.url, album_art=song.song_art_image_url,
-                                       lyrics_list=song_to_list(song), avatar=user.display_avatar.url, )
-
+        song_info: SongInfo = SongInfo(song, inter.author.display_avatar.url, )
         my_pages = Pages(song_info)
         my_pages.inter = inter
         await inter.edit_original_message(embed=song_info.generate_embed(0), view=my_pages, )

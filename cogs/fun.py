@@ -54,7 +54,8 @@ class Fun(commands.Cog):
     async def kill(self, inter: ApplicationCommandInteraction,
                    user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ):
         if user is None or user == inter.author:
-            return await inter.response.send_message("Stop, Get some Help.")
+            await inter.response.send_message("Stop, Get some Help.")
+            return
         killembed = Embed(colour=user.color)
         killembed.set_author(name=user, icon_url=user.display_avatar.url)
         if user.bot:

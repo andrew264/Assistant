@@ -34,17 +34,12 @@ class Utility(commands.Cog):
         await inter.response.send_message(f"Client Latency: {round(self.client.latency * 1000)}  ms")
 
     # Set Status
-    State = commands.option_enum(
-        {
-            "Online": "online",
-            "Idle": "idle",
-            "Do not Disturb": "dnd",
-            "Invisible": "offline",
-        }
-    )
-    ActType = commands.option_enum(
-        {"Playing": "0", "Streaming": "1", "Listening": "2", "Watching": "3"}
-    )
+    State = commands.option_enum({"Online": "online",
+                                  "Idle": "idle",
+                                  "Do not Disturb": "dnd",
+                                  "Invisible": "offline", })
+    ActType = commands.option_enum({"Playing": "0", "Streaming": "1",
+                                    "Listening": "2", "Watching": "3"})
 
     @commands.slash_command(description="Set Bot's Activity")
     @commands.is_owner()

@@ -57,13 +57,15 @@ def AvailableClients(user: Member) -> str:
         clients.append("Mobile")
     if user.web_status.name != "offline":
         clients.append("Web")
-    value = f"**{', '.join(clients)}**"
+    value = ', '.join(clients)
     if user.raw_status == "online":
         value = "Online in " + value
     elif user.raw_status == "idle":
         value = "Idling in " + value
     elif user.raw_status == "dnd":
         value = value + " (DND)"
+    else:
+        return "Offline"
     return value
 
 
@@ -101,9 +103,11 @@ class UserInfo(commands.Cog):
         embed.set_thumbnail(url=user.display_avatar.url)
         time_now = datetime.now(timezone.utc)
         embed.add_field(name=f"Joined {user.guild.name} on",
-                        value=f"{user.joined_at.strftime(date_format)}\n**({(time_now - user.joined_at).days} days ago)**", )
+                        value=f"""{user.joined_at.strftime(date_format)}
+                        **({(time_now - user.joined_at).days} days ago)**""", )
         embed.add_field(name="Account created on",
-                        value=f"{user.created_at.strftime(date_format)}\n**({(time_now - user.created_at).days} days ago)**", )
+                        value=f"""{user.created_at.strftime(date_format)}
+                        **({(time_now - user.created_at).days} days ago)**""", )
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
@@ -117,7 +121,7 @@ class UserInfo(commands.Cog):
                 embed.add_field(name=f"Streaming", value=f"[{activity.name}]({activity.url})")
             elif isinstance(activity, Spotify):
                 embed.add_field(name="Spotify",
-                                value=f"Listening to [{activity.title} by {', '.join(activity.artists)}]({activity.track_url})", )
+                                value=f"Listening to [{activity.title}]({activity.track_url} \"by {', '.join(activity.artists)}\")", )
                 embed.set_thumbnail(url=activity.album_cover_url)
             elif isinstance(activity, CustomActivity):
                 embed.add_field(name="Status", value=CustomActVal(activity))

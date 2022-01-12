@@ -19,12 +19,9 @@ class OnDM(commands.Cog):
         if message.author.bot:
             return
         else:
-            msg_content = ""
             channel = self.client.get_channel(DM_Channel)
-            msg_content += "──────────────────────────────\n"
-            msg_content += (
-                f"UserID: `{message.author.id}`\nMessage Author: `{message.author}`"
-            )
+            msg_content = "──────────────────────────────\n"
+            msg_content += f"UserID: `{message.author.id}`\nMessage Author: `{message.author}`"
             if len(message.content):
                 msg_content += f"\n Message:\n```{message.content}```"
             if len(message.attachments):
@@ -39,7 +36,6 @@ class OnDM(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def dm(self, ctx: commands.Context, user: User, *, msg: str) -> None:
-        msg_content = ""
         channel = await user.create_dm()
         msg_content = f"{msg}\n"
         if ctx.message.attachments:

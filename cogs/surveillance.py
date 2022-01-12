@@ -19,33 +19,8 @@ from disnake import (
 )
 from disnake.ext import commands
 
-# ID Numbers
-OWNER_ID = 493025015445454868
-CHANNEL_ID = 891369472101863494
-
-
-def AvailableClients(user: Member) -> str:
-    clients = []
-    if user.desktop_status.name != "offline":
-        clients.append("Desktop")
-    if user.mobile_status.name != "offline":
-        clients.append("Mobile")
-    if user.web_status.name != "offline":
-        clients.append("Web")
-    if not clients:
-        return "Offline"
-    return f"{', '.join(clients)}"
-
-
-def StatusUpdate(user: Member):
-    if user.raw_status == "online":
-        return "Online"
-    elif user.raw_status == "idle":
-        return "Idle"
-    elif user.raw_status == "dnd":
-        return "Do not Disturb"
-    elif user.raw_status == "offline":
-        return "Offline"
+from EnvVariables import Owner_ID, Log_Channel
+from cogs.UserInfo import AvailableClients
 
 
 def CustomActVal(activity: CustomActivity) -> str:
@@ -57,8 +32,7 @@ def CustomActVal(activity: CustomActivity) -> str:
     return value
 
 
-def ActivityVal(activities: Tuple[Activity | Game | CustomActivity | Streaming | Spotify, ...]
-                ) -> list:
+def ActivityVal(activities: Tuple[Activity | Game | CustomActivity | Streaming | Spotify, ...]) -> list:
     activitiesList = []
     for activity in activities:
         if isinstance(activity, Game):
@@ -84,11 +58,11 @@ class Surveillance(commands.Cog):
     async def on_message_edit(self, before: Message, after: Message) -> None:
         if before.author.bot:
             return
-        if before.author.id == OWNER_ID:
+        if before.author.id == Owner_ID:
             return
         if before.clean_content == after.clean_content:
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.teal())
         embed.set_author(name=f"{before.author} edited a message in #{before.channel.name}",
                          icon_url=before.author.display_avatar.url, )
@@ -101,9 +75,9 @@ class Surveillance(commands.Cog):
     async def on_message_delete(self, message: Message) -> None:
         if message.author.bot:
             return
-        if message.author.id == OWNER_ID:
+        if message.author.id == Owner_ID:
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.orange())
         embed.set_author(name=f"{message.author} deleted a message in #{message.channel.name}",
                          icon_url=message.author.display_avatar.url, )
@@ -115,11 +89,11 @@ class Surveillance(commands.Cog):
     async def on_member_update(self, before: Member, after: Member) -> None:
         if before.bot:
             return
-        if before.id == OWNER_ID:
+        if before.id == Owner_ID:
             return
         if before.display_name == after.display_name:
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.dark_orange())
         embed.set_author(name=f"{before} updated their Nickname", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
@@ -131,11 +105,11 @@ class Surveillance(commands.Cog):
     async def on_user_update(self, before: User, after: User) -> None:
         if before.bot:
             return
-        if before.id == OWNER_ID:
+        if before.id == Owner_ID:
             return
         if before.name == after.name and before.discriminator == after.discriminator:
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.brand_green())
         embed.set_author(name=f"{before} updated their Username", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Username", value=f"{before.name} #{before.discriminator}", inline=False, )
@@ -147,18 +121,14 @@ class Surveillance(commands.Cog):
     async def on_presence_update(self, before: Member, after: Member) -> None:
         if before.bot:
             return
-        if before.id == OWNER_ID:
+        if before.id == Owner_ID:
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(Log_Channel)
         delete_after = 300
         embed = Embed(colour=Colour.gold())
         embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url, )
-        if StatusUpdate(before) != StatusUpdate(after):
-            embed.add_field(name=f"Status Update", value=f"{StatusUpdate(before)} ──> {StatusUpdate(after)}", )
-            if delete_after == 300:
-                delete_after += 43200
         if AvailableClients(before) != AvailableClients(after):
-            embed.add_field(name=f"Client Update", value=f"{AvailableClients(before)} ──> {AvailableClients(after)}",
+            embed.add_field(name=f"Client/Status", value=f"{AvailableClients(before)} ──> {AvailableClients(after)}",
                             inline=False, )
             if delete_after == 300:
                 delete_after += 86400
@@ -209,14 +179,12 @@ class Surveillance(commands.Cog):
             await log_channel.send(embed=embed, delete_after=delete_after)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(
-            self, member: Member, before: VoiceState, after: VoiceState
-    ) -> None:
+    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
         if member.bot:
             return
         if after.channel == before.channel:
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
+        log_channel = self.client.get_channel(Log_Channel)
         if after.channel is None:
             await log_channel.send(f"{member.display_name} left {before.channel.mention}", delete_after=900)
         if before.channel is None:
@@ -230,14 +198,12 @@ class Surveillance(commands.Cog):
     async def on_typing(self, channel: TextChannel, user: Member, when: datetime) -> None:
         if user.bot:
             return
-        if user.id == OWNER_ID:
+        if user.id == Owner_ID:
             return
         if channel.name != "general-shit" and channel.name != "private-chat":
             return
-        log_channel = self.client.get_channel(CHANNEL_ID)
-        await log_channel.send(
-            f"{user.display_name} started typing in {channel.mention}", delete_after=120
-        )
+        log_channel = self.client.get_channel(Log_Channel)
+        await log_channel.send(f"{user.display_name} started typing in {channel.mention}", delete_after=120)
 
 
 def setup(client):
