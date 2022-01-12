@@ -33,8 +33,8 @@ class SongInfo:
     def __init__(self, song: Song, avatar_url: str) -> None:
         self.song = song
         self.title = song.title
-        self.track_url = song.track_url
-        self.album_art = song.album_art
+        self.track_url = song.url
+        self.album_art = song.song_art_image_url
         self.lyrics_list = self.song_to_list()
         self.avatar_url = avatar_url
 
@@ -52,11 +52,11 @@ class SongInfo:
 
 
 class Pages(disnake.ui.View):
-    def __init__(self, song_info: SongInfo):
+    def __init__(self, song_info: SongInfo, inter: ApplicationCommandInteraction):
         super().__init__(timeout=120.0)
         self.page_no = 0
         self.song_info = song_info
-        self.inter: ApplicationCommandInteraction | None = None
+        self.inter = inter
 
     async def on_timeout(self):
         await self.inter.edit_original_message(view=None)
@@ -90,8 +90,8 @@ class Lyrics(commands.Cog):
 
         await inter.response.defer()
 
-        song = None
         loop = asyncio.get_event_loop()
+        song: Song | None = None
         if title:
             song = await loop.run_in_executor(None, fetch_lyrics, title, author)
         else:
@@ -108,8 +108,7 @@ class Lyrics(commands.Cog):
             return
 
         song_info: SongInfo = SongInfo(song, inter.author.display_avatar.url, )
-        my_pages = Pages(song_info)
-        my_pages.inter = inter
+        my_pages = Pages(song_info, inter)
         await inter.edit_original_message(embed=song_info.generate_embed(0), view=my_pages, )
 
 
