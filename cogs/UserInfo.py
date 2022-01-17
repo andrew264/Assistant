@@ -28,6 +28,7 @@ def ActivityVal(activity: Activity | Game) -> str:
 
 
 def timeDelta(timestamp: datetime) -> str:
+    if timestamp is None: return ""
     sec = (datetime.now(timezone.utc) - timestamp).seconds
     value: str = ""
     if sec < 60:
