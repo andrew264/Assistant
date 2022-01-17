@@ -6,3 +6,4 @@ python-youtube
 emoji
 sounddevice
 aiosqlite
+lavalink

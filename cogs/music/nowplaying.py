@@ -10,6 +10,7 @@ from disnake import (
     ButtonStyle,
     MessageInteraction,
 )
+from lavalink import DefaultPlayer
 
 from cogs.music.loop import LoopType
 from cogs.music.misc import human_format
@@ -17,11 +18,12 @@ from cogs.music.videoinfo import VideoInfo
 
 
 class NowPlayingButtons(disnake.ui.View):
-    def __init__(self, song_queue, queue_prop):
+    def __init__(self, song_queue: list[VideoInfo], queue_prop: dict, player: DefaultPlayer):
         super().__init__(timeout=None)
         self.message: Message
-        self.song_queue: list[VideoInfo] = song_queue
-        self.queue_prop: dict = queue_prop
+        self.song_queue = song_queue
+        self.queue_prop = queue_prop
+        self.player = player
 
     async def on_timeout(self):
         try:
@@ -41,23 +43,23 @@ class NowPlayingButtons(disnake.ui.View):
 
     @disnake.ui.button(label="Pause", emoji="⏸", style=ButtonStyle.primary)
     async def play_button(self, button: Button, interaction: Interaction):
-        if interaction.guild.voice_client.is_playing():
-            interaction.guild.voice_client.pause()
+        if self.player.paused is False:
+            await self.player.set_pause(pause=True)
             button.label = "Play"
             button.emoji = "▶"
             await interaction.response.edit_message(view=self)
-            while interaction.guild.voice_client.is_paused():
+            while self.player.paused:
                 self.song_queue[0].SongIn += 1
                 await asyncio.sleep(1)
         else:
-            interaction.guild.voice_client.resume()
+            await self.player.set_pause(pause=False)
             button.label = "Pause"
             button.emoji = "⏸"
             await interaction.response.edit_message(view=self)
 
     @disnake.ui.button(label="Skip", emoji="⏭", style=ButtonStyle.primary)
     async def skip_button(self, button: Button, interaction: Interaction):
-        interaction.guild.voice_client.stop()
+        await self.player.stop()
         self.song_queue[0].SongIn = 0
         await interaction.response.edit_message(embed=self.NPEmbed())
 
@@ -65,6 +67,7 @@ class NowPlayingButtons(disnake.ui.View):
     async def stop_button(self, button: Button, interaction: Interaction):
         self.song_queue[0].SongIn = 0
         self.song_queue.clear()
+        await self.player.stop()
         await interaction.guild.voice_client.disconnect(force=True)
         await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
 
@@ -83,16 +86,16 @@ class NowPlayingButtons(disnake.ui.View):
 
     @disnake.ui.button(emoji="➖", style=ButtonStyle.green, row=1)
     async def volume_down(self, button: Button, interaction: Interaction):
-        if interaction.guild.voice_client.source.volume > 0.10:
-            interaction.guild.voice_client.source.volume -= 0.10
+        if self.player.volume > 10:
+            await self.player.set_volume(self.player.volume-10)
             if self.children[6].disabled:
                 self.children[6].disabled = False
         else:
-            interaction.guild.voice_client.source.volume = 0.10
-        if interaction.guild.voice_client.source.volume <= 0.10:
+            await self.player.set_volume(10)
+        if self.player.volume <= 10:
             button.disabled = True
-        self.children[5].label = f"Volume: {round(interaction.guild.voice_client.source.volume * 100)}%"
-        self.queue_prop["volume"] = interaction.guild.voice_client.source.volume
+        self.children[5].label = f"Volume: {self.player.volume}%"
+        self.queue_prop["volume"] = self.player.volume
         await interaction.response.edit_message(view=self)
 
     @disnake.ui.button(label="Volume", style=ButtonStyle.gray, row=1, disabled=True)
@@ -101,15 +104,15 @@ class NowPlayingButtons(disnake.ui.View):
 
     @disnake.ui.button(emoji="➕", style=ButtonStyle.green, row=1)
     async def volume_up(self, button: Button, interaction: Interaction):
-        if interaction.guild.voice_client.source.volume <= 0.90:
-            interaction.guild.voice_client.source.volume += 0.10
+        if self.player.volume <= 90:
+            await self.player.set_volume(self.player.volume+10)
             if self.children[4].disabled:
                 self.children[4].disabled = False
         else:
-            interaction.guild.voice_client.source.volume = 1.0
+            await self.player.set_volume(100)
             button.disabled = True
-        self.children[5].label = f"Volume: {round(interaction.guild.voice_client.source.volume * 100)}%"
-        self.queue_prop["volume"] = interaction.guild.voice_client.source.volume
+        self.children[5].label = f"Volume: {self.player.volume}%"
+        self.queue_prop["volume"] = self.player.volume
         await interaction.response.edit_message(view=self)
 
     def NPEmbed(self) -> Embed:

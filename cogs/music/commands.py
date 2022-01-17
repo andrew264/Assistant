@@ -1,6 +1,7 @@
 ﻿# Imports
 import asyncio
 
+import lavalink
 from disnake import (
     Activity,
     ActivityType,
@@ -14,6 +15,7 @@ from disnake import (
 )
 from disnake.ext import commands
 from disnake.utils import get
+from lavalink import AudioTrack
 
 from cogs.music.fetch import (
     FindInputType,
@@ -24,6 +26,7 @@ from cogs.music.fetch import (
     StreamURL,
     vid_id_regex,
 )
+from cogs.music.lavaclient import LavalinkVoiceClient
 from cogs.music.loop import LoopType
 from cogs.music.misc import AddTagstoJSON
 from cogs.music.nowplaying import NowPlayingButtons
@@ -42,26 +45,28 @@ class Music(commands.Cog):
         self.song_queue: dict = {}
         self.queue_props: dict = {}
 
+        if not hasattr(client, 'lavalink'):  # This ensures the client isn't overwritten during cog reloads.
+            self.client.lavalink = lavalink.Client(822454735310684230)
+            self.client.lavalink.add_node('127.0.0.1', 2333, 'youshallnotpass', 'in', 'assistant-node')
+
     # Play
     @commands.command(pass_context=True, aliases=["p"])
     @commands.guild_only()
     async def play(self, ctx: commands.Context, *, query: str = None) -> None:
 
+        player = self.client.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
+
         # create Dictionary
         if ctx.guild.id not in self.song_queue:
             self.song_queue[ctx.guild.id] = []
             self.queue_props[ctx.guild.id] = {
-                "volume": 0.25,
+                "volume": 25,
                 "loop": LoopType.Disabled
             }
 
         # If player is_paused resume...
         if query is None:
-            if (
-                    self.song_queue[ctx.guild.id]
-                    and isinstance(ctx.voice_client, VoiceClient)
-                    and ctx.voice_client.is_paused() is True
-            ):
+            if self.song_queue[ctx.guild.id] and player.paused:
                 if ctx.voice_client is None:
                     return
                 await self.pause(ctx)
@@ -91,16 +96,13 @@ class Music(commands.Cog):
 
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)
-        if voice and voice.is_connected():
+        if voice and player.is_connected:
             pass
         elif voice is None:
-            voice_channel = ctx.author.voice.channel
-            await voice_channel.connect()
-        if (
-                self.song_queue[ctx.guild.id][0]
-                and ctx.voice_client.is_paused() is False
-                and ctx.voice_client.is_playing() is False
-        ):
+            player.store('channel', ctx.channel.id)
+            await ctx.author.voice.channel.connect(cls=LavalinkVoiceClient)
+
+        if self.song_queue[ctx.guild.id][0] and not player.is_playing:
             await self.player(ctx)
 
     # Queue
@@ -116,16 +118,14 @@ class Music(commands.Cog):
         if not self.song_queue[ctx.guild.id]:
             return
         current_song: VideoInfo = self.song_queue[ctx.guild.id][0]
-        # get stream url
-        loop = asyncio.get_event_loop()
-        stream_url = await loop.run_in_executor(None, StreamURL, current_song.pURL)
         # voice
-        voice = ctx.voice_client
-        if voice is None or voice.is_playing():
-            return
-        voice.play(FFmpegPCMAudio(stream_url, **FFMPEG_OPTIONS))
-        volume = self.queue_props[ctx.guild.id]["volume"]
-        voice.source = PCMVolumeTransformer(voice.source, volume)
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        result = (await player.node.get_tracks(current_song.pURL))['tracks'][0]
+        track = AudioTrack(result, current_song.Author.id)
+        player.add(requester=current_song.Author.id, track=track)
+        await player.set_volume(self.queue_props[ctx.guild.id]["volume"])
+        if not player.is_playing:
+            await player.play()
         # embed
         embed = Embed(title="", color=0xFF0000)
         embed.set_author(name=f"Playing: {current_song.Title}", url=current_song.pURL, icon_url="")
@@ -137,7 +137,7 @@ class Music(commands.Cog):
             if self.song_queue[ctx.guild.id] and self.song_queue[ctx.guild.id][0].SongIn > 0:
                 self.song_queue[ctx.guild.id][0].SongIn -= 1
             else:
-                voice.stop()
+                await player.stop()
                 break  # song ends here
             await asyncio.sleep(1)
 
@@ -174,13 +174,14 @@ class Music(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def skip(self, ctx: commands.Context, arg: int = 0) -> None:
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if not self.song_queue[ctx.guild.id] or arg > len(self.song_queue[ctx.guild.id]):
             return
         await ctx.send(f"{ctx.author.display_name} removed `{self.song_queue[ctx.guild.id][arg].Title}` from Queue.")
         if 0 < arg <= len(self.song_queue[ctx.guild.id]):
             self.song_queue[ctx.guild.id].pop(arg)
         elif arg == 0:
-            ctx.voice_client.stop()
+            await player.stop()
             self.song_queue[ctx.guild.id][0].SongIn = 0
             await asyncio.sleep(1)
 
@@ -188,30 +189,37 @@ class Music(commands.Cog):
     @commands.command(aliases=["dc", "kelambu"])
     @commands.guild_only()
     async def stop(self, ctx: commands.Context) -> None:
-        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
-            ctx.voice_client.stop()
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        if player.is_playing or player.paused:
+            # Clear the queue to ensure old tracks don't start playing
+            # when someone else queues something.
+            player.queue.clear()
+            # Stop the current track so Lavalink consumes less resources.
+            await player.stop()
+            # Disconnect from the voice channel.
+            await ctx.voice_client.disconnect(force=True)
         # clean list
         if self.song_queue and self.song_queue[ctx.guild.id]:
             self.song_queue[ctx.guild.id][0].SongIn = 0
             await asyncio.sleep(2)
             self.song_queue[ctx.guild.id].clear()
         await ctx.message.add_reaction("👋")
-        await ctx.voice_client.disconnect(force=True)
         self.queue_props[ctx.guild.id]["loop"] = LoopType.Disabled
 
     # Pause
     @commands.command()
     @commands.guild_only()
     async def pause(self, ctx: commands.Context) -> None:
-        if ctx.voice_client.is_playing():
-            ctx.voice_client.pause()
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        if player.paused is False:
+            await player.set_pause(pause=True)
             await ctx.send(f"{ctx.author.display_name} paused `{self.song_queue[ctx.guild.id][0].Title}`")
             # we are adding 1 every second to wait :p
-            while ctx.voice_client.is_paused():
+            while player.paused:
                 self.song_queue[ctx.guild.id][0].SongIn += 1
                 await asyncio.sleep(1)
         else:
-            ctx.voice_client.resume()
+            await player.set_pause(pause=False)
             await ctx.send(f"{ctx.author.display_name} resumed `{self.song_queue[ctx.guild.id][0].Title}`")
 
     # Loop
@@ -243,7 +251,8 @@ class Music(commands.Cog):
         if not self.song_queue[ctx.guild.id]:
             await ctx.send("Queue is Empty", delete_after=30)
             return
-        view = NowPlayingButtons(self.song_queue[ctx.guild.id], self.queue_props[ctx.guild.id])
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        view = NowPlayingButtons(self.song_queue[ctx.guild.id], self.queue_props[ctx.guild.id], player)
         msg = await ctx.send(embed=view.NPEmbed(), view=view)
         view.message = msg
         while True:
@@ -262,10 +271,10 @@ class Music(commands.Cog):
     @commands.command(aliases=["skipto"])
     @commands.guild_only()
     async def jump(self, ctx: commands.Context, song_index: int = 1) -> None:
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if (
                 ctx.voice_client is not None
-                and ctx.voice_client.is_playing()
-                or ctx.voice_client.is_paused()
+                and player.is_playing
                 and song_index >= 1
         ):
             if song_index >= 2:
@@ -278,13 +287,14 @@ class Music(commands.Cog):
     @commands.command(aliases=["vol", "v"])
     @commands.guild_only()
     async def volume(self, ctx: commands.Context, volume_int: int = None) -> None:
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if volume_int is None:
-            await ctx.send(f"Volume: {round(ctx.voice_client.source.volume * 100)}%")
+            await ctx.send(f"Volume: {player.volume}%")
         elif 0 < volume_int <= 100:
             try:
-                ctx.voice_client.source.volume = round(volume_int) / 100
-                self.queue_props[ctx.guild.id]["volume"] = ctx.voice_client.source.volume
-                await ctx.send(f"Volume is set to `{round(ctx.voice_client.source.volume * 100)}%`")
+                await player.set_volume(round(volume_int))
+                self.queue_props[ctx.guild.id]["volume"] = round(volume_int)
+                await ctx.send(f"Volume is set to `{round(volume_int)}%`")
             except AttributeError:
                 pass
         else:
@@ -310,7 +320,8 @@ class Music(commands.Cog):
     @addtag.before_invoke
     @volume.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
-        if ctx.voice_client is None or not ctx.voice_client.is_connected():
+        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        if ctx.voice_client is None or not player.is_connected:
             raise commands.CheckFailure("Bot is not connect to VC.")
         if ctx.author.voice is None:
             raise commands.CheckFailure("You are not connected to a voice channel.")
