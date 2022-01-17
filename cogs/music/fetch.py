@@ -9,7 +9,7 @@ from pyyoutube import Api
 from pyyoutube.models.playlist_item import PlaylistItem
 
 from EnvVariables import YT_TOKEN
-from cogs.music.videoinfo import VideoInfo
+from cogs.music.lavaclient import VideoTrack
 
 api = Api(api_key=YT_TOKEN)
 
@@ -47,67 +47,60 @@ def FindInputType(query: str):
         return InputType.Search
 
 
-def Search(query: str, author: Member) -> VideoInfo:
+async def Search(query: str, author: Member, player) -> None:
     with open("data/MusicCache.json", "r+") as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in data:
-            if (
-                    query.lower() in data[video_id]["Title"].lower()
+            if (query.lower() in data[video_id]["Title"].lower()
                     or "Tags" in data[video_id]
-                    and query.lower() in data[video_id]["Tags"]
-            ):
+                    and query.lower() in data[video_id]["Tags"]):
                 jsonFile.close()
-                return VideoInfo(video_dict=data[video_id], author=author)
-        with YDL(ydl_opts) as ydl:
-            video_id = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]["id"]
-        video_info = VideoInfo(video_id=video_id, author=author)
-        data.update(video_info.toDict(query))
-        jsonFile.seek(0)
-        json.dump(data, jsonFile, indent=4, sort_keys=True)
-        jsonFile.close()
-        return video_info
+                result = (await player.node.get_tracks(data[video_id]["pURL"]))['tracks'][0]
+                track = VideoTrack(data=result, author=author, video_dict=data[video_id])
+                break
+        else:
+            with YDL(ydl_opts) as ydl:
+                video_id = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]["id"]
+            result = (await player.node.get_tracks(f"https://www.youtube.com/watch?v={video_id}"))['tracks'][0]
+            track = VideoTrack(data=result, author=author, video_id=video_id)
+            data.update(track.toDict(query))
+            jsonFile.seek(0)
+            json.dump(data, jsonFile, indent=4, sort_keys=True)
+            jsonFile.close()
+        player.add(requester=author.id, track=track)
 
 
-def FetchVideo(query: str, author: Member) -> VideoInfo:
+async def FetchVideo(query: str, author: Member, player) -> None:
     video_id = vid_id_regex.search(query).group(1)
+    result = (await player.node.get_tracks(query))['tracks'][0]
     with open("data/MusicCache.json", "r+") as jsonFile:
         data: dict = json.load(jsonFile)
         if video_id in data:
             jsonFile.close()
-            return VideoInfo(video_dict=data[video_id], author=author)
+            track = VideoTrack(data=result, author=author, video_dict=data[video_id])
         else:
-            video_info = VideoInfo(video_id=video_id, author=author)
-            data.update(video_info.toDict())
+            track = VideoTrack(data=result, author=author, video_id=video_id)
+            data.update(track.toDict())
             jsonFile.seek(0)
             json.dump(data, jsonFile, indent=4, sort_keys=True)
             jsonFile.close()
-            return video_info
+        player.add(requester=author.id, track=track)
 
 
-def FetchPlaylist(query: str, author: Member) -> list[VideoInfo]:
-    playlist_videos: List[VideoInfo] = []
+async def FetchPlaylist(query: str, author: Member, player) -> None:
     playlist_id = query.replace("https://www.youtube.com/playlist?list=", "")
-    video_items: List[PlaylistItem] = api.get_playlist_items(
-        playlist_id=playlist_id, count=None
-    ).items
+    video_items: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
     video_ids = [video.snippet.resourceId.videoId for video in video_items]
     with open("data/MusicCache.json", "r+") as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in video_ids:
+            result = (await player.node.get_tracks(f"https://www.youtube.com/watch?v={video_id}"))['tracks'][0]
             if video_id in data:
-                playlist_videos.append(VideoInfo(video_dict=data[video_id], author=author))
+                track = VideoTrack(data=result, author=author, video_dict=data[video_id])
             else:
-                video_info = VideoInfo(video_id=video_id, author=author)
-                playlist_videos.append(video_info)
-                data.update(video_info.toDict())
+                track = VideoTrack(data=result, author=author, video_id=video_id)
+                data.update(track.toDict())
+            player.add(requester=author.id, track=track)
         jsonFile.seek(0)
         json.dump(data, jsonFile, indent=4, sort_keys=True)
         jsonFile.close()
-        return playlist_videos
-
-
-def StreamURL(url: str) -> str:
-    """Fetch Stream URL"""
-    with YDL(ydl_opts) as ydl:
-        formats: list = ydl.extract_info(url, download=False)["formats"]
-        return next((f["url"] for f in formats if f["format_id"] == "251"), None)

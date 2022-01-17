@@ -1,5 +1,4 @@
-﻿import asyncio
-import time
+﻿import time
 
 import disnake
 from disnake import (
@@ -12,17 +11,14 @@ from disnake import (
 )
 from lavalink import DefaultPlayer
 
-from cogs.music.loop import LoopType
+from cogs.music.lavaclient import VideoTrack
 from cogs.music.misc import human_format
-from cogs.music.videoinfo import VideoInfo
 
 
 class NowPlayingButtons(disnake.ui.View):
-    def __init__(self, song_queue: list[VideoInfo], queue_prop: dict, player: DefaultPlayer):
+    def __init__(self, player: DefaultPlayer):
         super().__init__(timeout=None)
         self.message: Message
-        self.song_queue = song_queue
-        self.queue_prop = queue_prop
         self.player = player
 
     async def on_timeout(self):
@@ -48,9 +44,6 @@ class NowPlayingButtons(disnake.ui.View):
             button.label = "Play"
             button.emoji = "▶"
             await interaction.response.edit_message(view=self)
-            while self.player.paused:
-                self.song_queue[0].SongIn += 1
-                await asyncio.sleep(1)
         else:
             await self.player.set_pause(pause=False)
             button.label = "Pause"
@@ -59,35 +52,30 @@ class NowPlayingButtons(disnake.ui.View):
 
     @disnake.ui.button(label="Skip", emoji="⏭", style=ButtonStyle.primary)
     async def skip_button(self, button: Button, interaction: Interaction):
-        await self.player.stop()
-        self.song_queue[0].SongIn = 0
+        await self.player.skip()
         await interaction.response.edit_message(embed=self.NPEmbed())
 
     @disnake.ui.button(label="Stop", emoji="⏹", style=ButtonStyle.danger)
     async def stop_button(self, button: Button, interaction: Interaction):
-        self.song_queue[0].SongIn = 0
-        self.song_queue.clear()
+        self.player.queue.clear()
         await self.player.stop()
         await interaction.guild.voice_client.disconnect(force=True)
         await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
 
     @disnake.ui.button(emoji="➡", style=ButtonStyle.gray)
     async def loop_button(self, button: Button, interaction: Interaction):
-        if self.queue_prop["loop"] == LoopType.Disabled:
-            button.emoji = "🔂"
-            self.queue_prop["loop"] = LoopType.One
-        elif self.queue_prop["loop"] == LoopType.One:
-            button.emoji = "🔁"
-            self.queue_prop["loop"] = LoopType.All
-        else:
+        if self.player.repeat:
+            self.player.set_repeat(False)
             button.emoji = "➡"
-            self.queue_prop["loop"] = LoopType.Disabled
+        else:
+            self.player.set_repeat(True)
+            button.emoji = "🔁"
         await interaction.response.edit_message(view=self)
 
     @disnake.ui.button(emoji="➖", style=ButtonStyle.green, row=1)
     async def volume_down(self, button: Button, interaction: Interaction):
         if self.player.volume > 10:
-            await self.player.set_volume(self.player.volume-10)
+            await self.player.set_volume(self.player.volume - 10)
             if self.children[6].disabled:
                 self.children[6].disabled = False
         else:
@@ -95,7 +83,6 @@ class NowPlayingButtons(disnake.ui.View):
         if self.player.volume <= 10:
             button.disabled = True
         self.children[5].label = f"Volume: {self.player.volume}%"
-        self.queue_prop["volume"] = self.player.volume
         await interaction.response.edit_message(view=self)
 
     @disnake.ui.button(label="Volume", style=ButtonStyle.gray, row=1, disabled=True)
@@ -105,22 +92,21 @@ class NowPlayingButtons(disnake.ui.View):
     @disnake.ui.button(emoji="➕", style=ButtonStyle.green, row=1)
     async def volume_up(self, button: Button, interaction: Interaction):
         if self.player.volume <= 90:
-            await self.player.set_volume(self.player.volume+10)
+            await self.player.set_volume(self.player.volume + 10)
             if self.children[4].disabled:
                 self.children[4].disabled = False
         else:
             await self.player.set_volume(100)
             button.disabled = True
         self.children[5].label = f"Volume: {self.player.volume}%"
-        self.queue_prop["volume"] = self.player.volume
         await interaction.response.edit_message(view=self)
 
     def NPEmbed(self) -> Embed:
-        current_song: VideoInfo = self.song_queue[0]
-        percentile = 20 - round((current_song.SongIn / current_song.Duration) * 20)
+        current_song: VideoTrack = self.player.current
+        percentile = round(((self.player.position / 1000) / current_song.Duration) * 20)
         bar = "────────────────────"
         progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]
-        song_on = time.strftime("%M:%S", time.gmtime(current_song.Duration - current_song.SongIn))
+        song_on = time.strftime("%M:%S", time.gmtime(self.player.position / 1000))
         embed = Embed(color=0xEB459E)
         embed.set_thumbnail(url=f"{current_song.Thumbnail}")
         embed.set_author(name=f"{current_song.Title}", url=current_song.pURL, icon_url="")
@@ -129,11 +115,10 @@ class NowPlayingButtons(disnake.ui.View):
         embed.add_field(name="Likes:", value=f"{human_format(int(current_song.Likes))}", inline=True)
         embed.add_field(name="Uploaded on:", value=f"{current_song.UploadDate}", inline=True)
         avatar_url = current_song.Author.display_avatar.url
-        match self.queue_prop["loop"]:
-            case LoopType.Disabled:
-                embed.set_footer(text="Playing", icon_url=avatar_url)
-            case LoopType.One:
-                embed.set_footer(text="Looping current song", icon_url=avatar_url)
-            case LoopType.All:
-                embed.set_footer(text="Looping queue", icon_url=avatar_url)
+        if self.player.queue and self.player.repeat:
+            embed.set_footer(text=f"Looping through {len(self.player.queue) + 1} Songs", icon_url=avatar_url)
+        elif self.player.queue and not self.player.repeat:
+            embed.set_footer(text=f"Next in Queue: {self.player.queue[0].Title}", icon_url=avatar_url)
+        else:
+            embed.set_footer(text=f"Requested by {current_song.Author.display_name}", icon_url=avatar_url)
         return embed
