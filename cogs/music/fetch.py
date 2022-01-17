@@ -4,6 +4,7 @@ from enum import Enum
 from typing import List
 
 import yt_dlp.YoutubeDL as YDL
+from disnake import Member
 from pyyoutube import Api
 from pyyoutube.models.playlist_item import PlaylistItem
 
@@ -46,7 +47,7 @@ def FindInputType(query: str):
         return InputType.Search
 
 
-def Search(query: str, author: str) -> VideoInfo:
+def Search(query: str, author: Member) -> VideoInfo:
     with open("data/MusicCache.json", "r+") as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in data:
@@ -67,7 +68,7 @@ def Search(query: str, author: str) -> VideoInfo:
         return video_info
 
 
-def FetchVideo(query: str, author: str) -> VideoInfo:
+def FetchVideo(query: str, author: Member) -> VideoInfo:
     video_id = vid_id_regex.search(query).group(1)
     with open("data/MusicCache.json", "r+") as jsonFile:
         data: dict = json.load(jsonFile)
@@ -83,7 +84,7 @@ def FetchVideo(query: str, author: str) -> VideoInfo:
             return video_info
 
 
-def FetchPlaylist(query: str, author: str) -> list[VideoInfo]:
+def FetchPlaylist(query: str, author: Member) -> list[VideoInfo]:
     playlist_videos: List[VideoInfo] = []
     playlist_id = query.replace("https://www.youtube.com/playlist?list=", "")
     video_items: List[PlaylistItem] = api.get_playlist_items(

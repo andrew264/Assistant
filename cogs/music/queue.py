@@ -21,14 +21,14 @@ def QueueEmbed(song_list: list, page_no) -> Embed:
         return Embed(title="Queue is Empty", colour=0xFFA31A)
     embed = Embed(
         title="Now Playing",
-        description=f"[{song_list[0].Title}]({song_list[0].pURL} \"by {song_list[0].Author}\")",
+        description=f"[{song_list[0].Title}]({song_list[0].pURL} \"by {song_list[0].Author.display_name}\")",
         colour=0xFFA31A,
     )
     if len(song_list) > 1:
         next_songs = "\u200b"
         max_page = math.ceil((len(song_list) - 1) / 4)
         for i in song_index:
-            next_songs += f"{i}. [{song_list[i].Title}]({song_list[i].pURL} \"by {song_list[i].Author}\")\n"
+            next_songs += f"{i}. [{song_list[i].Title}]({song_list[i].pURL} \"by {song_list[i].Author.display_name}\")\n"
         embed.add_field(name=f"Next Up ({page_no}/{max_page})", value=next_songs, inline=False)
     return embed
 

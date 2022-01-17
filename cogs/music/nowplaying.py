@@ -125,11 +125,12 @@ class NowPlayingButtons(disnake.ui.View):
         embed.add_field(name="Views:", value=f"{human_format(int(current_song.Views))}", inline=True)
         embed.add_field(name="Likes:", value=f"{human_format(int(current_song.Likes))}", inline=True)
         embed.add_field(name="Uploaded on:", value=f"{current_song.UploadDate}", inline=True)
+        avatar_url = current_song.Author.display_avatar.url
         match self.queue_prop["loop"]:
             case LoopType.Disabled:
-                embed.set_footer(text="Playing")
+                embed.set_footer(text="Playing", icon_url=avatar_url)
             case LoopType.One:
-                embed.set_footer(text="Looping current song")
+                embed.set_footer(text="Looping current song", icon_url=avatar_url)
             case LoopType.All:
-                embed.set_footer(text="Looping queue")
+                embed.set_footer(text="Looping queue", icon_url=avatar_url)
         return embed

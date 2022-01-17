@@ -1,6 +1,7 @@
 import re
 import time
 
+from disnake import Member
 from pyyoutube import Api
 
 from EnvVariables import YT_TOKEN
@@ -11,8 +12,8 @@ api = Api(api_key=YT_TOKEN)
 class VideoInfo:
     """Fetch Info from API"""
 
-    def __init__(self, video_id: str = None, video_dict: dict = None, author: str = None) -> None:
-        self.Author: str = author
+    def __init__(self, video_id: str = None, video_dict: dict = None, author: Member = None) -> None:
+        self.Author = author
         if video_id is not None:
             video_data = api.get_video_by_id(video_id=video_id).items[0]
             self.Title: str = video_data.snippet.title

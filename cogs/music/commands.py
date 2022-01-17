@@ -10,6 +10,7 @@ from disnake import (
     PCMVolumeTransformer,
     Status,
     VoiceClient,
+    NotFound,
 )
 from disnake.ext import commands
 from disnake.utils import get
@@ -74,13 +75,13 @@ class Music(commands.Cog):
             loop = asyncio.get_event_loop()
             match input_type:
                 case InputType.Playlist:
-                    video_info = await loop.run_in_executor(None, FetchPlaylist, query, ctx.author.display_name)
+                    video_info = await loop.run_in_executor(None, FetchPlaylist, query, ctx.author)
                     self.song_queue[ctx.guild.id].extend(video_info)
                 case InputType.Search:
-                    video_info = await loop.run_in_executor(None, Search, query, ctx.author.display_name)
+                    video_info = await loop.run_in_executor(None, Search, query, ctx.author)
                     self.song_queue[ctx.guild.id].append(video_info)
                 case InputType.URL:
-                    video_info = await loop.run_in_executor(None, FetchVideo, query, ctx.author.display_name)
+                    video_info = await loop.run_in_executor(None, FetchVideo, query, ctx.author)
                     self.song_queue[ctx.guild.id].append(video_info)
 
         if input_type == InputType.Playlist:
@@ -128,6 +129,8 @@ class Music(commands.Cog):
         # embed
         embed = Embed(title="", color=0xFF0000)
         embed.set_author(name=f"Playing: {current_song.Title}", url=current_song.pURL, icon_url="")
+        embed.set_footer(text=f"Requested by {current_song.Author.display_name}",
+                         icon_url=current_song.Author.display_avatar.url)
         await ctx.send(embed=embed, delete_after=current_song.Duration)
         # countdown
         while True:
@@ -247,6 +250,10 @@ class Music(commands.Cog):
             if self.song_queue[ctx.guild.id] and ctx.voice_client:
                 pass
             else:
+                try:
+                    await msg.delete()
+                except NotFound:
+                    pass
                 break
             await msg.edit(embed=view.NPEmbed())
             await asyncio.sleep(5)
