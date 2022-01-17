@@ -17,9 +17,12 @@ from disnake import (
     Status,
 )
 from disnake.ext import commands
+from disnake.utils import get
 
 from EnvVariables import DM_Channel, Owner_ID
 from cogs.UserInfo import AvailableClients, timeDelta
+
+old_str1 = ""
 
 
 def fancy_traceback(exc: Exception) -> str:
@@ -56,15 +59,17 @@ class Ready(commands.Cog):
 
     # Update Printed Text
     async def Output(self) -> None:
+        global old_str1
         str1 = self.print_stuff()
+        if old_str1 == str1:
+            return
+
         if platform.system() == "Windows":
             os.system("cls")
         else:
             os.system("clear")
         print(str1)
-        while True:
-            await asyncio.sleep(2)
-            await self.Output()
+        old_str1 = str1
 
     # Print Text Generator
     def print_stuff(self) -> str:
@@ -72,7 +77,7 @@ class Ready(commands.Cog):
         for guild in self.client.guilds:
             str1 += f"\n\t{guild.name} (ID: {guild.id}) (Member Count: {guild.member_count})"
         str1 += f"\n\nClient Latency: {round(self.client.latency * 1000)}  ms"
-        user = self.client.guilds[0].get_member(Owner_ID)
+        user = get(self.client.get_all_members(), id=Owner_ID)
         str1 += f"\n\t\t{str(user)} is {AvailableClients(user)}"
         str1 += f"{activity_string(user)}"
         str1 += "\n\nPeople in VC:\n"
@@ -101,6 +106,14 @@ class Ready(commands.Cog):
     async def on_ready(self) -> None:
         await self.client.change_presence(status=Status.online,
                                           activity=Activity(type=ActivityType.watching, name="yall Homies."), )
+        await self.Output()
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after) -> None:
+        await self.Output()
+
+    @commands.Cog.listener()
+    async def on_presence_update(self, before, after) -> None:
         await self.Output()
 
     # Unknown commands
