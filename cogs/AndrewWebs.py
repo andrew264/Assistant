@@ -59,7 +59,7 @@ class AndrewWebs(commands.Cog):
         for word in message.content.lower().split():
             if word in keys:
                 response = replies[word]
-                await self.AndrewWebs.ReplyWebhook(message.channel, response)
+                await self.ReplyWebhook(message.channel, response)
                 return
 
         # Emoji tings
@@ -75,7 +75,7 @@ class AndrewWebs(commands.Cog):
                     response = choice(["No Not ME", "Yes Tell Me",
                                        "What ?", "Any Problem ?",
                                        "Why me ?", "yup yup", ])
-                    await AndrewWebs.ReplyWebhook(self, message.channel, response)
+                    await self.ReplyWebhook(message.channel, response)
                     return
 
         await message.add_reaction("🤔")
