@@ -227,10 +227,16 @@ class Music(commands.Cog):
     @commands.guild_only()
     async def loop(self, ctx: commands.Context, l_type: str = None) -> None:
         loop = self.queue_props[ctx.guild.id]["loop"]
-        if l_type is None and loop == LoopType.One or loop == LoopType.All:
-            self.queue_props[ctx.guild.id]["loop"] = LoopType.Disabled
-            embed = Embed(title="Loop Disabled.", colour=0x1ABC9C)
-            await ctx.send(embed=embed)
+        if l_type is None:
+            match loop:
+                case LoopType.One | LoopType.All:
+                    self.queue_props[ctx.guild.id]["loop"] = LoopType.Disabled
+                    embed = Embed(title="Loop Disabled.", colour=0x1ABC9C)
+                    await ctx.send(embed=embed)
+                case _:
+                    self.queue_props[ctx.guild.id]["loop"] = LoopType.All
+                    embed = Embed(title="Looping all songs in Queue.", colour=0x800080)
+                    await ctx.send(embed=embed)
             return
         if l_type.lower() == "all" or l_type is None and loop == LoopType.Disabled:
             self.queue_props[ctx.guild.id]["loop"] = LoopType.All
