@@ -30,7 +30,7 @@ def checks(message: Message) -> bool:
         return False
     if message.content.startswith("pls ") or message.content.startswith("owo "):
         return False
-    if message.reference and message.reference.resolved.author.id == Owner_ID:
+    if message.reference and message.reference.resolved and message.reference.resolved.author.id == Owner_ID:
         return True
     if any(word in message.content.lower().split() for word in references):
         return True
