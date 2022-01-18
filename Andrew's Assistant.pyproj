@@ -28,6 +28,7 @@
     <Compile Include="cogs\Fun.py" />
     <Compile Include="cogs\Help.py" />
     <Compile Include="cogs\Lyrics.py" />
+    <Compile Include="cogs\music\effects.py" />
     <Compile Include="cogs\music\fetch.py" />
     <Compile Include="cogs\music\misc.py" />
     <Compile Include="cogs\music\nowplaying.py" />
