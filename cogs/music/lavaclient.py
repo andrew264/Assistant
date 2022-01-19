@@ -102,7 +102,6 @@ class VideoTrack(AudioTrack):
             self.UploadDate: str = video_data.snippet.string_to_datetime(video_data.snippet.publishedAt).strftime(
                 "%d-%m-%Y")
             self.Duration: int = video_data.contentDetails.get_video_seconds_duration()
-            self.FDuration: str = time.strftime("%M:%S", time.gmtime(self.Duration))
         else:
             self.Title: str = video_dict["Title"]
             self.pURL: str = video_dict["pURL"]
@@ -111,7 +110,10 @@ class VideoTrack(AudioTrack):
             self.Likes: int = int(video_dict["Likes"])
             self.UploadDate: str = video_dict["UploadDate"]
             self.Duration: int = int(video_dict["Duration"])
-            self.FDuration: str = video_dict["FDuration"]
+
+    @property
+    def FDuration(self):
+        return time.strftime("%M:%S", time.gmtime(self.Duration))
 
     def toDict(self, query: str = None) -> dict:
         """returns Video Details as Dictionary"""
@@ -126,7 +128,6 @@ class VideoTrack(AudioTrack):
                 "Likes": self.Likes,
                 "UploadDate": self.UploadDate,
                 "Duration": self.Duration,
-                "FDuration": self.FDuration,
                 "Tags": [],
             }
         }
