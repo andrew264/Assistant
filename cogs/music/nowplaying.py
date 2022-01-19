@@ -49,32 +49,51 @@ class NP(commands.Cog):
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
 
-            @disnake.ui.button(label="Pause", emoji="⏸", style=ButtonStyle.primary)
+            @disnake.ui.button(emoji="⏮", style=ButtonStyle.primary)
+            async def prev_button(self, button: Button, interaction: Interaction):
+                await player.seek(0)
+                await interaction.response.edit_message(embed=self.NPEmbed)
+
+            @disnake.ui.button(emoji="⏪", style=ButtonStyle.primary)
+            async def reverse_button(self, button: Button, interaction: Interaction):
+                if player.position > 10000:
+                    await player.seek(int(player.position-10000))
+                else:
+                    await player.seek(0)
+                await interaction.response.edit_message(embed=self.NPEmbed)
+
+            @disnake.ui.button(emoji="⏸", style=ButtonStyle.primary)
             async def play_button(self, button: Button, interaction: Interaction):
                 if player.paused is False:
                     await player.set_pause(pause=True)
-                    button.label = "Play"
                     button.emoji = "▶"
                     await interaction.response.edit_message(view=self)
                 else:
                     await player.set_pause(pause=False)
-                    button.label = "Pause"
                     button.emoji = "⏸"
                     await interaction.response.edit_message(view=self)
 
-            @disnake.ui.button(label="Skip", emoji="⏭", style=ButtonStyle.primary)
+            @disnake.ui.button(emoji="⏩", style=ButtonStyle.primary)
+            async def forward_button(self, button: Button, interaction: Interaction):
+                if player.position < player.current.duration-10000:
+                    await player.seek(int(player.position+10000))
+                else:
+                    await player.seek(int(player.current.duration))
+                await interaction.response.edit_message(embed=self.NPEmbed)
+
+            @disnake.ui.button(emoji="⏭", style=ButtonStyle.primary)
             async def skip_button(self, button: Button, interaction: Interaction):
                 await player.skip()
                 await interaction.response.edit_message(embed=self.NPEmbed)
 
-            @disnake.ui.button(label="Stop", emoji="⏹", style=ButtonStyle.danger)
+            @disnake.ui.button(label="Stop", emoji="⏹", style=ButtonStyle.danger, row=1)
             async def stop_button(self, button: Button, interaction: Interaction):
                 player.queue.clear()
                 await player.stop()
                 await interaction.guild.voice_client.disconnect(force=True)
                 await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
 
-            @disnake.ui.button(emoji="➡", style=ButtonStyle.gray)
+            @disnake.ui.button(label="Loop", emoji="➡", style=ButtonStyle.gray, row=1)
             async def loop_button(self, button: Button, interaction: Interaction):
                 if player.repeat:
                     player.set_repeat(False)
@@ -84,7 +103,7 @@ class NP(commands.Cog):
                     button.emoji = "🔁"
                 await interaction.response.edit_message(view=self)
 
-            @disnake.ui.button(emoji="➖", style=ButtonStyle.green, row=1)
+            @disnake.ui.button(emoji="➖", style=ButtonStyle.green, row=2)
             async def volume_down(self, button: Button, interaction: Interaction):
                 if player.volume > 10:
                     await player.set_volume(player.volume - 10)
@@ -96,11 +115,11 @@ class NP(commands.Cog):
                 self.volume.label = f"Volume: {player.volume}%"
                 await interaction.response.edit_message(view=self)
 
-            @disnake.ui.button(label="Volume", style=ButtonStyle.gray, row=1, disabled=True)
+            @disnake.ui.button(label="Volume", style=ButtonStyle.gray, row=2, disabled=True)
             async def volume(self, button: Button, interaction: Interaction):
                 pass
 
-            @disnake.ui.button(emoji="➕", style=ButtonStyle.green, row=1)
+            @disnake.ui.button(emoji="➕", style=ButtonStyle.green, row=2)
             async def volume_up(self, button: Button, interaction: Interaction):
                 if player.volume <= 90:
                     await player.set_volume(player.volume + 10)
