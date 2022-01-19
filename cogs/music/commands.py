@@ -1,6 +1,4 @@
 ﻿# Imports
-import asyncio
-
 import lavalink
 from disnake import (
     Activity,
@@ -73,7 +71,6 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             input_type = FindInputType(query)
-            loop = asyncio.get_event_loop()
             match input_type:
                 case InputType.Playlist:
                     await FetchPlaylist(query, ctx.author, player)
