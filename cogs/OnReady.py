@@ -104,8 +104,14 @@ class Ready(commands.Cog):
     # Start
     @commands.Cog.listener()
     async def on_ready(self) -> None:
+        # Load Music Cogs
+        self.client.load_extension("cogs.music.commands")
+        self.client.load_extension("cogs.music.effects")
+
+        # Set Bot Activity
         await self.client.change_presence(status=Status.online,
                                           activity=Activity(type=ActivityType.watching, name="yall Homies."), )
+        # Print in Terminal
         await self.Output()
 
     @commands.Cog.listener()

@@ -7,8 +7,6 @@ from disnake.ext import commands
 class Effects(commands.Cog):
     def __init__(self, client: disnake.Client):
         self.client = client
-        self.client.lavalink = lavalink.Client(822454735310684230)
-        self.client.lavalink.add_node('127.0.0.1', 2333, 'youshallnotpass', 'in', 'assistant-effects-node')
 
     @commands.command(aliases=["filter"])
     async def filters(self, ctx: commands.Context):
