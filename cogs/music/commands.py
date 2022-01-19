@@ -7,7 +7,6 @@ from disnake import (
     ActivityType,
     Client,
     Status,
-    NotFound,
 )
 from disnake.ext import commands
 from disnake.utils import get
@@ -21,7 +20,6 @@ from cogs.music.fetch import (
 )
 from cogs.music.lavaclient import LavalinkVoiceClient
 from cogs.music.misc import AddTagstoJSON
-from cogs.music.nowplaying import NowPlayingButtons
 from cogs.music.queue import QueuePages, QueueEmbed
 
 FFMPEG_OPTIONS = {
@@ -163,30 +161,6 @@ class Music(commands.Cog):
             player.set_repeat(True)
             await ctx.send("Loop Enabled")
 
-    # Now Playing
-    @commands.command(aliases=["np"])
-    @commands.guild_only()
-    async def nowplaying(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        await ctx.message.delete()
-        if not player.is_playing:
-            await ctx.send("Queue is Empty", delete_after=30)
-            return
-        view = NowPlayingButtons(player)
-        msg = await ctx.send(embed=view.NPEmbed(), view=view)
-        view.message = msg
-        while True:
-            if player.is_playing and ctx.voice_client:
-                pass
-            else:
-                try:
-                    await msg.delete()
-                except NotFound:
-                    pass
-                break
-            await msg.edit(embed=view.NPEmbed())
-            await asyncio.sleep(5)
-
     # Jump
     @commands.command(aliases=["skipto"])
     @commands.guild_only()
@@ -228,7 +202,6 @@ class Music(commands.Cog):
     @stop.before_invoke
     @pause.before_invoke
     @loop.before_invoke
-    @nowplaying.before_invoke
     @jump.before_invoke
     @addtag.before_invoke
     @volume.before_invoke

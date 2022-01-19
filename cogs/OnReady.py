@@ -106,6 +106,7 @@ class Ready(commands.Cog):
     async def on_ready(self) -> None:
         # Load Music Cogs
         self.client.load_extension("cogs.music.commands")
+        self.client.load_extension("cogs.music.nowplaying")
         self.client.load_extension("cogs.music.effects")
 
         # Set Bot Activity
