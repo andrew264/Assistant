@@ -67,11 +67,10 @@ class Queue(commands.Cog):
                     for i in song_index:
                         next_songs += f"{i + 1}. [{player.queue[i].Title}]({player.queue[i].pURL} \"by {player.queue[i].Author.display_name}\")\n"
                     embed.add_field(name=f"Next Up ({self.page_no}/{max_page})", value=next_songs, inline=False)
-                avatar_url = player.current.Author.display_avatar.url
                 if player.repeat:
-                    embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs", icon_url=avatar_url)
+                    embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
                 else:
-                    embed.set_footer(text=f"{len(player.queue) + 1} Songs in Queue", icon_url=avatar_url)
+                    embed.set_footer(text=f"{len(player.queue) + 1} Songs in Queue")
                 return embed
 
         view = QueuePages()

@@ -120,19 +120,21 @@ class NP(commands.Cog):
                 song_on = time.strftime("%M:%S", time.gmtime(player.position / 1000))
                 embed = Embed(color=0xEB459E)
                 embed.set_thumbnail(url=f"{current_song.Thumbnail}")
-                embed.set_author(name=f"{current_song.Title}", url=current_song.pURL, icon_url="")
+                embed.set_author(name=current_song.Title, url=current_song.pURL, icon_url=current_song.avatar_url)
                 embed.add_field(name=f"{song_on} {progress_bar} {current_song.FDuration}", value="\u200b",
                                 inline=False, )
                 embed.add_field(name="Views:", value=f"{human_format(int(current_song.Views))}", inline=True)
                 embed.add_field(name="Likes:", value=f"{human_format(int(current_song.Likes))}", inline=True)
                 embed.add_field(name="Uploaded on:", value=f"{current_song.UploadDate}", inline=True)
-                avatar_url = current_song.Author.display_avatar.url
                 if player.queue and player.repeat:
-                    embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs", icon_url=avatar_url)
+                    embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
                 elif player.queue and not player.repeat:
-                    embed.set_footer(text=f"Next in Queue: {player.queue[0].Title}", icon_url=avatar_url)
+                    embed.set_footer(text=f"Next in Queue: {player.queue[0].Title}",
+                                     icon_url=player.queue[0].avatar_url)
+                elif not player.queue and player.repeat:
+                    embed.set_footer(text="Looping current Song")
                 else:
-                    embed.set_footer(text=f"Requested by {current_song.Author.display_name}", icon_url=avatar_url)
+                    embed.set_footer(text=f"Requested by {current_song.Author.display_name}")
                 return embed
 
         if not player.is_playing:

@@ -93,10 +93,7 @@ class VideoTrack(AudioTrack):
             self.Title: str = video_data.snippet.title
             self.pURL: str = f"https://www.youtube.com/watch?v={video_data.id}"
             thumbnails = video_data.snippet.thumbnails
-            if thumbnails.maxres:
-                self.Thumbnail: str = thumbnails.maxres.url
-            else:
-                self.Thumbnail: str = thumbnails.default.url
+            self.Thumbnail: str = thumbnails.maxres.url if thumbnails.maxres else thumbnails.default.url
             self.Views: int = video_data.statistics.viewCount
             self.Likes: int = video_data.statistics.likeCount
             self.UploadDate: str = video_data.snippet.string_to_datetime(video_data.snippet.publishedAt).strftime(
@@ -114,6 +111,10 @@ class VideoTrack(AudioTrack):
     @property
     def FDuration(self):
         return time.strftime("%M:%S", time.gmtime(self.Duration))
+
+    @property
+    def avatar_url(self):
+        return self.Author.display_avatar.url
 
     def toDict(self, query: str = None) -> dict:
         """returns Video Details as Dictionary"""
