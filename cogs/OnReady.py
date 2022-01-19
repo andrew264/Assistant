@@ -107,6 +107,7 @@ class Ready(commands.Cog):
         # Load Music Cogs
         self.client.load_extension("cogs.music.commands")
         self.client.load_extension("cogs.music.nowplaying")
+        self.client.load_extension("cogs.music.queue")
         self.client.load_extension("cogs.music.effects")
 
         # Set Bot Activity

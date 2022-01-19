@@ -20,7 +20,6 @@ from cogs.music.fetch import (
 )
 from cogs.music.lavaclient import LavalinkVoiceClient
 from cogs.music.misc import AddTagstoJSON
-from cogs.music.queue import QueuePages, QueueEmbed
 
 FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1",
@@ -99,14 +98,6 @@ class Music(commands.Cog):
         if player.queue and not player.is_playing:
             await player.play()
             await player.set_volume(25)
-
-    # Queue
-    @commands.command(aliases=["q"])
-    @commands.guild_only()
-    async def queue(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        view = QueuePages(player)
-        view.message = await ctx.send(embed=QueueEmbed(player, 1), view=view)
 
     # Skip
     @commands.command()
@@ -197,7 +188,6 @@ class Music(commands.Cog):
         await ctx.reply(f"TAG: **{tag}** added to **{player.current.Title}**")
 
     # Check Bot in VC
-    @queue.before_invoke
     @skip.before_invoke
     @stop.before_invoke
     @pause.before_invoke
