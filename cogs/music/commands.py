@@ -7,16 +7,7 @@ from disnake import (
     Status,
 )
 from disnake.ext import commands
-from disnake.utils import get
 
-from cogs.music.fetch import (
-    FindInputType,
-    InputType,
-    FetchVideo,
-    Search,
-    FetchPlaylist,
-)
-from cogs.music.lavaclient import LavalinkVoiceClient
 from cogs.music.misc import AddTagstoJSON
 
 FFMPEG_OPTIONS = {
@@ -28,10 +19,6 @@ FFMPEG_OPTIONS = {
 class Music(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
-
-        if not hasattr(client, 'lavalink'):  # This ensures the client isn't overwritten during cog reloads.
-            client.lavalink = lavalink.Client(client.user.id)
-            client.lavalink.add_node('127.0.0.1', 2333, 'youshallnotpass', 'in', 'assistant-node')
 
         lavalink.add_event_hook(self.track_hook)
 
@@ -50,51 +37,6 @@ class Music(commands.Cog):
         if isinstance(event, lavalink.events.QueueEndEvent):
             await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
                                                                                       name="yall Homies."), )
-
-    # Play
-    @commands.command(pass_context=True, aliases=["p"])
-    @commands.guild_only()
-    async def play(self, ctx: commands.Context, *, query: str = None) -> None:
-
-        player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
-
-        # If player is_paused resume...
-        if query is None:
-            if player.current and player.paused:
-                if ctx.voice_client is None:
-                    return
-                await ctx.invoke(self.client.get_command("pause"))
-                return
-            else:
-                await ctx.send("Nothing to Play")
-                return
-
-        async with ctx.typing():
-            input_type = FindInputType(query)
-            match input_type:
-                case InputType.Playlist:
-                    await FetchPlaylist(query, ctx.author, player)
-                case InputType.Search:
-                    await Search(query, ctx.author, player)
-                case InputType.URL:
-                    await FetchVideo(query, ctx.author, player)
-
-        if input_type == InputType.Playlist:
-            await ctx.send(f"Adding Playlist to Queue...")
-        else:
-            await ctx.send(f"Adding `{player.queue[-1].Title}` to Queue.")
-
-        # Join VC
-        voice = get(self.client.voice_clients, guild=ctx.guild)
-        if voice and player.is_connected:
-            pass
-        elif voice is None:
-            player.store('channel', ctx.channel.id)
-            await ctx.author.voice.channel.connect(cls=LavalinkVoiceClient)
-
-        if player.queue and not player.is_playing:
-            await player.play()
-            await player.set_volume(25)
 
     # Skip
     @commands.command()
@@ -201,18 +143,6 @@ class Music(commands.Cog):
         if ctx.voice_client is not None and ctx.author.voice is not None:
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CheckFailure("You must be in same VC as Bot.")
-
-    # Play Checks
-    @play.before_invoke
-    async def check_play(self, ctx: commands.Context) -> None:
-        if ctx.author.voice is None:
-            raise commands.CheckFailure("You are not connected to a voice channel.")
-        if ctx.voice_client is not None and ctx.author.voice is not None:
-            if ctx.voice_client.channel != ctx.author.voice.channel:
-                raise commands.CheckFailure("You must be in same VC as Bot.")
-        permissions = ctx.author.voice.channel.permissions_for(ctx.me)
-        if not permissions.connect or not permissions.speak:
-            raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
 
 
 def setup(client):

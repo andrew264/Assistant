@@ -29,10 +29,10 @@
     <Compile Include="cogs\Help.py" />
     <Compile Include="cogs\Lyrics.py" />
     <Compile Include="cogs\music\effects.py" />
-    <Compile Include="cogs\music\fetch.py" />
     <Compile Include="cogs\music\lavaclient.py" />
     <Compile Include="cogs\music\misc.py" />
     <Compile Include="cogs\music\nowplaying.py" />
+    <Compile Include="cogs\music\play.py" />
     <Compile Include="cogs\music\queue.py" />
     <Compile Include="cogs\music\commands.py" />
     <Compile Include="cogs\OnDM.py" />
