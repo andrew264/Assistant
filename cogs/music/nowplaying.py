@@ -139,7 +139,7 @@ class NP(commands.Cog):
                 song_on = time.strftime("%M:%S", time.gmtime(player.position / 1000))
                 embed = Embed(color=0xEB459E)
                 embed.set_thumbnail(url=f"{current_song.Thumbnail}")
-                embed.set_author(name=current_song.Title, url=current_song.pURL, icon_url=current_song.avatar_url)
+                embed.set_author(name=current_song.Title, url=current_song.uri, icon_url=current_song.avatar_url)
                 embed.add_field(name=f"{song_on} {progress_bar} {current_song.FDuration}", value="\u200b",
                                 inline=False, )
                 embed.add_field(name="Views:", value=f"{human_format(int(current_song.Views))}", inline=True)

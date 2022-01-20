@@ -56,14 +56,14 @@ class Music(commands.Cog):
     @commands.guild_only()
     async def play(self, ctx: commands.Context, *, query: str = None) -> None:
 
-        player = self.client.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
+        player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
 
         # If player is_paused resume...
         if query is None:
             if player.current and player.paused:
                 if ctx.voice_client is None:
                     return
-                await self.pause(ctx)
+                await ctx.invoke(self.client.get_command("pause"))
                 return
             else:
                 await ctx.send("Nothing to Play")
@@ -105,7 +105,7 @@ class Music(commands.Cog):
             return
         if 0 < arg <= len(player.queue):
             await ctx.send(f"{ctx.author.display_name} removed `{player.queue[arg - 1].Title}` from Queue.")
-            player.queue.pop(arg)
+            player.queue.pop(arg - 1)
         elif arg == 0:
             await ctx.send(f"{ctx.author.display_name} removed `{player.current.Title}` from Queue.")
             await player.skip()

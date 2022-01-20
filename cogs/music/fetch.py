@@ -3,7 +3,6 @@ import re
 from enum import Enum
 from typing import List
 
-import yt_dlp.YoutubeDL as YDL
 from disnake import Member
 from pyyoutube import Api
 from pyyoutube.models.playlist_item import PlaylistItem
@@ -55,14 +54,12 @@ async def Search(query: str, author: Member, player) -> None:
                     or "Tags" in data[video_id]
                     and query.lower() in data[video_id]["Tags"]):
                 jsonFile.close()
-                result = (await player.node.get_tracks(data[video_id]["pURL"]))['tracks'][0]
+                result = (await player.node.get_tracks(video_id))['tracks'][0]
                 track = VideoTrack(data=result, author=author, video_dict=data[video_id])
                 break
         else:
-            with YDL(ydl_opts) as ydl:
-                video_id = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]["id"]
-            result = (await player.node.get_tracks(f"https://www.youtube.com/watch?v={video_id}"))['tracks'][0]
-            track = VideoTrack(data=result, author=author, video_id=video_id)
+            result = (await player.node.get_tracks(f"ytsearch:{query}"))['tracks'][0]
+            track = VideoTrack(data=result, author=author)
             data.update(track.toDict(query))
             jsonFile.seek(0)
             json.dump(data, jsonFile, indent=4, sort_keys=True)
@@ -79,7 +76,7 @@ async def FetchVideo(query: str, author: Member, player) -> None:
             jsonFile.close()
             track = VideoTrack(data=result, author=author, video_dict=data[video_id])
         else:
-            track = VideoTrack(data=result, author=author, video_id=video_id)
+            track = VideoTrack(data=result, author=author)
             data.update(track.toDict())
             jsonFile.seek(0)
             json.dump(data, jsonFile, indent=4, sort_keys=True)
@@ -94,11 +91,11 @@ async def FetchPlaylist(query: str, author: Member, player) -> None:
     with open("data/MusicCache.json", "r+") as jsonFile:
         data: dict = json.load(jsonFile)
         for video_id in video_ids:
-            result = (await player.node.get_tracks(f"https://www.youtube.com/watch?v={video_id}"))['tracks'][0]
+            result = (await player.node.get_tracks(video_id))['tracks'][0]
             if video_id in data:
                 track = VideoTrack(data=result, author=author, video_dict=data[video_id])
             else:
-                track = VideoTrack(data=result, author=author, video_id=video_id)
+                track = VideoTrack(data=result, author=author)
                 data.update(track.toDict())
             player.add(requester=author.id, track=track)
         jsonFile.seek(0)

@@ -85,53 +85,51 @@ class LavalinkVoiceClient(disnake.VoiceClient):
 
 class VideoTrack(AudioTrack):
 
-    def __init__(self, data: dict, author: Member, video_id: str = None, video_dict: dict = None, **extra):
+    def __init__(self, data: dict, author: Member, video_dict: dict = None, **extra):
         super().__init__(data, author.id, **extra)
         self.Author = author
-        if video_id is not None:
-            video_data = api.get_video_by_id(video_id=video_id).items[0]
+        if video_dict is None:
+            video_data = api.get_video_by_id(video_id=self.identifier).items[0]
             self.Title: str = video_data.snippet.title
-            self.pURL: str = f"https://www.youtube.com/watch?v={video_data.id}"
             thumbnails = video_data.snippet.thumbnails
             self.Thumbnail: str = thumbnails.maxres.url if thumbnails.maxres else thumbnails.default.url
             self.Views: int = video_data.statistics.viewCount
             self.Likes: int = video_data.statistics.likeCount
             self.UploadDate: str = video_data.snippet.string_to_datetime(video_data.snippet.publishedAt).strftime(
                 "%d-%m-%Y")
-            self.Duration: int = video_data.contentDetails.get_video_seconds_duration()
         else:
             self.Title: str = video_dict["Title"]
-            self.pURL: str = video_dict["pURL"]
             self.Thumbnail: str = video_dict["Thumbnail"]
             self.Views: int = int(video_dict["Views"])
             self.Likes: int = int(video_dict["Likes"])
             self.UploadDate: str = video_dict["UploadDate"]
-            self.Duration: int = int(video_dict["Duration"])
+
+    @property
+    def Duration(self):
+        """Duration in seconds"""
+        return self.duration / 1000
 
     @property
     def FDuration(self):
-        return time.strftime("%M:%S", time.gmtime(self.Duration))
+        """Duration in MM:SS Format"""
+        return time.strftime("%M:%S", time.gmtime(self.duration / 1000))
 
     @property
     def avatar_url(self):
+        """Author's Avatar URL"""
         return self.Author.display_avatar.url
 
     def toDict(self, query: str = None) -> dict:
         """returns Video Details as Dictionary"""
-        vid_id_regex = re.compile(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*")
-        video_id = vid_id_regex.search(self.pURL).group(1)
         dict1: dict = {
-            video_id: {
+            self.identifier: {
                 "Title": self.Title,
-                "pURL": self.pURL,
                 "Thumbnail": self.Thumbnail,
                 "Views": self.Views,
                 "Likes": self.Likes,
                 "UploadDate": self.UploadDate,
-                "Duration": self.Duration,
-                "Tags": [],
-            }
+                "Tags": [], }
         }
         if query is not None:
-            dict1[video_id]["Tags"] = [query]
+            dict1[self.identifier]["Tags"] = [query]
         return dict1
