@@ -65,7 +65,7 @@ class Effects(commands.Cog):
 
         class TimeScaleButtons(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=180)
+                super().__init__(timeout=90)
                 self.speed = 1.0
                 self.pitch = 1.0
                 self.rate = 1.0
