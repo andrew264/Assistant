@@ -38,7 +38,7 @@ class Play(commands.Cog):
                 await player.set_pause(pause=False)
                 return
             else:
-                await ctx.send("Nothing to Play")
+                await ctx.send("Nothing to Play", delete_after=10)
                 return
 
         async with ctx.typing():

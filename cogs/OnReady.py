@@ -137,7 +137,7 @@ class Ready(commands.Cog):
         elif isinstance(error, commands.UserInputError):
             await ctx.send(f"Error: Invalid {error.args[0]} Argument.")
         elif isinstance(error, commands.CheckFailure):
-            await ctx.send(f"***{error}***")
+            await ctx.send(f"***{error}***", delete_after=30)
         else:
             await ctx.send(f"***{error}***")
             channel = self.client.get_channel(DM_Channel)
