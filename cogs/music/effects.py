@@ -1,3 +1,5 @@
+import asyncio
+
 import disnake
 import lavalink
 from disnake import ButtonStyle, Button, Interaction
@@ -15,15 +17,7 @@ class Effects(commands.Cog):
         class FilterButtons(disnake.ui.View):
             def __init__(self, client):
                 self.client = client
-                self.message: disnake.Message
-                super().__init__(timeout=30)
-
-            async def on_timeout(self):
-                try:
-                    self.stop()
-                    await self.message.delete()
-                except disnake.errors.NotFound:
-                    pass
+                super().__init__(timeout=None)
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -39,12 +33,14 @@ class Effects(commands.Cog):
                 await ctx.invoke(self.client.get_command("timescale"))
                 button.disabled = True
                 await interaction.response.edit_message(view=None)
+                await interaction.delete_original_message()
 
             @disnake.ui.button(label="BassBoost", style=ButtonStyle.gray)
             async def bassboost(self, button: Button, interaction: Interaction):
                 await ctx.invoke(self.client.get_command("bassboost"))
                 button.disabled = True
                 await interaction.response.edit_message(view=None)
+                await interaction.delete_original_message()
 
             @disnake.ui.button(label="ResetEQ", style=ButtonStyle.blurple)
             async def reseteq(self, button: Button, interaction: Interaction):
@@ -53,11 +49,13 @@ class Effects(commands.Cog):
                 flat_eq = lavalink.filters.Equalizer()
                 flat_eq.update(bands=eq)
                 await player.set_filter(flat_eq)
-                await interaction.response.edit_message(content="Equalizer set to flat.", view=None)
+                await interaction.response.edit_message(content="Equalizer set to flat.", view=None, )
+                await asyncio.sleep(5)
+                await interaction.delete_original_message()
 
         view = FilterButtons(self.client)
-        view.message = await ctx.send("Available Filters", view=view)
-        await ctx.message.delete(delay=30)
+        await ctx.send("Available Filters", view=view)
+        await ctx.message.delete()
 
     @commands.command()
     async def timescale(self, ctx: commands.Context):
@@ -65,18 +63,10 @@ class Effects(commands.Cog):
 
         class TimeScaleButtons(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=90)
+                super().__init__(timeout=None)
                 self.speed = 1.0
                 self.pitch = 1.0
                 self.rate = 1.0
-                self.message: disnake.Message
-
-            async def on_timeout(self):
-                try:
-                    self.stop()
-                    self.message.delete()
-                except disnake.errors.NotFound:
-                    pass
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -179,8 +169,11 @@ class Effects(commands.Cog):
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
         view = TimeScaleButtons()
-        view.message = await ctx.send(embed=view.embed, view=view)
-        await ctx.message.delete(delay=30)
+        message = await ctx.send(embed=view.embed, view=view)
+        try:
+            await message.delete(delay=60)
+        except disnake.NotFound:
+            pass
 
     @commands.command(aliases=["bass"])
     async def bassboost(self, ctx: commands.Context):
@@ -189,15 +182,7 @@ class Effects(commands.Cog):
 
         class BassButtons(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=60)
-                self.message: disnake.Message
-
-            async def on_timeout(self):
-                try:
-                    self.stop()
-                    await self.message.delete()
-                except disnake.errors.NotFound:
-                    pass
+                super().__init__(timeout=None)
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -238,8 +223,11 @@ class Effects(commands.Cog):
 
         view = BassButtons()
         embed0 = disnake.Embed(title="Bass Boost Disabled", colour=0x000000)
-        view.message = await ctx.send(embed=embed0, view=view)
-        await ctx.message.delete(delay=30)
+        message = await ctx.send(embed=embed0, view=view)
+        try:
+            await message.delete(delay=60)
+        except disnake.NotFound:
+            pass
 
 
 def setup(client):

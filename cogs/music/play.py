@@ -29,12 +29,13 @@ class Play(commands.Cog):
         player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.create(ctx.guild.id,
                                                                                     endpoint=str(ctx.guild.region))
 
+        await ctx.message.delete(delay=5)
         # If player is paused, resume player
         if query is None:
             if player.current and player.paused:
                 if ctx.voice_client is None:
                     return
-                await ctx.invoke(self.client.get_command("pause"))
+                await player.set_pause(pause=False)
                 return
             else:
                 await ctx.send("Nothing to Play")
@@ -47,7 +48,7 @@ class Play(commands.Cog):
                 playlist_id = query.replace("https://www.youtube.com/playlist?list=", "")
                 video_items: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
                 video_ids = [video.snippet.resourceId.videoId for video in video_items]
-                await ctx.send(f"Adding Playlist to Queue...")
+                await ctx.send(f"Adding Playlist to Queue...", delete_after=20)
             else:
                 playlist = False
                 url_rx = re.compile(r'https?://(?:www\.)?.+')
@@ -55,7 +56,7 @@ class Play(commands.Cog):
                     query = f'ytsearch:{query}'
                 result = (await player.node.get_tracks(query))['tracks'][0]
                 video_ids = [result['info']['identifier']]
-                await ctx.send(f"Adding `{result['info']['title']}` to Queue.")
+                await ctx.send(f"Adding `{result['info']['title']}` to Queue.", delete_after=20)
             with open("data/MusicCache.json", "r+") as jsonFile:
                 data: dict = json.load(jsonFile)
                 for video_id in video_ids:

@@ -4,7 +4,6 @@ import time
 import disnake
 from disnake import (
     Embed,
-    Message,
     Button,
     Interaction,
     ButtonStyle,
@@ -31,14 +30,9 @@ class NP(commands.Cog):
         class NowPlayingButtons(disnake.ui.View):
             def __init__(self):
                 super().__init__(timeout=None)
-                self.message: Message
 
             async def on_timeout(self):
-                try:
-                    self.stop()
-                    await self.message.delete()
-                except disnake.errors.NotFound:
-                    pass
+                self.stop()
 
             async def interaction_check(self, interaction: MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -57,7 +51,7 @@ class NP(commands.Cog):
             @disnake.ui.button(emoji="⏪", style=ButtonStyle.primary)
             async def reverse_button(self, button: Button, interaction: Interaction):
                 if player.position > 10000:
-                    await player.seek(int(player.position-10000))
+                    await player.seek(int(player.position - 10000))
                 else:
                     await player.seek(0)
                 await interaction.response.edit_message(embed=self.NPEmbed)
@@ -75,8 +69,8 @@ class NP(commands.Cog):
 
             @disnake.ui.button(emoji="⏩", style=ButtonStyle.primary)
             async def forward_button(self, button: Button, interaction: Interaction):
-                if player.position < player.current.duration-10000:
-                    await player.seek(int(player.position+10000))
+                if player.position < player.current.duration - 10000:
+                    await player.seek(int(player.position + 10000))
                 else:
                     await player.seek(int(player.current.duration))
                 await interaction.response.edit_message(embed=self.NPEmbed)
@@ -161,7 +155,6 @@ class NP(commands.Cog):
             return
         view = NowPlayingButtons()
         msg = await ctx.send(embed=view.NPEmbed, view=view)
-        view.message = msg
         while True:
             if player.is_playing and ctx.voice_client:
                 pass

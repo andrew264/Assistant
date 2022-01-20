@@ -24,7 +24,7 @@ class Queue(commands.Cog):
 
         class QueuePages(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=60.0)
+                super().__init__(timeout=30.0)
                 self.page_no = 1
                 self.message: Message | None = None
 
@@ -73,9 +73,10 @@ class Queue(commands.Cog):
                     embed.set_footer(text=f"{len(player.queue) + 1} Songs in Queue")
                 return embed
 
+        await ctx.message.delete()
         view = QueuePages()
         view.message = await ctx.send(embed=view.QueueEmbed, view=view)
-        await ctx.message.delete(delay=60)
+        await view.message.delete(delay=60)
 
     @queue.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
