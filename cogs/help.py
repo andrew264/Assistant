@@ -52,8 +52,9 @@ class HelpMe(commands.Cog):
             music_embed.add_field(name="`.np`", value="Display Now Playing")
             music_embed.add_field(name="`.queue`", value="Songs in Queue")
             music_embed.add_field(name="`.skip`\t<song_index>", value="Skip Songs")
-            music_embed.add_field(name="`.loop`\t <all|one>", value="Toggle Loop")
+            music_embed.add_field(name="`.loop`", value="Toggle Loop")
             music_embed.add_field(name="`.jump`\t<song_index>", value="Skip to a Song")
+            music_embed.add_field(name="`.filter`", value="Apply Filters to Song")
             for child in self.children:
                 child.disabled = False
             _button.disabled = True
