@@ -19,7 +19,7 @@ class Play(commands.Cog):
         self.client = client
         if not hasattr(client, 'lavalink'):
             client.lavalink = lavalink.Client(client.user.id)
-            client.lavalink.add_node('127.0.0.1', 2333, 'youshallnotpass', 'in', 'assistant-node')
+            client.lavalink.add_node('192.168.1.36', 2333, 'youshallnotpass', 'in', 'assistant-node')
 
     # Play
     @commands.command(pass_context=True, aliases=["p"])
