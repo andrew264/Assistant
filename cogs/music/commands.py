@@ -34,9 +34,11 @@ class Music(commands.Cog):
             if song:
                 await self.client.change_presence(activity=Activity(type=ActivityType.listening,
                                                                     name=song.Title, ))
-        if isinstance(event, lavalink.events.QueueEndEvent):
-            await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
-                                                                                      name="yall Homies."), )
+        if isinstance(event, lavalink.events.TrackEndEvent):
+            player = event.player
+            if not player.is_playing:
+                await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
+                                                                                          name="yall Homies."), )
 
     # Skip
     @commands.command()
