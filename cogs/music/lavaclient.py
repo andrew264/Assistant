@@ -118,17 +118,15 @@ class VideoTrack(AudioTrack):
         """Author's Avatar URL"""
         return self.Author.display_avatar.url
 
-    def toDict(self, query: str = None) -> dict:
-        """returns Video Details as Dictionary"""
+    @property
+    def toDict(self) -> dict:
+        """Video Details as Dictionary"""
         dict1: dict = {
             self.identifier: {
                 "Title": self.Title,
                 "Thumbnail": self.Thumbnail,
                 "Views": self.Views,
                 "Likes": self.Likes,
-                "UploadDate": self.UploadDate,
-                "Tags": [], }
+                "UploadDate": self.UploadDate, }
         }
-        if query is not None:
-            dict1[self.identifier]["Tags"] = [query]
         return dict1

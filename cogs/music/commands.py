@@ -8,8 +8,6 @@ from disnake import (
 )
 from disnake.ext import commands
 
-from cogs.music.misc import AddTagstoJSON
-
 FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1",
     "options": "-vn",
@@ -127,23 +125,12 @@ class Music(commands.Cog):
         else:
             await ctx.send("Set Volume between `1 and 100`.", delete_after=10)
 
-    # Add Tags to Current Song
-    @commands.is_owner()
-    @commands.guild_only()
-    @commands.command(aliases=["tag"])
-    async def addtag(self, ctx: commands.Context, *, tag: str) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        await ctx.message.delete()
-        AddTagstoJSON(player.current.identifier, tag)
-        await ctx.reply(f"TAG: **{tag}** added to **{player.current.Title}**", delete_after=15)
-
     # Check Bot in VC
     @skip.before_invoke
     @stop.before_invoke
     @pause.before_invoke
     @loop.before_invoke
     @jump.before_invoke
-    @addtag.before_invoke
     @volume.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
         player = self.client.lavalink.player_manager.get(ctx.guild.id)

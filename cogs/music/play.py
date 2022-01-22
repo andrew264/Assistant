@@ -66,7 +66,7 @@ class Play(commands.Cog):
                         track = VideoTrack(data=result, author=ctx.author, video_dict=data[video_id])
                     else:
                         track = VideoTrack(data=result, author=ctx.author)
-                        data.update(track.toDict())
+                        data.update(track.toDict)
                     player.add(requester=ctx.author.id, track=track)
                 jsonFile.seek(0)
                 json.dump(data, jsonFile, indent=4, sort_keys=True)
