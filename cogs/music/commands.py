@@ -8,11 +8,6 @@ from disnake import (
 )
 from disnake.ext import commands
 
-FFMPEG_OPTIONS = {
-    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -multiple_requests 1",
-    "options": "-vn",
-}
-
 
 class Music(commands.Cog):
     def __init__(self, client: Client):
@@ -31,7 +26,7 @@ class Music(commands.Cog):
             song = event.player.current
             if song:
                 await self.client.change_presence(activity=Activity(type=ActivityType.listening,
-                                                                    name=song.Title, ))
+                                                                    name=song.title, ))
         if isinstance(event, lavalink.events.TrackEndEvent):
             player = event.player
             if not player.is_playing:

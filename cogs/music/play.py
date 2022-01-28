@@ -1,16 +1,10 @@
-import json
 import re
-from typing import List
 
 import disnake
 import lavalink
 from disnake.ext import commands
 from disnake.utils import get
-from pyyoutube import Api, PlaylistItem
 
-from EnvVariables import YT_TOKEN
-
-api = Api(api_key=YT_TOKEN)
 from cogs.music.lavaclient import LavalinkVoiceClient, VideoTrack
 
 
@@ -42,35 +36,23 @@ class Play(commands.Cog):
                 return
 
         async with ctx.typing():
-            playlist_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com)\/(playlist).+$", re.IGNORECASE)
-            if re.match(playlist_rx, query) is not None:
-                playlist = True
-                playlist_id = query.replace("https://www.youtube.com/playlist?list=", "")
-                video_items: List[PlaylistItem] = api.get_playlist_items(playlist_id=playlist_id, count=None).items
-                video_ids = [video.snippet.resourceId.videoId for video in video_items]
-                await ctx.send(f"Adding Playlist to Queue...", delete_after=20)
-            else:
-                playlist = False
-                url_rx = re.compile(r'https?://(?:www\.)?.+')
-                if not url_rx.match(query):
-                    query = f'ytsearch:{query}'
-                result = (await player.node.get_tracks(query))['tracks'][0]
-                video_ids = [result['info']['identifier']]
-                await ctx.send(f"Adding `{result['info']['title']}` to Queue.", delete_after=20)
-            with open("data/MusicCache.json", "r+") as jsonFile:
-                data: dict = json.load(jsonFile)
-                for video_id in video_ids:
-                    if playlist:
-                        result = (await player.node.get_tracks(video_id))['tracks'][0]
-                    if video_id in data:
-                        track = VideoTrack(data=result, author=ctx.author, video_dict=data[video_id])
-                    else:
-                        track = VideoTrack(data=result, author=ctx.author)
-                        data.update(track.toDict)
+            url_rx = re.compile(r'https?://(?:www\.)?.+')
+            if not url_rx.match(query):
+                query = f'ytsearch:{query}'
+            results = await player.node.get_tracks(query)
+            if not results or not results['tracks']:
+                await ctx.send("Nothing to Play", delete_after=10)
+                return
+            if results['loadType'] == 'PLAYLIST_LOADED':
+                tracks = results['tracks']
+                for track in tracks:
+                    track = VideoTrack(data=track, author=ctx.author)
                     player.add(requester=ctx.author.id, track=track)
-                jsonFile.seek(0)
-                json.dump(data, jsonFile, indent=4, sort_keys=True)
-                jsonFile.close()
+                await ctx.send(f"{len(tracks)} tracks added from {results['playlistInfo']['name']}", delete_after=20)
+            else:
+                track = VideoTrack(data=results['tracks'][0], author=ctx.author)
+                player.add(requester=ctx.author.id, track=track)
+                await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
 
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)

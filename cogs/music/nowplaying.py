@@ -1,5 +1,4 @@
 ﻿import asyncio
-import time
 
 import disnake
 from disnake import (
@@ -17,12 +16,10 @@ from cogs.music.lavaclient import VideoTrack
 
 def human_format(num):
     """Convert Integers to Human readable formats."""
-    num = float("{:.3g}".format(num))
-    magnitude = 0
-    while abs(num) >= 1000:
-        magnitude += 1
+    for x in ["", "K", "M", "B", "T"]:
+        if num < 1000.0:
+            return "%3.1f %s" % (num, x)
         num /= 1000.0
-    return "{}{}".format("{:f}".format(num).rstrip("0").rstrip("."), ["", "K", "M", "B", "T"][magnitude])
 
 
 class NP(commands.Cog):
@@ -136,22 +133,24 @@ class NP(commands.Cog):
             @property
             def NPEmbed(self) -> Embed:
                 current_song: VideoTrack = player.current
-                percentile = round(((player.position / 1000) / current_song.Duration) * 20)
+                percentile = round((player.position / current_song.duration) * 20)
                 bar = "────────────────────"
                 progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]
-                song_on = time.strftime("%M:%S", time.gmtime(player.position / 1000))
+                song_on = current_song.formated_time(player.position)
+                song_end = current_song.formated_time(current_song.duration)
+                current_song.fetch_info()
                 embed = Embed(color=0xEB459E)
-                embed.set_thumbnail(url=f"{current_song.Thumbnail}")
-                embed.set_author(name=current_song.Title, url=current_song.uri, icon_url=current_song.avatar_url)
-                embed.add_field(name=f"{song_on} {progress_bar} {current_song.FDuration}", value="\u200b",
+                embed.set_thumbnail(url=f"{current_song.thumbnail}")
+                embed.set_author(name=current_song.title, url=current_song.uri, icon_url=current_song.avatar_url)
+                embed.add_field(name=f"{song_on} {progress_bar} {song_end}", value="\u200b",
                                 inline=False, )
-                embed.add_field(name="Views:", value=f"{human_format(int(current_song.Views))}", inline=True)
-                embed.add_field(name="Likes:", value=f"{human_format(int(current_song.Likes))}", inline=True)
-                embed.add_field(name="Uploaded on:", value=f"{current_song.UploadDate}", inline=True)
+                embed.add_field(name="Views:", value=f"{human_format(int(current_song.views))}", inline=True)
+                embed.add_field(name="Likes:", value=f"{human_format(int(current_song.likes))}", inline=True)
+                embed.add_field(name="Uploaded on:", value=f"{current_song.upload_date}", inline=True)
                 if player.queue and player.repeat:
                     embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
                 elif player.queue and not player.repeat:
-                    embed.set_footer(text=f"Next in Queue: {player.queue[0].Title}",
+                    embed.set_footer(text=f"Next in Queue: {player.queue[0].title}",
                                      icon_url=player.queue[0].avatar_url)
                 elif not player.queue and player.repeat:
                     embed.set_footer(text="Looping current Song")

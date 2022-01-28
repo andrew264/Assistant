@@ -1,4 +1,4 @@
-import time
+from typing import Optional
 
 import disnake
 import lavalink
@@ -60,7 +60,7 @@ class LavalinkVoiceClient(disnake.VoiceClient):
         self.lavalink.player_manager.create(guild_id=self.channel.guild.id)
         await self.channel.guild.change_voice_state(channel=self.channel)
 
-    async def disconnect(self, *, force: bool) -> None:
+    async def disconnect(self, *, force: bool = True) -> None:
         """
         Handles the disconnect.
         Cleans up running player and leaves the voice client.
@@ -84,49 +84,35 @@ class LavalinkVoiceClient(disnake.VoiceClient):
 
 class VideoTrack(AudioTrack):
 
-    def __init__(self, data: dict, author: Member, video_dict: dict = None, **extra):
+    def __init__(self, data: dict, author: Member, **extra):
         super().__init__(data, author.id, **extra)
         self.Author = author
-        if video_dict is None:
-            video_data = api.get_video_by_id(video_id=self.identifier).items[0]
-            self.Title: str = video_data.snippet.title
-            thumbnails = video_data.snippet.thumbnails
-            self.Thumbnail: str = thumbnails.maxres.url if thumbnails.maxres else thumbnails.default.url
-            self.Views: int = video_data.statistics.viewCount
-            self.Likes: int = video_data.statistics.likeCount
-            self.UploadDate: str = video_data.snippet.string_to_datetime(video_data.snippet.publishedAt).strftime(
-                "%d-%m-%Y")
+        self.thumbnail: Optional[str] = None
+        self.views: Optional[int] = None
+        self.likes: Optional[int] = None
+        self.upload_date: Optional[str] = None
+
+    @staticmethod
+    def formated_time(ms: float) -> str:
+        """Duration in HH:MM:SS Format"""
+        seconds = ms / 1000
+        if seconds > 3600:
+            return f'{int(seconds // 3600)}:{int((seconds % 3600) // 60):02}:{int(seconds % 60):02}'
         else:
-            self.Title: str = video_dict["Title"]
-            self.Thumbnail: str = video_dict["Thumbnail"]
-            self.Views: int = int(video_dict["Views"])
-            self.Likes: int = int(video_dict["Likes"])
-            self.UploadDate: str = video_dict["UploadDate"]
-
-    @property
-    def Duration(self):
-        """Duration in seconds"""
-        return self.duration / 1000
-
-    @property
-    def FDuration(self):
-        """Duration in MM:SS Format"""
-        return time.strftime("%M:%S", time.gmtime(self.duration / 1000))
+            return f'{int(seconds // 60):02}:{int(seconds % 60):02}'
 
     @property
     def avatar_url(self):
         """Author's Avatar URL"""
         return self.Author.display_avatar.url
 
-    @property
-    def toDict(self) -> dict:
-        """Video Details as Dictionary"""
-        dict1: dict = {
-            self.identifier: {
-                "Title": self.Title,
-                "Thumbnail": self.Thumbnail,
-                "Views": self.Views,
-                "Likes": self.Likes,
-                "UploadDate": self.UploadDate, }
-        }
-        return dict1
+    def fetch_info(self) -> None:
+        """Fetch the video info from YouTube"""
+        if self.thumbnail:
+            return
+        video_data = api.get_video_by_id(video_id=self.identifier).items[0]
+        thumbnails = video_data.snippet.thumbnails
+        self.thumbnail = thumbnails.maxres.url if thumbnails.maxres else thumbnails.default.url
+        self.views = video_data.statistics.viewCount
+        self.likes = video_data.statistics.likeCount
+        self.upload_date = video_data.snippet.string_to_datetime(video_data.snippet.publishedAt).strftime("%d-%m-%Y")
