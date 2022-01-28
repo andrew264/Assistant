@@ -5,7 +5,8 @@ import lavalink
 from disnake.ext import commands
 from disnake.utils import get
 
-from cogs.music.lavaclient import LavalinkVoiceClient, VideoTrack
+from cogs.music.lavaclient import LavalinkVoiceClient
+from cogs.music.lavatrack import VideoTrack
 
 
 class Play(commands.Cog):

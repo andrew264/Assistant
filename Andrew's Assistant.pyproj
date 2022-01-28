@@ -30,6 +30,7 @@
     <Compile Include="cogs\Lyrics.py" />
     <Compile Include="cogs\music\effects.py" />
     <Compile Include="cogs\music\lavaclient.py" />
+    <Compile Include="cogs\music\lavatrack.py" />
     <Compile Include="cogs\music\nowplaying.py" />
     <Compile Include="cogs\music\play.py" />
     <Compile Include="cogs\music\queue.py" />

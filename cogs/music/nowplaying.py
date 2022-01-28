@@ -11,15 +11,7 @@ from disnake import (
 from disnake.ext import commands
 from lavalink import DefaultPlayer
 
-from cogs.music.lavaclient import VideoTrack
-
-
-def human_format(num):
-    """Convert Integers to Human readable formats."""
-    for x in ["", "K", "M", "B", "T"]:
-        if num < 1000.0:
-            return "%3.1f %s" % (num, x)
-        num /= 1000.0
+from cogs.music.lavatrack import VideoTrack
 
 
 class NP(commands.Cog):
@@ -144,8 +136,8 @@ class NP(commands.Cog):
                 embed.set_author(name=current_song.title, url=current_song.uri, icon_url=current_song.avatar_url)
                 embed.add_field(name=f"{song_on} {progress_bar} {song_end}", value="\u200b",
                                 inline=False, )
-                embed.add_field(name="Views:", value=f"{human_format(int(current_song.views))}", inline=True)
-                embed.add_field(name="Likes:", value=f"{human_format(int(current_song.likes))}", inline=True)
+                embed.add_field(name="Views:", value=f"{current_song.views}", inline=True)
+                embed.add_field(name="Likes:", value=f"{current_song.likes}", inline=True)
                 embed.add_field(name="Uploaded on:", value=f"{current_song.upload_date}", inline=True)
                 if player.queue and player.repeat:
                     embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
