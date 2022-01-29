@@ -16,13 +16,16 @@ from disnake.ext import commands
 from disnake.ext.commands import Param
 from lyricsgenius import Genius
 from lyricsgenius.types import Song
+from lavalink import DefaultPlayer as Player
+import yt_dlp.YoutubeDL as YDL
 
 from EnvVariables import GENIUS_TOKEN
 
+ydl_opts = {'quiet': True, 'no_warnings': True}
 genius = Genius(GENIUS_TOKEN, verbose=False)
 
 
-def fetch_lyrics(song_title: str, artist_name: str) -> Song | None:
+def fetch_lyrics(song_title: str, artist_name: str = "") -> Song | None:
     song = genius.search_song(song_title, artist_name)
     if song and song.lyrics:
         return song
@@ -89,11 +92,18 @@ class Lyrics(commands.Cog):
                      author: str = Param(description="Song Author", default=""), ) -> None:
 
         await inter.response.defer()
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
 
         loop = asyncio.get_event_loop()
         song: Song | None = None
         if title:
             song = await loop.run_in_executor(None, fetch_lyrics, title, author)
+        elif player and player.current:
+            with YDL(ydl_opts) as ydl:
+                video = ydl.extract_info(f'{player.current.identifier}', download=False)
+            title = re.sub(r"\([^()]*\)", "", video["track"])
+            artist = list((video["artist"]).split(","))[0]
+            song = await loop.run_in_executor(None, fetch_lyrics, title, artist)
         else:
             for activity in inter.author.activities:
                 if isinstance(activity, Spotify):
