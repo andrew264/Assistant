@@ -54,8 +54,8 @@ class Music(commands.Cog):
     @commands.command(aliases=["dc", "kelambu"])
     @commands.guild_only()
     async def stop(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        if player.is_playing or player.paused:
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        if player.is_connected:
             # Clear the queue to ensure old tracks don't start playing
             # when someone else queues something.
             player.queue.clear()
