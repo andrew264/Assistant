@@ -22,8 +22,7 @@ class Play(commands.Cog):
     @commands.guild_only()
     async def play(self, ctx: commands.Context, *, query: str = None) -> None:
 
-        player: Player = self.client.lavalink.player_manager.create(ctx.guild.id,
-                                                                                    endpoint=str(ctx.guild.region))
+        player: Player = self.client.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
         await ctx.message.delete(delay=5)
         # If player is paused, resume player
         if query is None:

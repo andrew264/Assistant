@@ -47,11 +47,11 @@ class Music(commands.Cog):
         if not player.is_playing or arg > len(player.queue):
             return
         if 0 < arg <= len(player.queue):
-            await ctx.send(f"{ctx.author.display_name} removed `{player.queue[arg - 1].Title}` from Queue.",
+            await ctx.send(f"{ctx.author.display_name} removed `{player.queue[arg - 1].title}` from Queue.",
                            delete_after=30)
             player.queue.pop(arg - 1)
         elif arg == 0:
-            await ctx.send(f"{ctx.author.display_name} removed `{player.current.Title}` from Queue.",
+            await ctx.send(f"{ctx.author.display_name} removed `{player.current.title}` from Queue.",
                            delete_after=30)
             await player.skip()
 
@@ -79,10 +79,10 @@ class Music(commands.Cog):
         await ctx.message.delete()
         if player.paused is False:
             await player.set_pause(pause=True)
-            await ctx.send(f"{ctx.author.display_name} paused `{player.current.Title}`", delete_after=30)
+            await ctx.send(f"{ctx.author.display_name} paused `{player.current.title}`", delete_after=30)
         else:
             await player.set_pause(pause=False)
-            await ctx.send(f"{ctx.author.display_name} resumed `{player.current.Title}`", delete_after=30)
+            await ctx.send(f"{ctx.author.display_name} resumed `{player.current.title}`", delete_after=30)
 
     # Loop
     @commands.command(aliases=["repeat"])
