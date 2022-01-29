@@ -1,6 +1,7 @@
 ﻿# Imports
 import asyncio
 import re
+from typing import Optional
 
 import disnake
 from disnake import (
@@ -25,7 +26,7 @@ ydl_opts = {'quiet': True, 'no_warnings': True}
 genius = Genius(GENIUS_TOKEN, verbose=False)
 
 
-def fetch_lyrics(song_title: str, artist_name: str = "") -> Song | None:
+def fetch_lyrics(song_title: str, artist_name: str = "") -> Optional[Song]:
     song = genius.search_song(song_title, artist_name)
     if song and song.lyrics:
         return song
@@ -89,35 +90,51 @@ class Lyrics(commands.Cog):
     @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")
     async def lyrics(self, inter: ApplicationCommandInteraction,
                      title: str = Param(description="Song Title", default=None),
-                     author: str = Param(description="Song Author", default=""), ) -> None:
+                     artist: str = Param(description="Song Artist", default=""), ) -> None:
 
         await inter.response.defer()
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        spotify = False
+        track_url: Optional[str] = None
+        icon_url: Optional[str] = inter.author.display_avatar.url
 
-        loop = asyncio.get_event_loop()
-        song: Song | None = None
-        if title:
-            song = await loop.run_in_executor(None, fetch_lyrics, title, author)
-        elif player and player.current:
-            with YDL(ydl_opts) as ydl:
-                video = ydl.extract_info(f'{player.current.identifier}', download=False)
-            title = re.sub(r"\([^()]*\)", "", video["track"])
-            artist = list((video["artist"]).split(","))[0]
-            song = await loop.run_in_executor(None, fetch_lyrics, title, artist)
-        else:
+        # fetch title from Spotify Activity
+        if not title:
             for activity in inter.author.activities:
                 if isinstance(activity, Spotify):
-                    title = re.sub(r"\([^)]*\)", "", activity.title)
-                    song = await loop.run_in_executor(None, fetch_lyrics, title, activity.artist)
-                    if isinstance(song, Song) and hasattr(song, "url"):
-                        song.url = activity.track_url
+                    title = activity.title
+                    artist = activity.artist
+                    track_url = activity.track_url
+                    spotify = True
+                    icon_url = "https://open.scdn.co/cdn/images/favicon32.8e66b099.png"
                     break
+
+        # fetch title from currently playing song
+        if not spotify and not title:
+            if inter.me.voice is not None and inter.author.voice is not None:
+                if inter.me.voice.channel == inter.author.voice.channel:
+                    player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+                    if player and player.current:
+                        with YDL(ydl_opts) as ydl:
+                            video = ydl.extract_info(f'{player.current.identifier}', download=False)
+                        title = re.sub(r"\([^()]*\)", "", video["track"])
+                        artist = list((video["artist"]).split(","))[0]
+                        track_url = player.current.uri
+                        icon_url = inter.bot.user.display_avatar.url
+
+        loop = asyncio.get_event_loop()
+        if title:
+            song = await loop.run_in_executor(None, fetch_lyrics, title, artist)
+            if isinstance(song, Song) and hasattr(song, "url") and track_url:
+                song.url = track_url
+        else:
+            await inter.edit_original_message(content="Please provide a song title.")
+            return
 
         if song is None:
             await inter.edit_original_message(content="Lyrics not Found :(")
             return
 
-        song_info: SongInfo = SongInfo(song, inter.author.display_avatar.url, )
+        song_info: SongInfo = SongInfo(song, icon_url, )
         my_pages = Pages(song_info, inter)
         await inter.edit_original_message(embed=song_info.generate_embed(0), view=my_pages, )
 
