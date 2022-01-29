@@ -2,6 +2,7 @@ import re
 
 import disnake
 import lavalink
+from lavalink import DefaultPlayer as Player
 from disnake.ext import commands
 from disnake.utils import get
 
@@ -21,9 +22,8 @@ class Play(commands.Cog):
     @commands.guild_only()
     async def play(self, ctx: commands.Context, *, query: str = None) -> None:
 
-        player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.create(ctx.guild.id,
+        player: Player = self.client.lavalink.player_manager.create(ctx.guild.id,
                                                                                     endpoint=str(ctx.guild.region))
-
         await ctx.message.delete(delay=5)
         # If player is paused, resume player
         if query is None:

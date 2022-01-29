@@ -2,6 +2,7 @@ import asyncio
 
 import disnake
 import lavalink
+from lavalink import DefaultPlayer as Player
 from disnake import ButtonStyle, Button, Interaction
 from disnake.ext import commands
 
@@ -12,7 +13,7 @@ class Effects(commands.Cog):
 
     @commands.command(aliases=["filter"])
     async def filters(self, ctx: commands.Context):
-        player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
 
         class FilterButtons(disnake.ui.View):
             def __init__(self, client):
@@ -59,7 +60,7 @@ class Effects(commands.Cog):
 
     @commands.command()
     async def timescale(self, ctx: commands.Context):
-        player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
 
         class TimeScaleButtons(disnake.ui.View):
             def __init__(self):
@@ -177,7 +178,7 @@ class Effects(commands.Cog):
 
     @commands.command(aliases=["bass"])
     async def bassboost(self, ctx: commands.Context):
-        player: lavalink.DefaultPlayer = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         eq = lavalink.filters.Equalizer()
 
         class BassButtons(disnake.ui.View):

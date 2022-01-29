@@ -9,7 +9,7 @@ from disnake import (
     MessageInteraction,
 )
 from disnake.ext import commands
-from lavalink import DefaultPlayer
+from lavalink import DefaultPlayer as Player
 
 from cogs.music.lavatrack import VideoTrack
 
@@ -22,7 +22,7 @@ class NP(commands.Cog):
     @commands.command(aliases=["np"])
     @commands.guild_only()
     async def nowplaying(self, ctx: commands.Context) -> None:
-        player: DefaultPlayer = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
 
         class NowPlayingButtons(disnake.ui.View):
@@ -169,7 +169,7 @@ class NP(commands.Cog):
 
     @nowplaying.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if ctx.voice_client is None or not player.is_connected:
             raise commands.CheckFailure("Bot is not connect to VC.")
         if ctx.author.voice is None:

@@ -1,5 +1,6 @@
 ﻿# Imports
 import lavalink
+from lavalink import DefaultPlayer as Player
 from disnake import (
     Activity,
     ActivityType,
@@ -12,7 +13,6 @@ from disnake.ext import commands
 class Music(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
-
         lavalink.add_event_hook(self.track_hook)
 
     def cog_unload(self):
@@ -28,16 +28,21 @@ class Music(commands.Cog):
                 await self.client.change_presence(activity=Activity(type=ActivityType.listening,
                                                                     name=song.title, ))
         if isinstance(event, lavalink.events.TrackEndEvent):
-            player = event.player
+            player: Player = event.player
             if not player.is_playing:
                 await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
                                                                                           name="yall Homies."), )
+        if isinstance(event, lavalink.events.QueueEndEvent):
+            player: Player = event.player
+            await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
+                                                                                      name="yall Homies."), )
+            await player.stop()
 
     # Skip
     @commands.command()
     @commands.guild_only()
     async def skip(self, ctx: commands.Context, arg: int = 0) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
         if not player.is_playing or arg > len(player.queue):
             return
@@ -70,7 +75,7 @@ class Music(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def pause(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
         if player.paused is False:
             await player.set_pause(pause=True)
@@ -83,7 +88,7 @@ class Music(commands.Cog):
     @commands.command(aliases=["repeat"])
     @commands.guild_only()
     async def loop(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
         if player.repeat:
             player.set_repeat(False)
@@ -96,7 +101,7 @@ class Music(commands.Cog):
     @commands.command(aliases=["skipto"])
     @commands.guild_only()
     async def jump(self, ctx: commands.Context, song_index: int = 1) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
         if ctx.voice_client and player.is_playing and song_index >= 1:
             del player.queue[0:song_index - 1]
@@ -107,7 +112,7 @@ class Music(commands.Cog):
     @commands.command(aliases=["vol", "v"])
     @commands.guild_only()
     async def volume(self, ctx: commands.Context, volume_int: int = None) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
         if volume_int is None:
             await ctx.send(f"Volume: {player.volume}%", delete_after=15)
@@ -128,7 +133,7 @@ class Music(commands.Cog):
     @jump.before_invoke
     @volume.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if ctx.voice_client is None or not player.is_connected:
             raise commands.CheckFailure("Bot is not connect to VC.")
         if ctx.author.voice is None:

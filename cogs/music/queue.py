@@ -9,7 +9,7 @@ from disnake import (
     Interaction
 )
 from disnake.ext import commands
-from lavalink import DefaultPlayer
+from lavalink import DefaultPlayer as Player
 
 
 class Queue(commands.Cog):
@@ -20,7 +20,7 @@ class Queue(commands.Cog):
     @commands.command(aliases=["q"])
     @commands.guild_only()
     async def queue(self, ctx: commands.Context) -> None:
-        player: DefaultPlayer = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
 
         class QueuePages(disnake.ui.View):
             def __init__(self):
@@ -80,7 +80,7 @@ class Queue(commands.Cog):
 
     @queue.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
-        player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if ctx.voice_client is None or not player.is_connected:
             raise commands.CheckFailure("Bot is not connect to VC.")
         if ctx.author.voice is None:
