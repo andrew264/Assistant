@@ -19,7 +19,8 @@ class Effects(commands.Cog):
         class FilterButtons(disnake.ui.View):
             def __init__(self, client):
                 self.client = client
-                super().__init__(timeout=None)
+                self.message: Optional[disnake.Message] = None
+                super().__init__(timeout=90)
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -30,38 +31,48 @@ class Effects(commands.Cog):
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
 
+            async def on_timeout(self) -> None:
+                try:
+                    await self.message.delete()
+                except (disnake.HTTPException, disnake.NotFound):
+                    pass
+
             @disnake.ui.button(label="TimeScale", style=ButtonStyle.gray)
             async def timescale(self, button: Button, interaction: Interaction):
                 await ctx.invoke(self.client.get_command("timescale"))
                 button.disabled = True
-                await interaction.response.edit_message(view=None)
-                await interaction.delete_original_message()
+                await interaction.response.edit_message(view=self)
 
             @disnake.ui.button(label="BassBoost", style=ButtonStyle.gray)
             async def bassboost(self, button: Button, interaction: Interaction):
                 await ctx.invoke(self.client.get_command("bassboost"))
                 button.disabled = True
-                await interaction.response.edit_message(view=None)
-                await interaction.delete_original_message()
+                await interaction.response.edit_message(view=self)
 
             @disnake.ui.button(label="TrebleBoost", style=ButtonStyle.gray)
             async def trebleboost(self, button: Button, interaction: Interaction):
                 await ctx.invoke(self.client.get_command("trebleboost"))
                 button.disabled = True
-                await interaction.response.edit_message(view=None)
-                await interaction.delete_original_message()
+                await interaction.response.edit_message(view=self)
 
             @disnake.ui.button(label="ResetFilters", style=ButtonStyle.blurple)
             async def resetffilters(self, button: Button, interaction: Interaction):
-                # remove all applied filters and effects
+                # remove all applied filters and effects and apply flat EQ
                 for _filter in list(player.filters):
                     await player.remove_filter(_filter)
+                bands = [
+                    (0, 0.0), (1, 0.0), (2, 0.0), (3, 0.0), (4, 0.0),
+                    (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0),
+                    (10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0), (14, 0.0)
+                ]
+                flat_eq = lavalink.filters.Equalizer()
+                flat_eq.update(bands=bands)
+                await player.set_filter(flat_eq)
                 await interaction.response.edit_message(content="Removed all Applied Filters", view=None, )
-                await asyncio.sleep(5)
-                await interaction.delete_original_message()
+                self.timeout = 15
 
         view = FilterButtons(self.client)
-        await ctx.send("Available Filters", view=view)
+        view.message = await ctx.send("Available Filters", view=view)
         await ctx.message.delete()
 
     @commands.command()
@@ -70,8 +81,9 @@ class Effects(commands.Cog):
 
         class TimeScaleButtons(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=None)
+                super().__init__(timeout=120)
                 self.step = 0.1
+                self.message: Optional[disnake.Message] = None
                 if 'timescale' in player.filters:
                     timescale: dict = player.filters['timescale'].values
                     self.speed = timescale["speed"]
@@ -90,6 +102,12 @@ class Effects(commands.Cog):
                     return True
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
+
+            async def on_timeout(self) -> None:
+                try:
+                    await self.message.delete()
+                except (disnake.HTTPException, disnake.NotFound):
+                    pass
 
             async def apply_filter(self):
                 time_filter = lavalink.filters.Timescale()
@@ -192,20 +210,17 @@ class Effects(commands.Cog):
                 await interaction.response.edit_message(view=self)
 
         view = TimeScaleButtons()
-        message = await ctx.send(embed=view.embed, view=view)
-        try:
-            await message.delete(delay=60)
-        except disnake.NotFound:
-            pass
+        view.message = await ctx.send(embed=view.embed, view=view)
 
     @commands.command(aliases=["bass"])
     async def bassboost(self, ctx: commands.Context):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        eq: Optional[lavalink.filters.Filter] = await player.get_filter("equalizer")
+        eq: Optional[lavalink.filters.Filter] = player.filters.get("equalizer")
 
         class BassButtons(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=None)
+                super().__init__(timeout=90)
+                self.message: Optional[disnake.Message] = None
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -215,6 +230,12 @@ class Effects(commands.Cog):
                     return True
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
+
+            async def on_timeout(self) -> None:
+                try:
+                    await self.message.delete()
+                except (disnake.HTTPException, disnake.NotFound):
+                    pass
 
             @disnake.ui.button(label="off", style=ButtonStyle.gray)
             async def bass_off(self, button: Button, interaction: Interaction):
@@ -246,20 +267,17 @@ class Effects(commands.Cog):
 
         view = BassButtons()
         embed0 = disnake.Embed(title="Bass Boost Disabled", colour=0x000000)
-        message = await ctx.send(embed=embed0, view=view)
-        try:
-            await message.delete(delay=60)
-        except disnake.NotFound:
-            pass
+        view.message = await ctx.send(embed=embed0, view=view)
 
     @commands.command(aliases=["treble"])
     async def trebleboost(self, ctx: commands.Context):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        eq: Optional[lavalink.filters.Filter] = await player.get_filter("equalizer")
+        eq: Optional[lavalink.filters.Filter] = player.filters.get("equalizer")
 
         class TrebleButtons(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=None)
+                super().__init__(timeout=90)
+                self.message: Optional[disnake.Message] = None
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -269,6 +287,12 @@ class Effects(commands.Cog):
                     return True
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
+
+            async def on_timeout(self) -> None:
+                try:
+                    await self.message.delete()
+                except (disnake.HTTPException, disnake.NotFound):
+                    pass
 
             @disnake.ui.button(label="off", style=ButtonStyle.gray)
             async def treble_off(self, button: Button, interaction: Interaction):
@@ -300,16 +324,12 @@ class Effects(commands.Cog):
 
         view = TrebleButtons()
         embed0 = disnake.Embed(title="Treble Boost Disabled", colour=0x000000)
-        message = await ctx.send(embed=embed0, view=view)
-        try:
-            await message.delete(delay=60)
-        except disnake.NotFound:
-            pass
+        view.message = await ctx.send(embed=embed0, view=view)
 
     @commands.command(aliases=["eq"])
     async def equalizer(self, ctx: commands.Context, *, bands: str):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        eq: Optional[lavalink.filters.Filter] = await player.get_filter("equalizer")
+        eq: Optional[lavalink.filters.Filter] = player.filters.get("equalizer")
         bands = bands.split(",")
         bands = [float(band) for band in bands]
         bands = [(int(i), band) for i, band in enumerate(bands)]
