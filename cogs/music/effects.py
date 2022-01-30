@@ -71,9 +71,16 @@ class Effects(commands.Cog):
         class TimeScaleButtons(disnake.ui.View):
             def __init__(self):
                 super().__init__(timeout=None)
-                self.speed = 1.0
-                self.pitch = 1.0
-                self.rate = 1.0
+                self.step = 0.1
+                if 'timescale' in player.filters:
+                    timescale: dict = player.filters['timescale'].values
+                    self.speed = timescale["speed"]
+                    self.pitch = timescale["pitch"]
+                    self.rate = timescale["rate"]
+                else:
+                    self.speed = 1.0
+                    self.pitch = 1.0
+                    self.rate = 1.0
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
@@ -100,7 +107,7 @@ class Effects(commands.Cog):
             @disnake.ui.button(emoji="⬆", style=ButtonStyle.success)
             async def up_speed(self, button: Button, interaction: Interaction):
                 if round(self.speed, 1) <= 1.9:
-                    self.speed += 0.1
+                    self.speed += self.step
                 button.disabled = True if (round(self.speed, 1) >= 2.0) else False
                 self.down_speed.disabled = False
                 await self.apply_filter()
@@ -117,7 +124,7 @@ class Effects(commands.Cog):
             @disnake.ui.button(emoji="⬇", style=ButtonStyle.danger, row=2)
             async def down_speed(self, button: Button, interaction: Interaction):
                 if round(self.speed, 1) >= 0.6:
-                    self.speed -= 0.1
+                    self.speed -= self.step
                 button.disabled = True if (round(self.speed, 1) <= 0.5) else False
                 self.up_speed.disabled = False
                 await self.apply_filter()
@@ -126,7 +133,7 @@ class Effects(commands.Cog):
             @disnake.ui.button(emoji="⬆", style=ButtonStyle.success)
             async def up_pitch(self, button: Button, interaction: Interaction):
                 if round(self.pitch, 1) <= 1.9:
-                    self.pitch += 0.1
+                    self.pitch += self.step
                 button.disabled = True if (round(self.pitch, 1) >= 2.0) else False
                 self.down_pitch.disabled = False
                 await self.apply_filter()
@@ -143,7 +150,7 @@ class Effects(commands.Cog):
             @disnake.ui.button(emoji="⬇", style=ButtonStyle.danger, row=2)
             async def down_pitch(self, button: Button, interaction: Interaction):
                 if round(self.pitch, 1) >= 0.6:
-                    self.pitch -= 0.1
+                    self.pitch -= self.step
                 button.disabled = True if (round(self.pitch, 1) <= 0.5) else False
                 self.up_pitch.disabled = False
                 await self.apply_filter()
@@ -152,7 +159,7 @@ class Effects(commands.Cog):
             @disnake.ui.button(emoji="⬆", style=ButtonStyle.success)
             async def up_rate(self, button: Button, interaction: Interaction):
                 if round(self.rate, 1) <= 1.9:
-                    self.rate += 0.1
+                    self.rate += self.step
                 button.disabled = True if (round(self.rate, 1) >= 2.0) else False
                 self.down_rate.disabled = False
                 await self.apply_filter()
@@ -169,11 +176,20 @@ class Effects(commands.Cog):
             @disnake.ui.button(emoji="⬇", style=ButtonStyle.danger, row=2)
             async def down_rate(self, button: Button, interaction: Interaction):
                 if round(self.rate, 1) >= 0.6:
-                    self.rate -= 0.1
+                    self.rate -= self.step
                 button.disabled = True if (round(self.rate, 1) <= 0.5) else False
                 self.up_rate.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
+
+            @disnake.ui.button(emoji="❎", label=f"10%", style=ButtonStyle.gray, row=1)
+            async def step(self, button: Button, interaction: Interaction):
+                if self.step == 0.1:
+                    self.step = 0.05
+                else:
+                    self.step = 0.1
+                button.label = f"{round(self.step * 100)}%"
+                await interaction.response.edit_message(view=self)
 
         view = TimeScaleButtons()
         message = await ctx.send(embed=view.embed, view=view)
