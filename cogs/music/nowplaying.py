@@ -80,6 +80,9 @@ class NP(commands.Cog):
 
             @disnake.ui.button(label="Stop", emoji="⏹", style=ButtonStyle.danger, row=1)
             async def stop_button(self, button: Button, interaction: Interaction):
+                # remove all applied filters and effects
+                for _filter in list(player.filters):
+                    await player.remove_filter(_filter)
                 player.queue.clear()
                 await player.stop()
                 await interaction.guild.voice_client.disconnect(force=True)

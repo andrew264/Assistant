@@ -1,6 +1,5 @@
 ﻿# Imports
 import lavalink
-from lavalink import DefaultPlayer as Player
 from disnake import (
     Activity,
     ActivityType,
@@ -8,6 +7,7 @@ from disnake import (
     Status,
 )
 from disnake.ext import commands
+from lavalink import DefaultPlayer as Player
 
 
 class Music(commands.Cog):
@@ -61,6 +61,9 @@ class Music(commands.Cog):
     async def stop(self, ctx: commands.Context) -> None:
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if player.is_connected:
+            # remove all applied filters and effects
+            for _filter in list(player.filters):
+                await player.remove_filter(_filter)
             # Clear the queue to ensure old tracks don't start playing
             # when someone else queues something.
             player.queue.clear()
