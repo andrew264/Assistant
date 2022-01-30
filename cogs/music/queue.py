@@ -60,7 +60,7 @@ class Queue(commands.Cog):
                     return Embed(title="Queue is Empty", colour=0xFFA31A)
                 embed = Embed(
                     title="Now Playing", colour=0xFFA31A,
-                    description=f"[{player.current.Title}]({player.current.uri} \"by {player.current.Author.display_name}\")", )
+                    description=f"[{player.current.title}]({player.current.uri} \"by {player.current.Author.display_name}\")", )
                 if len(player.queue) >= 1:
                     next_songs = "\u200b"
                     max_page = math.ceil(len(player.queue) / 4)
