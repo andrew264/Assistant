@@ -64,10 +64,13 @@ class Play(commands.Cog):
 
         if player.queue and not player.is_playing:
             await player.set_volume(40)
-            eq = [(0, 0.0), (1, 0.0), (2, 0.0), (3, 0.0), (4, 0.0), (5, 0.0), (6, 0.0), (7, 0.0),
-                  (8, 0.0), (9, 0.0), (10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0), (14, 0.0), ]
+            bands = [
+                (0, 0.0), (1, 0.0), (2, 0.0), (3, 0.0), (4, 0.0),
+                (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0),
+                (10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0), (14, 0.0)
+            ]
             flat_eq = lavalink.filters.Equalizer()
-            flat_eq.update(bands=eq)
+            flat_eq.update(bands=bands)
             await player.set_filter(flat_eq)
             await player.play()
 
