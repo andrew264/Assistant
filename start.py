@@ -12,7 +12,7 @@ client = commands.Bot(
     intents=Intents.all(),
     help_command=None,
     case_insensitive=True,
-    test_guilds=[821758346054467584],
+    test_guilds=[821758346054467584, 914122845678870539],
     owner_id=Owner_ID,
     description="Andrew's Assistant",
 )
