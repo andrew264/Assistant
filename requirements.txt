@@ -7,3 +7,4 @@ emoji
 sounddevice
 aiosqlite
 lavalink
+psutil

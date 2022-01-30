@@ -30,8 +30,9 @@ class HelpMe(commands.Cog):
             # General Embed
             general_embed = Embed(color=Colour.blurple())
             general_embed.set_author(name="General Commands")
-            general_embed.add_field(name="`/whois`", value="User's Info", inline=True)
-            general_embed.add_field(name="`/botinfo`", value="Bot's Info", inline=True)
+            general_embed.add_field(name="`/whois`", value="User's Info")
+            general_embed.add_field(name="`/botinfo`", value="Bot's Info")
+            general_embed.add_field(name="`/stats`", value="Bot's Stats")
             general_embed.add_field(name="`/chat create`", value="Create a new Private Chat", inline=False)
             general_embed.add_field(name="`/introduce`", value="Introduce Yourself", inline=False)
             general_embed.add_field(name="`/help`", value="Get this help message", inline=False)

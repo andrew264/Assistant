@@ -1,9 +1,12 @@
 ﻿# Imports
 from datetime import datetime, timezone
+from os import getpid
 from platform import python_version
 
 import aiosqlite
 import disnake
+import lavalink
+import psutil
 from disnake import (
     Activity,
     ApplicationCommandInteraction,
@@ -18,6 +21,8 @@ from disnake import (
 )
 from disnake.ext import commands
 from disnake.ext.commands import Param
+
+from EnvVariables import Owner_ID
 
 
 def ActivityVal(activity: Activity | Game) -> str:
@@ -68,6 +73,14 @@ def AvailableClients(user: Member) -> str:
     else:
         return "Offline"
     return value
+
+
+def human_bytes(_bytes: int) -> str:
+    """Converts bytes to Human Readable format"""
+    for x in ["bytes", "KB", "MB", "GB", "TB"]:
+        if _bytes < 1024.0:
+            return f"{_bytes:.2f} {x}"
+        _bytes /= 1024.0
 
 
 class UserInfo(commands.Cog):
@@ -155,12 +168,32 @@ class UserInfo(commands.Cog):
         embed = Embed(color=0xFF0060, description=user.mention)
         embed.set_author(name=user, icon_url=user.avatar.url)
         embed.set_thumbnail(url=user.avatar.url)
-        embed.add_field(name="Created by", value="Andrew", inline=False)
-        embed.add_field(name="Created on", value="21 Mar 2021", inline=False)
-        embed.add_field(name="Python Version", value=f"v. {python_version()}", inline=False)
-        embed.add_field(name="Library Version", value=f"v. {disnake.__version__}", inline=False)
+        embed.add_field(name="Created by", value=f"<@{Owner_ID}>")
+        embed.add_field(name="Created on", value="21 Mar 2021")
+        embed.add_field(name="No. of Guilds", value=f"{len(self.client.guilds)}", inline=False)
+        embed.add_field(name="No. of Users", value=f"{len(self.client.users)}", inline=False)
         embed.set_footer(text=f"User ID: {user.id}")
-        return await inter.response.send_message(embed=embed)
+        await inter.response.send_message(embed=embed)
+
+    @commands.slash_command(description="Shows Bot's Stats")
+    async def stats(self, inter: ApplicationCommandInteraction) -> None:
+        user = self.client.user
+        embed = Embed(color=0xFF0060, description=user.mention)
+        embed.add_field(name="Python Version", value=f"v. {python_version()}")
+        used_memory = psutil.Process(getpid()).memory_info().rss
+        embed.add_field(name="Python Memory Usage", value=f"{human_bytes(used_memory)}")
+        embed.add_field(name=f"{disnake.__title__.capitalize()} Version",
+                        value=f"v. {disnake.__version__}", inline=False)
+        embed.add_field(name="Lavalink Version",
+                        value=f"v. {lavalink.__version__}" if lavalink is not None else "Not Installed")
+        lava_stats = self.client.lavalink.node_manager.nodes[0].stats
+        embed.add_field(name="Lavalink Memory Usage",
+                        value=f"{human_bytes(lava_stats.memory_used)}/{human_bytes(lava_stats.memory_allocated)}")
+        embed.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%", inline=False)
+        embed.add_field(name="System Memory Usage",
+                        value=f"{human_bytes(psutil.virtual_memory().used)}/{human_bytes(psutil.virtual_memory().total)}")
+        embed.set_footer(text=f"User ID: {user.id}")
+        await inter.response.send_message(embed=embed)
 
     @commands.slash_command(description="Introduce Yourself to Others.")
     async def introduce(self, inter: ApplicationCommandInteraction,
