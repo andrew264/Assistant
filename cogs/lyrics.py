@@ -116,8 +116,11 @@ class Lyrics(commands.Cog):
                     if player and player.current:
                         with YDL(ydl_opts) as ydl:
                             video = ydl.extract_info(f'{player.current.identifier}', download=False)
-                        title = re.sub(r"\([^()]*\)", "", video["track"])
-                        artist = list((video["artist"]).split(","))[0]
+                        try:
+                            title = re.sub(r"\([^()]*\)", "", video["track"])
+                            artist = list((video["artist"]).split(","))[0]
+                        except KeyError:
+                            pass
                         track_url = player.current.uri
                         icon_url = inter.bot.user.display_avatar.url
 
