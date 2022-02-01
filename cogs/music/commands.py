@@ -1,5 +1,6 @@
 ﻿# Imports
 import lavalink
+import disnake
 from disnake import (
     Activity,
     ActivityType,
@@ -18,6 +19,25 @@ class Music(commands.Cog):
     def cog_unload(self):
         """ Cog unload handler. This removes any event hooks that were registered. """
         self.client.lavalink._event_hooks.clear()
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: disnake.Member,
+                                    before: disnake.VoiceState, after: disnake.VoiceState):
+        if member != self.client.user:
+            return  # We don't care about other people's voice state changes
+        if before.channel and after.channel is None:
+            # remove all applied filters and effects
+            # Clear the queue.
+            # Stop the current track.
+            # Force disconnect to fix reconnecting issues.
+            player: Player = self.client.lavalink.player_manager.get(member.guild.id)
+            if player.current:
+                for _filter in list(player.filters):
+                    await player.remove_filter(_filter)
+                player.queue.clear()
+                await player.stop()
+                voice = member.guild.voice_client
+                await voice.disconnect(force=True)
 
     async def track_hook(self, event):
         # Update client's status
