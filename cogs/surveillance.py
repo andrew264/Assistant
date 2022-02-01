@@ -1,6 +1,6 @@
 ﻿# Imports
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Optional
 
 from disnake import (
     Activity,
@@ -9,6 +9,7 @@ from disnake import (
     CustomActivity,
     Embed,
     Game,
+    Guild,
     Member,
     Message,
     Spotify,
@@ -53,77 +54,90 @@ def ActivityVal(activities: Tuple[Activity | Game | CustomActivity | Streaming |
 class Surveillance(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
+        self.log_channel: Optional[TextChannel] = None
+        self.log_guild: Optional[Guild] = None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.log_channel = self.client.get_channel(Log_Channel)
+        self.log_guild = self.log_channel.guild
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: Message, after: Message) -> None:
+        if before.guild is None or before.guild != self.log_guild:
+            return
         if before.author.bot:
             return
         if before.author.id == Owner_ID:
             return
         if before.clean_content == after.clean_content:
             return
-        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.teal())
         embed.set_author(name=f"{before.author} edited a message in #{before.channel.name}",
                          icon_url=before.author.display_avatar.url, )
         embed.add_field(name="Original Message", value=before.clean_content, inline=False)
         embed.add_field(name="Altered Message", value=after.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await log_channel.send(embed=embed)
+        await self.log_channel.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: Message) -> None:
+        if message.guild is None or message.guild != self.log_guild:
+            return
         if message.author.bot:
             return
         if message.author.id == Owner_ID:
             return
-        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.orange())
         embed.set_author(name=f"{message.author} deleted a message in #{message.channel.name}",
                          icon_url=message.author.display_avatar.url, )
         embed.add_field(name="Message Content", value=message.content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await log_channel.send(embed=embed)
+        await self.log_channel.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member) -> None:
+        if before.guild is None or before.guild != self.log_guild:
+            return
         if before.bot:
             return
         if before.id == Owner_ID:
             return
         if before.display_name == after.display_name:
             return
-        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.dark_orange())
         embed.set_author(name=f"{before} updated their Nickname", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
         embed.add_field(name="New Name", value=after.display_name, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await log_channel.send(embed=embed)
+        await self.log_channel.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_user_update(self, before: User, after: User) -> None:
+        member: Optional[Member] = self.log_guild.get_member(before.id)
+        if member is None:
+            return
         if before.bot:
             return
         if before.id == Owner_ID:
             return
         if before.name == after.name and before.discriminator == after.discriminator:
             return
-        log_channel = self.client.get_channel(Log_Channel)
         embed = Embed(colour=Colour.brand_green())
         embed.set_author(name=f"{before} updated their Username", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Username", value=f"{before.name} #{before.discriminator}", inline=False, )
         embed.add_field(name="New Username", value=f"{after.name} #{after.discriminator}", inline=False, )
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await log_channel.send(embed=embed)
+        await self.log_channel.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_presence_update(self, before: Member, after: Member) -> None:
+        if before.guild is None or before.guild != self.log_guild:
+            return
         if before.bot:
             return
         if before.id == Owner_ID:
             return
-        log_channel = self.client.get_channel(Log_Channel)
         delete_after = 300
         embed = Embed(colour=Colour.gold())
         embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url, )
@@ -176,34 +190,36 @@ class Surveillance(commands.Cog):
                     delete_after += 1800
 
         if len(embed.fields):
-            await log_channel.send(embed=embed, delete_after=delete_after)
+            await self.log_channel.send(embed=embed, delete_after=delete_after)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
+        if member.guild is None or member.guild != self.log_guild:
+            return
         if member.bot:
             return
         if after.channel == before.channel:
             return
-        log_channel = self.client.get_channel(Log_Channel)
         if after.channel is None:
-            await log_channel.send(f"{member.display_name} left {before.channel.mention}", delete_after=900)
+            await self.log_channel.send(f"{member.display_name} left {before.channel.mention}", delete_after=900)
         if before.channel is None:
-            await log_channel.send(f"{member.display_name} joined {after.channel.mention}", delete_after=900, )
+            await self.log_channel.send(f"{member.display_name} joined {after.channel.mention}", delete_after=900, )
         elif after.channel is not None and before.channel is not None:
-            await log_channel.send(
+            await self.log_channel.send(
                 f"{member.display_name} moved to {after.channel.mention} from {before.channel.mention}",
                 delete_after=900, )
 
     @commands.Cog.listener()
     async def on_typing(self, channel: TextChannel, user: Member, when: datetime) -> None:
+        if channel.guild is None or channel.guild != self.log_guild:
+            return
         if user.bot:
             return
         if user.id == Owner_ID:
             return
         if channel.name != "general-shit" and channel.name != "private-chat":
             return
-        log_channel = self.client.get_channel(Log_Channel)
-        await log_channel.send(f"{user.display_name} started typing in {channel.mention}", delete_after=120)
+        await self.log_channel.send(f"{user.display_name} started typing in {channel.mention}", delete_after=120)
 
 
 def setup(client):
