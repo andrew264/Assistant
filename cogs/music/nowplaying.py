@@ -131,8 +131,8 @@ class NP(commands.Cog):
                 percentile = round((player.position / current_song.duration) * 20)
                 bar = "────────────────────"
                 progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]
-                song_on = current_song.formated_time(player.position)
-                song_end = current_song.formated_time(current_song.duration)
+                song_on = current_song.format_time(player.position)
+                song_end = current_song.format_time(current_song.duration)
                 current_song.fetch_info()
                 embed = Embed(color=0xEB459E)
                 embed.set_thumbnail(url=f"{current_song.thumbnail}")
@@ -150,7 +150,7 @@ class NP(commands.Cog):
                 elif not player.queue and player.repeat:
                     embed.set_footer(text="Looping current Song")
                 else:
-                    embed.set_footer(text=f"Requested by {current_song.Author.display_name}")
+                    embed.set_footer(text=f"Requested by {current_song.requested_by}")
                 return embed
 
         if not player.is_playing:
