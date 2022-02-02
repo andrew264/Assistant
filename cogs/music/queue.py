@@ -24,12 +24,12 @@ class Queue(commands.Cog):
 
         class QueuePages(disnake.ui.View):
             def __init__(self):
-                super().__init__(timeout=30.0)
+                super().__init__(timeout=180.0)
                 self.page_no = 1
                 self.message: Message | None = None
 
             async def on_timeout(self):
-                await self.message.edit(view=None)
+                await self.message.delete()
                 self.stop()
 
             @disnake.ui.button(emoji="◀", style=ButtonStyle.secondary)
@@ -60,12 +60,12 @@ class Queue(commands.Cog):
                     return Embed(title="Queue is Empty", colour=0xFFA31A)
                 embed = Embed(
                     title="Now Playing", colour=0xFFA31A,
-                    description=f"[{player.current.title}]({player.current.uri} \"by {player.current.Author.display_name}\")", )
+                    description=f"{str(player.current)}", )
                 if len(player.queue) >= 1:
                     next_songs = "\u200b"
                     max_page = math.ceil(len(player.queue) / 4)
                     for i in song_index:
-                        next_songs += f"{i + 1}. [{player.queue[i].Title}]({player.queue[i].uri} \"by {player.queue[i].Author.display_name}\")\n"
+                        next_songs += f"{i + 1}. {str(player.queue[i])}\n"
                     embed.add_field(name=f"Next Up ({self.page_no}/{max_page})", value=next_songs, inline=False)
                 if player.repeat:
                     embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
@@ -76,7 +76,6 @@ class Queue(commands.Cog):
         await ctx.message.delete()
         view = QueuePages()
         view.message = await ctx.send(embed=view.QueueEmbed, view=view)
-        await view.message.delete(delay=60)
 
     @queue.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:
