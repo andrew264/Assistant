@@ -63,8 +63,10 @@ class Pages(disnake.ui.View):
         self.inter = inter
 
     async def on_timeout(self):
-        await self.inter.edit_original_message(view=None)
-        self.stop()
+        try:
+            await self.inter.edit_original_message(view=None)
+        except disnake.NotFound | disnake.Forbidden:
+            pass
 
     @disnake.ui.button(emoji="◀", style=ButtonStyle.blurple)
     async def prev_page(self, button: Button, interaction: Interaction) -> None:
