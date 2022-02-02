@@ -1,4 +1,6 @@
 ﻿# Imports
+import asyncio
+
 import lavalink
 import disnake
 from disnake import (
@@ -9,6 +11,19 @@ from disnake import (
 )
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
+
+from cogs.music.lavatrack import VideoTrack
+
+
+def time_in_seconds(timestamp: str) -> int:
+    """
+    Converts a timestamp to seconds.
+    """
+    seconds = 0
+    for i in timestamp.split(':'):
+        if int(i) > 60 or int(i) < 0: i = 0
+        seconds = seconds * 60 + int(i)
+    return seconds
 
 
 class Music(commands.Cog):
@@ -130,6 +145,19 @@ class Music(commands.Cog):
             del player.queue[0:song_index - 1]
         await ctx.send("Skipped", delete_after=30)
         await player.play()
+
+    # Seek
+    @commands.command(aliases=["peek"])
+    @commands.guild_only()
+    async def seek(self, ctx: commands.Context, timestamp: str) -> None:
+        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        current_track: VideoTrack = player.current
+
+        await ctx.message.delete()
+        if ctx.voice_client and player.is_playing:
+            await player.seek(time_in_seconds(timestamp) * 1000)
+            await asyncio.sleep(0.5)
+            await ctx.send(f"Jumped to `{current_track.format_time(player.position)}`", delete_after=30)
 
     # Volume
     @commands.command(aliases=["vol", "v"])
