@@ -21,14 +21,17 @@ class VideoTrack(AudioTrack):
 
     def __init__(self, data: dict, author: Member, **extra):
         super().__init__(data, author.id, **extra)
-        self.Author = author
+        self.author = author
         self.thumbnail: Optional[str] = None
         self._views: Optional[int] = None
         self._likes: Optional[int] = None
         self.upload_date: Optional[str] = None
 
+    def __str__(self):
+        return f"[{self.title}]({self.uri} \"by {self.requested_by}\")"
+
     @staticmethod
-    def formated_time(ms: float) -> str:
+    def format_time(ms: float) -> str:
         """Duration in HH:MM:SS Format"""
         seconds = ms / 1000
         if seconds > 3600:
@@ -39,7 +42,12 @@ class VideoTrack(AudioTrack):
     @property
     def avatar_url(self):
         """Author's Avatar URL"""
-        return self.Author.display_avatar.url
+        return self.author.display_avatar.url
+
+    @property
+    def requested_by(self):
+        """The user who requested the track"""
+        return self.author.display_name
 
     @property
     def views(self):
