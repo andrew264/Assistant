@@ -39,6 +39,11 @@ class Play(commands.Cog):
             url_rx = re.compile(r'https?://(?:www\.)?.+')
             if not url_rx.match(query):
                 query = f'ytsearch:{query}'
+            yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
+            if yt_time_rx.match(query):
+                seek_time = int(re.sub(yt_time_rx, "", query)) * 1000
+            else:
+                seek_time = 0
             results = await player.node.get_tracks(query)
             if not results or not results['tracks']:
                 await ctx.send("Nothing to Play", delete_after=10)
@@ -59,7 +64,6 @@ class Play(commands.Cog):
         if voice and player.is_connected:
             pass
         elif voice is None:
-            player.store('channel', ctx.channel.id)
             await ctx.author.voice.channel.connect(cls=LavalinkVoiceClient)
 
         if player.queue and not player.is_playing:
@@ -73,6 +77,8 @@ class Play(commands.Cog):
             flat_eq.update(bands=bands)
             await player.set_filter(flat_eq)
             await player.play()
+            if seek_time:
+                await player.seek(seek_time)
 
     # Play Checks
     @play.before_invoke
