@@ -39,12 +39,8 @@ class Play(commands.Cog):
             url_rx = re.compile(r'https?://(?:www\.)?.+')
             if not url_rx.match(query):
                 query = f'ytsearch:{query}'
-            yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
-            if yt_time_rx.match(query):
-                seek_time = int(re.sub(yt_time_rx, "", query)) * 1000
-            else:
-                seek_time = 0
             results = await player.node.get_tracks(query)
+            seek_time = 0
             if not results or not results['tracks']:
                 await ctx.send("Nothing to Play", delete_after=10)
                 return
@@ -58,6 +54,9 @@ class Play(commands.Cog):
                 track = VideoTrack(data=results['tracks'][0], author=ctx.author)
                 player.add(requester=ctx.author.id, track=track)
                 await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
+                yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
+                if yt_time_rx.match(query):
+                    seek_time = int(re.sub(yt_time_rx, "", query)) * 1000
 
         # Join VC
         voice = get(self.client.voice_clients, guild=ctx.guild)
