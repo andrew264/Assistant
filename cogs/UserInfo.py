@@ -33,19 +33,19 @@ def ActivityVal(activity: Activity | Game) -> str:
 
 
 def timeDelta(timestamp: datetime) -> str:
-    if timestamp is None: return ""
-    sec = (datetime.now(timezone.utc) - timestamp).seconds
-    value: str = ""
-    if sec < 60:
-        value += f"({sec} s)"
-    elif 60 <= sec < 3600:
-        value += f"({sec // 60} mins {sec % 60} sec)"
-    elif sec >= 3600:
-        value += f"({sec // 3600} hrs {(sec // 60) % 60} mins)"
-    return value
+    """Returns a human readable time delta"""
+    delta = datetime.now(timezone.utc) - timestamp
+    if delta.days > 0:
+        return f"({delta.days} days ago)"
+    if delta.seconds > 3600:
+        return f"({delta.seconds // 3600}hrs {(delta.seconds // 60) % 60}mins)"
+    if delta.seconds > 60:
+        return f"({delta.seconds // 60}mins {delta.seconds % 60}secs)"
+    return f"({delta.seconds} secs)"
 
 
 def CustomActVal(activity: CustomActivity) -> str:
+    """Returns a string of a CustomActivity"""
     value: str = ""
     if activity.emoji is not None:
         value += f"[{activity.emoji}]({activity.emoji.url}) "
@@ -56,6 +56,7 @@ def CustomActVal(activity: CustomActivity) -> str:
 
 
 def AvailableClients(user: Member) -> str:
+    """Returns a string of available clients for a Member"""
     clients = []
     if user.desktop_status.name != "offline":
         clients.append("Desktop")
@@ -115,13 +116,10 @@ class UserInfo(commands.Cog):
 
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
-        time_now = datetime.now(timezone.utc)
         embed.add_field(name=f"Joined {user.guild.name} on",
-                        value=f"""{user.joined_at.strftime(date_format)}
-                        **({(time_now - user.joined_at).days} days ago)**""", )
+                        value=f"{user.joined_at.strftime(date_format)} **{timeDelta(user.joined_at)} days ago)**", )
         embed.add_field(name="Account created on",
-                        value=f"""{user.created_at.strftime(date_format)}
-                        **({(time_now - user.created_at).days} days ago)**""", )
+                        value=f"{user.created_at.strftime(date_format)} **{timeDelta(user.created_at)}**", )
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
