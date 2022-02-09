@@ -61,6 +61,18 @@ class PrivateChat(commands.Cog):
         elif category is None:
             await inter.response.send_message("You don't have a Private Chat", ephemeral=True)
 
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def purge_category(self, inter: ApplicationCommandInteraction) -> None:
+        """delete all channels in the category"""
+        await inter.response.send_message("Purging...")
+        for category in inter.guild.categories:
+            if category.id == inter.channel.category_id:
+                for channel in category.channels:
+                    await channel.delete()
+        else:
+            await inter.edit_original_message(content="Category not found.")
+
 
 def setup(client):
     client.add_cog(PrivateChat(client))
