@@ -1,6 +1,7 @@
 # Imports
 from typing import Optional
 
+import aiohttp
 from disnake import (
     Activity,
     ActivityType,
@@ -32,6 +33,16 @@ class Utility(commands.Cog):
     @commands.slash_command(description="Get Bot's Latency")
     async def ping(self, inter: ApplicationCommandInteraction) -> None:
         await inter.response.send_message(f"Client Latency: {round(self.client.latency * 1000)}  ms")
+
+    # Fetch external IPv4
+    @commands.command(description="Get External IPv4")
+    @commands.is_owner()
+    async def ip(self, ctx: commands.Context) -> None:
+        # Get External IP
+        async with aiohttp.ClientSession() as session:
+            async with session.get('https://api.ipify.org') as response:
+                ip = await response.text()
+        await ctx.send(f"External IPv4: {ip}")
 
     # Set Status
     State = commands.option_enum({"Online": "online",
