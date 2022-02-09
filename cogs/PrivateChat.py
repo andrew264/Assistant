@@ -24,13 +24,14 @@ class PrivateChat(commands.Cog):
                 await category.set_permissions(inter.author, overwrite=overwrites_readEnable)
                 await inter.response.send_message(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
                 return
-        daBotsRole = find(lambda r: r.id == 821762347659165727, inter.guild.roles)
         overwrites_readTrue = {
             inter.guild.default_role: disnake.PermissionOverwrite(read_messages=False),
             inter.guild.me: disnake.PermissionOverwrite(read_messages=True),
             inter.author: disnake.PermissionOverwrite(read_messages=True),
-            daBotsRole: disnake.PermissionOverwrite(read_messages=True),
         }
+        daBotsRole = find(lambda r: r.id == 821762347659165727, inter.guild.roles)
+        if daBotsRole:
+            overwrites_readTrue[daBotsRole] = disnake.PermissionOverwrite(read_messages=True)
         category: disnake.CategoryChannel = await inter.guild.create_category(f"{inter.author.display_name}'s Chat",
                                                                               overwrites=overwrites_readTrue,
                                                                               reason=None, )
