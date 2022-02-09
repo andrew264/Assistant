@@ -14,6 +14,7 @@ class TextToSpeech(commands.Cog):
         self.client = client
 
     @commands.slash_command(description="Text To Speech")
+    @commands.guild_only()
     async def tts(self, inter: ApplicationCommandInteraction,
                   message: str = Param(description="Enter a message"), ) -> None:
         if isinstance(inter.author, Member) and inter.author.voice is None:

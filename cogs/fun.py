@@ -36,6 +36,7 @@ class Fun(commands.Cog):
         self.client = client
 
     @commands.slash_command(description="Measure them PPs")
+    @commands.guild_only()
     async def pp(self, inter: ApplicationCommandInteraction,
                  user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ) -> None:
         pp404 = find(lambda r: r.id == 838868317779394560, user.roles)
@@ -51,6 +52,7 @@ class Fun(commands.Cog):
         await inter.response.send_message(embed=ppembed)
 
     @commands.slash_command(description="Delete their existence")
+    @commands.guild_only()
     async def kill(self, inter: ApplicationCommandInteraction,
                    user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ):
         if user is None or user == inter.author:

@@ -11,6 +11,7 @@ class PrivateChat(commands.Cog):
 
     # Create private category for DMs
     @commands.slash_command(description="Create a Private Chat & VC.")
+    @commands.guild_only()
     async def chat(self, inter: ApplicationCommandInteraction) -> None:
         pass
 
