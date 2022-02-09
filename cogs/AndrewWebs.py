@@ -2,6 +2,7 @@
 import json
 from random import choice, randint
 
+import disnake
 import emoji
 from disnake import Client, Message, TextChannel, Webhook
 from disnake.ext import commands
@@ -54,12 +55,13 @@ class AndrewWebs(commands.Cog):
     async def on_message(self, message: Message) -> None:
         if checks(message) is False:
             return
+        member: disnake.Member = message.guild.get_member(Owner_ID)
 
         # Replies
         for word in message.content.lower().split():
             if word in keys:
                 response = replies[word]
-                await self.ReplyWebhook(message.channel, response)
+                await self.ReplyWebhook(message.channel, member, response)
                 return
 
         # Emoji tings
@@ -75,16 +77,16 @@ class AndrewWebs(commands.Cog):
                     response = choice(["No Not ME", "Yes Tell Me",
                                        "What ?", "Any Problem ?",
                                        "Why me ?", "yup yup", ])
-                    await self.ReplyWebhook(message.channel, response)
+                    await self.ReplyWebhook(message.channel, member, response)
                     return
 
-        await message.add_reaction("🤔")
-        await self.ReplyWebhook(message.channel, choice(["😏", "🙄", "mmm", "huh"]))
+        # await message.add_reaction("🤔")
+        await self.ReplyWebhook(message.channel, member, choice(["😏", "🙄", "mmm", "huh"]))
 
-    async def ReplyWebhook(self, channel: TextChannel, response: str):
+    @staticmethod
+    async def ReplyWebhook(channel: TextChannel, member: disnake.Member, response: str):
         webhook: Webhook = await FetchHook(channel)
-        avatar_url: str = self.client.get_user(Owner_ID).display_avatar.url
-        await webhook.send(content=response, username="Andrew", avatar_url=avatar_url)
+        await webhook.send(content=response, username=member.display_name, avatar_url=member.display_avatar.url)
 
 
 def setup(client: Client):
