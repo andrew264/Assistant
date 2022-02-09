@@ -6,6 +6,7 @@ from disnake import (
     NotFound,
     PartialEmoji,
     RawReactionActionEvent,
+    Forbidden,
 )
 from disnake.ext import commands
 
@@ -26,13 +27,14 @@ class ReactionRoles(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent) -> None:
-        if payload.guild_id is None or payload.member is None:
-            return
-        if payload.member.bot:
-            return
+        """React to a message with an emoji to get a role."""
         if payload.message_id != self.role_message_id:
             return
+        # ignore bots
+        if payload.member.bot:
+            return
 
+        # fetch guild
         guild = self.client.get_guild(payload.guild_id)
         if guild is None:
             return
@@ -67,7 +69,7 @@ class ReactionRoles(commands.Cog):
         # assign the role
         try:
             await payload.member.add_roles(role)
-        except HTTPException:
+        except HTTPException | Forbidden:
             pass
 
     @commands.Cog.listener()
