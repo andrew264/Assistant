@@ -194,10 +194,26 @@ class UserInfo(commands.Cog):
         await inter.response.send_message(embed=embed)
 
     @commands.slash_command(description="Introduce Yourself to Others.")
-    async def introduce(self, inter: ApplicationCommandInteraction,
-                        message: str = Param(description="Enter a message"), ) -> None:
-        await self.AddDatatoDB(user_id=inter.author.id, message=message.replace('"', ''))
-        await inter.response.send_message("Introduction Added.")
+    async def introduce(self, inter: ApplicationCommandInteraction, ) -> None:
+        class MyModal(disnake.ui.Modal):
+            def __init__(self) -> None:
+                components = [disnake.ui.TextInput(label="Introduce Yourself",
+                                                   placeholder="I am a big pussy",
+                                                   custom_id="content",
+                                                   style=disnake.TextInputStyle.long,
+                                                   min_length=5, max_length=512, ), ]
+
+                super().__init__(title="Add Introduction", custom_id="add_intro", components=components)
+
+            async def callback(self, _inter: disnake.ModalInteraction) -> None:
+                await UserInfo.AddDatatoDB(user_id=inter.author.id,
+                                           message=_inter.text_values['content'].replace('"', ''))
+                await _inter.response.send_message("Introduction Added.", ephemeral=True)
+
+            async def on_error(self, error: Exception, _inter: disnake.ModalInteraction) -> None:
+                await _inter.response.send_message("Oops, something went wrong.", ephemeral=True)
+
+        await inter.response.send_modal(modal=MyModal())
 
     @staticmethod
     async def AddDatatoDB(user_id: int, message: str) -> None:
