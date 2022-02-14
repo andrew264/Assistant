@@ -25,6 +25,7 @@
   <ItemGroup>
     <Compile Include="cogs\Activity.py" />
     <Compile Include="cogs\AndrewWebs.py" />
+    <Compile Include="cogs\ErrorHandler.py" />
     <Compile Include="cogs\Eval.py" />
     <Compile Include="cogs\Fun.py" />
     <Compile Include="cogs\Help.py" />
@@ -38,7 +39,6 @@
     <Compile Include="cogs\music\commands.py" />
     <Compile Include="cogs\OnDM.py" />
     <Compile Include="cogs\OnReady.py" />
-    <Compile Include="cogs\BotReply.py" />
     <Compile Include="cogs\PrivateChat.py" />
     <Compile Include="cogs\ReactionRoles.py" />
     <Compile Include="cogs\Surveillance.py" />
