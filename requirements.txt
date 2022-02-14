@@ -8,3 +8,4 @@ sounddevice
 aiosqlite
 lavalink
 psutil
+aiohttp
