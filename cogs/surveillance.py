@@ -2,21 +2,11 @@
 from datetime import datetime
 from typing import Tuple, Optional
 
+import disnake
 from disnake import (
-    Activity,
-    Client,
     Colour,
-    CustomActivity,
     Embed,
-    Game,
-    Guild,
     Member,
-    Message,
-    Spotify,
-    Streaming,
-    TextChannel,
-    User,
-    VoiceState,
 )
 from disnake.ext import commands
 
@@ -24,7 +14,7 @@ from EnvVariables import Owner_ID, Log_Channel
 from cogs.UserInfo import AvailableClients
 
 
-def CustomActVal(activity: CustomActivity) -> str:
+def CustomActVal(activity: disnake.CustomActivity) -> str:
     value: str = ""
     if activity.emoji is not None:
         value += f"[{activity.emoji}]({activity.emoji.url}) "
@@ -33,29 +23,31 @@ def CustomActVal(activity: CustomActivity) -> str:
     return value
 
 
-def ActivityVal(activities: Tuple[Activity | Game | CustomActivity | Streaming | Spotify, ...]) -> list:
+def ActivityVal(activities: Tuple[disnake.Activity | disnake.Game |
+                                  disnake.CustomActivity | disnake.Streaming
+                                  | disnake.Spotify, ...]) -> list:
     activitiesList = []
     for activity in activities:
-        if isinstance(activity, Game):
+        if isinstance(activity, disnake.Game):
             activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
-        elif isinstance(activity, Streaming):
+        elif isinstance(activity, disnake.Streaming):
             activitiesList.append(f"Streaming {activity.name}")
-        elif isinstance(activity, Spotify):
+        elif isinstance(activity, disnake.Spotify):
             # we don't need spotify activities
             continue
-        elif isinstance(activity, CustomActivity):
+        elif isinstance(activity, disnake.CustomActivity):
             # handle CustomActivity Separately
             continue
-        elif isinstance(activity, Activity):
+        elif isinstance(activity, disnake.Activity):
             activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
     return activitiesList
 
 
 class Surveillance(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
-        self.log_channel: Optional[TextChannel] = None
-        self.log_guild: Optional[Guild] = None
+        self.log_channel: Optional[disnake.TextChannel] = None
+        self.log_guild: Optional[disnake.Guild] = None
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -63,7 +55,7 @@ class Surveillance(commands.Cog):
         self.log_guild = self.log_channel.guild
 
     @commands.Cog.listener()
-    async def on_message_edit(self, before: Message, after: Message) -> None:
+    async def on_message_edit(self, before: disnake.Message, after: disnake.Message) -> None:
         if before.guild is None or before.guild != self.log_guild:
             return
         if before.author.bot:
@@ -81,7 +73,7 @@ class Surveillance(commands.Cog):
         await self.log_channel.send(embed=embed)
 
     @commands.Cog.listener()
-    async def on_message_delete(self, message: Message) -> None:
+    async def on_message_delete(self, message: disnake.Message) -> None:
         if message.guild is None or message.guild != self.log_guild:
             return
         if message.author.bot:
@@ -113,7 +105,7 @@ class Surveillance(commands.Cog):
         await self.log_channel.send(embed=embed)
 
     @commands.Cog.listener()
-    async def on_user_update(self, before: User, after: User) -> None:
+    async def on_user_update(self, before: disnake.User, after: disnake.User) -> None:
         member: Optional[Member] = self.log_guild.get_member(before.id)
         if member is None:
             return
@@ -150,16 +142,16 @@ class Surveillance(commands.Cog):
         # Custom Activity
         before_custom, after_custom = None, None
         for activity in before.activities:
-            if isinstance(activity, CustomActivity):
+            if isinstance(activity, disnake.CustomActivity):
                 before_custom = activity
         for activity in after.activities:
-            if isinstance(activity, CustomActivity):
+            if isinstance(activity, disnake.CustomActivity):
                 after_custom = activity
-        if before_custom is None and isinstance(after_custom, CustomActivity):
+        if before_custom is None and isinstance(after_custom, disnake.CustomActivity):
             embed.add_field(name=f"Custom Status added", value=f"{CustomActVal(after_custom)}", inline=False, )
             if delete_after == 300:
                 delete_after += 43200
-        elif after_custom is None and isinstance(before_custom, CustomActivity):
+        elif after_custom is None and isinstance(before_custom, disnake.CustomActivity):
             embed.add_field(name=f"Custom Status removed", value=f"{CustomActVal(before_custom)}", inline=False, )
         elif (
                 before_custom is not None
@@ -193,7 +185,8 @@ class Surveillance(commands.Cog):
             await self.log_channel.send(embed=embed, delete_after=delete_after)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
+    async def on_voice_state_update(self, member: Member, before: disnake.VoiceState,
+                                    after: disnake.VoiceState) -> None:
         if member.guild is None or member.guild != self.log_guild:
             return
         if member.bot:
@@ -210,7 +203,9 @@ class Surveillance(commands.Cog):
                 delete_after=900, )
 
     @commands.Cog.listener()
-    async def on_typing(self, channel: TextChannel, user: Member, when: datetime) -> None:
+    async def on_typing(self, channel: disnake.TextChannel, user: Member, when: datetime) -> None:
+        if isinstance(channel, disnake.DMChannel):
+            return
         if channel.guild is None or channel.guild != self.log_guild:
             return
         if user.bot:

@@ -9,15 +9,11 @@ import lavalink
 import psutil
 from disnake import (
     Activity,
-    ApplicationCommandInteraction,
-    Client,
     CustomActivity,
     Embed,
     Game,
-    Member,
     Spotify,
     Streaming,
-    UserCommandInteraction,
 )
 from disnake.ext import commands
 from disnake.ext.commands import Param
@@ -55,7 +51,7 @@ def CustomActVal(activity: CustomActivity) -> str:
     return value
 
 
-def AvailableClients(user: Member) -> str:
+def AvailableClients(user: disnake.Member) -> str:
     """Returns a string of available clients for a Member"""
     clients = []
     if user.desktop_status.name != "offline":
@@ -85,25 +81,26 @@ def human_bytes(_bytes: int) -> str:
 
 
 class UserInfo(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     @commands.slash_command(description="Luk wat he be doing over der")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
-    async def whois(self, inter: ApplicationCommandInteraction,
-                    user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ) -> None:
+    async def whois(self, inter: disnake.ApplicationCommandInteraction,
+                    user: disnake.Member = Param(description="Mention a User",
+                                                 default=lambda inter: inter.author), ) -> None:
         embed = await self.WhoIsEmbed(user)
         await inter.response.send_message(embed=embed)
 
     @commands.user_command(name="Who is this Guy?")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
-    async def ContextWhoIs(self, inter: UserCommandInteraction) -> None:
+    async def ContextWhoIs(self, inter: disnake.UserCommandInteraction) -> None:
         embed = await self.WhoIsEmbed(inter.target)
         await inter.response.send_message(embed=embed)
 
-    async def WhoIsEmbed(self, user: Member) -> Embed:
+    async def WhoIsEmbed(self, user: disnake.Member) -> Embed:
 
         date_format = "%a, %d %b %Y %I:%M %p"
         embed = Embed(color=user.colour)
@@ -148,20 +145,21 @@ class UserInfo(commands.Cog):
         return embed
 
     @commands.slash_command(description="Shows the avatar of the user")
-    async def avatar(self, inter: ApplicationCommandInteraction,
-                     user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ) -> None:
+    async def avatar(self, inter: disnake.ApplicationCommandInteraction,
+                     user: disnake.Member = Param(description="Mention a User",
+                                                  default=lambda inter: inter.author), ) -> None:
         avatar = Embed(title=f"{user.display_name}'s Avatar 🖼", color=user.colour)
         avatar.set_image(url=user.display_avatar.url)
         await inter.response.send_message(embed=avatar)
 
     @commands.user_command(name="Avatar")
-    async def ContextAvatar(self, inter: UserCommandInteraction) -> None:
+    async def ContextAvatar(self, inter: disnake.UserCommandInteraction) -> None:
         avatar = Embed(title=f"{inter.target.display_name}'s Avatar 🖼")
         avatar.set_image(url=inter.target.display_avatar.url)
         await inter.response.send_message(embed=avatar)
 
     @commands.slash_command(description="Shows Bot's Info")
-    async def botinfo(self, inter: ApplicationCommandInteraction) -> None:
+    async def botinfo(self, inter: disnake.ApplicationCommandInteraction) -> None:
         user = self.client.user
         embed = Embed(color=0xFF0060, description=user.mention)
         embed.set_author(name=user, icon_url=user.avatar.url)
@@ -174,7 +172,7 @@ class UserInfo(commands.Cog):
         await inter.response.send_message(embed=embed)
 
     @commands.slash_command(description="Shows Bot's Stats")
-    async def stats(self, inter: ApplicationCommandInteraction) -> None:
+    async def stats(self, inter: disnake.ApplicationCommandInteraction) -> None:
         user = self.client.user
         embed = Embed(color=0xFF0060, description=user.mention)
         embed.add_field(name="Python Version", value=f"v. {python_version()}")
@@ -194,7 +192,7 @@ class UserInfo(commands.Cog):
         await inter.response.send_message(embed=embed)
 
     @commands.slash_command(description="Introduce Yourself to Others.")
-    async def introduce(self, inter: ApplicationCommandInteraction, ) -> None:
+    async def introduce(self, inter: disnake.ApplicationCommandInteraction, ) -> None:
         class MyModal(disnake.ui.Modal):
             def __init__(self) -> None:
                 components = [disnake.ui.TextInput(label="Introduce Yourself",

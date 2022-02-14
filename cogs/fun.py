@@ -1,7 +1,8 @@
 # Imports
 from random import randint, choice
 
-from disnake import Embed, Member, Client, ApplicationCommandInteraction
+import disnake
+from disnake import Embed
 from disnake.ext import commands
 from disnake.ext.commands import Param
 from disnake.utils import find
@@ -32,13 +33,14 @@ def DeathMsgGen(victim: str, killer: str) -> str:
 
 
 class Fun(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     @commands.slash_command(description="Measure them PPs")
     @commands.guild_only()
-    async def pp(self, inter: ApplicationCommandInteraction,
-                 user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ) -> None:
+    async def pp(self, inter: disnake.ApplicationCommandInteraction,
+                 user: disnake.Member = Param(description="Mention a User",
+                                              default=lambda inter: inter.author), ) -> None:
         pp404 = find(lambda r: r.id == 838868317779394560, user.roles)
         ppembed = Embed(colour=user.color)
         ppembed.set_author(name=user, icon_url=user.display_avatar.url)
@@ -53,8 +55,8 @@ class Fun(commands.Cog):
 
     @commands.slash_command(description="Delete their existence")
     @commands.guild_only()
-    async def kill(self, inter: ApplicationCommandInteraction,
-                   user: Member = Param(description="Mention a User", default=lambda inter: inter.author), ):
+    async def kill(self, inter: disnake.ApplicationCommandInteraction,
+                   user: disnake.Member = Param(description="Mention a User", default=lambda inter: inter.author), ):
         if user is None or user == inter.author:
             await inter.response.send_message("Stop, Get some Help.")
             return

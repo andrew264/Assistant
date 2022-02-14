@@ -1,13 +1,6 @@
 ﻿import math
 
 import disnake
-from disnake import (
-    Embed,
-    Message,
-    ButtonStyle,
-    Button,
-    Interaction
-)
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
@@ -26,22 +19,22 @@ class Queue(commands.Cog):
             def __init__(self):
                 super().__init__(timeout=180.0)
                 self.page_no = 1
-                self.message: Message | None = None
+                self.message: disnake.Message | None = None
 
             async def on_timeout(self):
                 await self.message.delete()
                 self.stop()
 
-            @disnake.ui.button(emoji="◀", style=ButtonStyle.secondary)
-            async def prev_page(self, button: Button, interaction: Interaction):
+            @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.secondary)
+            async def prev_page(self, button: disnake.Button, interaction: disnake.Interaction):
                 if self.page_no > 1:
                     self.page_no -= 1
                 else:
                     self.page_no = math.ceil(len(player.queue) / 4)
                 await interaction.response.edit_message(embed=self.QueueEmbed, view=self)
 
-            @disnake.ui.button(emoji="▶", style=ButtonStyle.secondary)
-            async def next_page(self, button: Button, interaction: Interaction):
+            @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
+            async def next_page(self, button: disnake.Button, interaction: disnake.Interaction):
                 if self.page_no < math.ceil(len(player.queue) / 4):
                     self.page_no += 1
                 else:
@@ -49,7 +42,7 @@ class Queue(commands.Cog):
                 await interaction.response.edit_message(embed=self.QueueEmbed, view=self)
 
             @property
-            def QueueEmbed(self) -> Embed:
+            def QueueEmbed(self) -> disnake.Embed:
                 first = (self.page_no * 4) - 4
                 if (self.page_no * 4) + 1 <= len(player.queue):
                     last = (self.page_no * 4)
@@ -57,8 +50,8 @@ class Queue(commands.Cog):
                     last = len(player.queue)
                 song_index = [i for i in range(first, last)]
                 if not player.current:
-                    return Embed(title="Queue is Empty", colour=0xFFA31A)
-                embed = Embed(
+                    return disnake.Embed(title="Queue is Empty", colour=0xFFA31A)
+                embed = disnake.Embed(
                     title="Now Playing", colour=0xFFA31A,
                     description=f"{str(player.current)}", )
                 if len(player.queue) >= 1:

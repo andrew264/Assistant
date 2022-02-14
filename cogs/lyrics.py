@@ -4,21 +4,13 @@ import re
 from typing import Optional
 
 import disnake
-from disnake import (
-    ApplicationCommandInteraction,
-    Button,
-    ButtonStyle,
-    Client,
-    Embed,
-    Interaction,
-    Spotify,
-)
+import yt_dlp.YoutubeDL as YDL
+from disnake import Embed
 from disnake.ext import commands
 from disnake.ext.commands import Param
+from lavalink import DefaultPlayer as Player
 from lyricsgenius import Genius
 from lyricsgenius.types import Song
-from lavalink import DefaultPlayer as Player
-import yt_dlp.YoutubeDL as YDL
 
 from EnvVariables import GENIUS_TOKEN
 
@@ -56,7 +48,7 @@ class SongInfo:
 
 
 class Pages(disnake.ui.View):
-    def __init__(self, song_info: SongInfo, inter: ApplicationCommandInteraction):
+    def __init__(self, song_info: SongInfo, inter: disnake.ApplicationCommandInteraction):
         super().__init__(timeout=120.0)
         self.page_no = 0
         self.song_info = song_info
@@ -68,16 +60,16 @@ class Pages(disnake.ui.View):
         except disnake.NotFound | disnake.Forbidden:
             pass
 
-    @disnake.ui.button(emoji="◀", style=ButtonStyle.blurple)
-    async def prev_page(self, button: Button, interaction: Interaction) -> None:
+    @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.blurple)
+    async def prev_page(self, button: disnake.Button, interaction: disnake.Interaction) -> None:
         if self.page_no > 0:
             self.page_no -= 1
         else:
             self.page_no = len(self.song_info.lyrics_list) - 1
         await interaction.response.edit_message(embed=self.song_info.generate_embed(self.page_no), view=self, )
 
-    @disnake.ui.button(emoji="▶", style=ButtonStyle.blurple)
-    async def next_page(self, button: Button, interaction: Interaction) -> None:
+    @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.blurple)
+    async def next_page(self, button: disnake.Button, interaction: disnake.Interaction) -> None:
         if self.page_no < len(self.song_info.lyrics_list) - 1:
             self.page_no += 1
         else:
@@ -86,11 +78,11 @@ class Pages(disnake.ui.View):
 
 
 class Lyrics(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")
-    async def lyrics(self, inter: ApplicationCommandInteraction,
+    async def lyrics(self, inter: disnake.ApplicationCommandInteraction,
                      title: str = Param(description="Song Title", default=None),
                      artist: str = Param(description="Song Artist", default=""), ) -> None:
 
@@ -99,10 +91,14 @@ class Lyrics(commands.Cog):
         track_url: Optional[str] = None
         icon_url: Optional[str] = inter.author.display_avatar.url
 
+        if not title and not isinstance(inter.author, disnake.Member):
+            await inter.edit_original_message(content="Please provide a song title.")
+            return
+
         # fetch title from Spotify Activity
         if not title:
             for activity in inter.author.activities:
-                if isinstance(activity, Spotify):
+                if isinstance(activity, disnake.Spotify):
                     title = activity.title
                     artist = activity.artist
                     track_url = activity.track_url

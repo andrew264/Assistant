@@ -65,6 +65,7 @@ class Utility(commands.Cog):
 
     # clear
     @commands.command(aliases=["delete"])
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def clear(self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5) -> None:
         if isinstance(no_of_msgs, int) and no_of_msgs > 420:
@@ -85,6 +86,7 @@ class Utility(commands.Cog):
 
     # Context Delete
     @commands.message_command(name="Delete till HERE")
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def ContextClear(self, inter: MessageCommandInteraction) -> None:
         await inter.channel.purge(after=inter.target)
@@ -93,6 +95,7 @@ class Utility(commands.Cog):
             ephemeral=True, )
 
     @commands.command(aliases=["yeet"])
+    @commands.guild_only()
     @commands.is_owner()
     async def purge_user(self, ctx: commands.Context, user: Member = None) -> None:
         if user is None:

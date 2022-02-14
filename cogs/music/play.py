@@ -3,7 +3,6 @@ import re
 import disnake
 import lavalink
 from disnake.ext import commands
-from disnake.utils import get
 from lavalink import DefaultPlayer as Player
 
 from cogs.music.lavaclient import LavalinkVoiceClient
@@ -59,7 +58,7 @@ class Play(commands.Cog):
                     seek_time = int(re.sub(yt_time_rx, "", query)) * 1000
 
         # Join VC
-        voice = get(self.client.voice_clients, guild=ctx.guild)
+        voice = disnake.utils.get(self.client.voice_clients, guild=ctx.guild)
         if voice and player.is_connected:
             pass
         elif voice is None:

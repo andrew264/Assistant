@@ -1,7 +1,7 @@
 ﻿# Imports
-from os import listdir
+import os
 
-from disnake import Intents
+import disnake
 from disnake.ext import commands
 
 from EnvVariables import TOKEN, Owner_ID
@@ -9,12 +9,13 @@ from EnvVariables import TOKEN, Owner_ID
 # Client
 client = commands.Bot(
     command_prefix=commands.when_mentioned_or("."),
-    intents=Intents.all(),
+    intents=disnake.Intents.all(),
     help_command=None,
     case_insensitive=True,
-    test_guilds=[821758346054467584, 914122845678870539],
     owner_id=Owner_ID,
     description="Andrew's Assistant",
+    status=disnake.Status.online,
+    activity=disnake.Activity(type=disnake.ActivityType.watching, name="yall Homies."),
 )
 
 
@@ -57,7 +58,7 @@ async def reload(ctx: commands.Context, extension) -> None:
         await ctx.message.add_reaction("✅")
 
 
-for filename in listdir("./cogs"):
+for filename in os.listdir("./cogs"):
     if filename.endswith(".py"):
         client.load_extension(f"cogs.{filename[:-3]}")
 

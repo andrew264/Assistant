@@ -1,19 +1,17 @@
 ﻿# Imports
-from disnake import Client, Message, User
-from disnake.channel import TextChannel
-from disnake.errors import Forbidden, HTTPException
+import disnake
 from disnake.ext import commands
 
 from EnvVariables import DM_Channel
 
 
 class OnDM(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     # Replies
     @commands.Cog.listener()
-    async def on_message(self, message: Message) -> None:
+    async def on_message(self, message: disnake.Message) -> None:
         if message.guild:
             return
         if message.author.bot:
@@ -29,13 +27,13 @@ class OnDM(commands.Cog):
                 for attachment in message.attachments:
                     msg_content += f"\n{str(attachment)}"
             msg_content += "\n──────────────────────────────"
-            if isinstance(channel, TextChannel):
+            if isinstance(channel, disnake.TextChannel):
                 await channel.send(msg_content)
 
     # slide to dms
     @commands.command()
     @commands.is_owner()
-    async def dm(self, ctx: commands.Context, user: User, *, msg: str) -> None:
+    async def dm(self, ctx: commands.Context, user: disnake.User, *, msg: str) -> None:
         channel = await user.create_dm()
         msg_content = f"{msg}\n"
         if ctx.message.attachments:
@@ -43,7 +41,7 @@ class OnDM(commands.Cog):
                 msg_content += f"{str(attachment)}\n"
         try:
             await channel.send(msg_content)
-        except Forbidden or HTTPException:
+        except (disnake.Forbidden | disnake.HTTPException):
             await ctx.send(f"Failed to DM {user}.")
 
 

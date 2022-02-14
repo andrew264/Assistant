@@ -15,6 +15,7 @@ class Activity(commands.Cog):
         self.client = client
 
     @commands.slash_command(name="activity")
+    @commands.guild_only()
     @commands.bot_has_permissions(create_instant_invite=True)
     async def activity(self, inter: disnake.ApplicationCommandInteraction,
                        activity=commands.Param(description="Select an activity type", choices=activities,
@@ -24,7 +25,7 @@ class Activity(commands.Cog):
             await inter.response.send_message("You must be in a voice channel to use this command.")
             return
         invite = await inter.author.voice.channel.create_invite(target_type=disnake.InviteTarget.embedded_application,
-                                                                target_application=disnake.PartyType(int(activity)), 
+                                                                target_application=disnake.PartyType(int(activity)),
                                                                 max_age=300)
         await inter.response.send_message(f"Invite link: {invite}", delete_after=300)
 

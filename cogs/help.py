@@ -1,32 +1,28 @@
 ﻿# Import
+import disnake
 from disnake import (
-    ApplicationCommandInteraction,
-    Button,
-    ButtonStyle,
-    Client,
     Colour,
     Embed,
-    Interaction,
 )
 from disnake.ext import commands
 from disnake.ui import View, button
 
 
 class HelpMe(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     class HelpButtons(View):
         def __init__(self):
             super().__init__(timeout=60.0)
-            self.inter: ApplicationCommandInteraction
+            self.inter: disnake.ApplicationCommandInteraction
 
         async def on_timeout(self):
             await self.inter.edit_original_message(view=None)
             self.stop()
 
-        @button(label="General Commands", style=ButtonStyle.blurple)
-        async def user(self, _button: Button, interaction: Interaction) -> None:
+        @button(label="General Commands", style=disnake.ButtonStyle.blurple)
+        async def user(self, _button: disnake.Button, interaction: disnake.Interaction) -> None:
             # General Embed
             general_embed = Embed(color=Colour.blurple())
             general_embed.set_author(name="General Commands")
@@ -42,8 +38,8 @@ class HelpMe(commands.Cog):
             _button.disabled = True
             await interaction.response.edit_message(embed=general_embed, view=self)
 
-        @button(label="Music Commands", style=ButtonStyle.blurple)
-        async def music(self, _button: Button, interaction: Interaction) -> None:
+        @button(label="Music Commands", style=disnake.ButtonStyle.blurple)
+        async def music(self, _button: disnake.Button, interaction: disnake.Interaction) -> None:
             # Music Commands
             music_embed = Embed(color=Colour.green())
             music_embed.set_author(name="Play Music from YouTube in VC")
@@ -61,8 +57,8 @@ class HelpMe(commands.Cog):
             _button.disabled = True
             await interaction.response.edit_message(embed=music_embed, view=self)
 
-        @button(label="Fun Commands", style=ButtonStyle.blurple)
-        async def fun(self, _button: Button, interaction: Interaction) -> None:
+        @button(label="Fun Commands", style=disnake.ButtonStyle.blurple)
+        async def fun(self, _button: disnake.Button, interaction: disnake.Interaction) -> None:
             # Fun Commands
             fun_embed = Embed(color=Colour.dark_orange())
             fun_embed.set_author(name="Fun Stuff")
@@ -76,7 +72,7 @@ class HelpMe(commands.Cog):
             await interaction.response.edit_message(embed=fun_embed, view=self)
 
     @commands.slash_command(description="How may I help you ?")
-    async def help(self, inter: ApplicationCommandInteraction) -> None:
+    async def help(self, inter: disnake.ApplicationCommandInteraction) -> None:
         view = self.HelpButtons()
         view.inter = inter
         await inter.response.send_message("How may I help you ?", view=view)

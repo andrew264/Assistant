@@ -1,20 +1,12 @@
 # Imports
-import asyncio
 import os
 import platform
 import traceback
 
+import disnake
 from disnake import (
-    Activity,
-    ActivityType,
-    ApplicationCommandInteraction,
-    Client,
     Color,
-    CustomActivity,
     Embed,
-    Member,
-    Spotify,
-    Status,
 )
 from disnake.ext import commands
 from disnake.utils import get
@@ -31,7 +23,7 @@ def fancy_traceback(exc: Exception) -> str:
 
 
 # Custom Act
-def CustomActVal(activity: CustomActivity) -> str:
+def CustomActVal(activity: disnake.CustomActivity) -> str:
     value: str = "Status: "
     if activity.emoji is not None:
         value += str(activity.emoji)
@@ -41,12 +33,12 @@ def CustomActVal(activity: CustomActivity) -> str:
 
 
 # Activities
-def activity_string(member: Member):
+def activity_string(member: disnake.Member):
     str1 = ""
     for activity in member.activities:
-        if isinstance(activity, Spotify):
+        if isinstance(activity, disnake.Spotify):
             str1 += f"\n\t\t\t> Listening to {activity.title} by {', '.join(activity.artists)} {timeDelta(activity.start)}"
-        elif isinstance(activity, CustomActivity):
+        elif isinstance(activity, disnake.CustomActivity):
             str1 += f"\n\t\t\t> {CustomActVal(member.activity)} {timeDelta(activity.created_at)}"
         else:
             str1 += f"\n\t\t\t> Playing {activity.name} {timeDelta(activity.created_at)}"
@@ -54,7 +46,7 @@ def activity_string(member: Member):
 
 
 class Ready(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     # Update Printed Text
@@ -111,9 +103,6 @@ class Ready(commands.Cog):
         self.client.load_extension("cogs.music.queue")
         self.client.load_extension("cogs.music.effects")
 
-        # Set Bot Activity
-        await self.client.change_presence(status=Status.online,
-                                          activity=Activity(type=ActivityType.watching, name="yall Homies."), )
         # Print in Terminal
         await self.Output()
 
@@ -133,12 +122,15 @@ class Ready(commands.Cog):
         elif isinstance(error, commands.MissingPermissions):
             await ctx.send(error, delete_after=60)
         elif isinstance(error, commands.NotOwner):
-            await ctx.send("🚫 You can't do that.", delete_after=60)
+            await ctx.send("🚫 You can't do that.")
         elif isinstance(error, commands.UserInputError):
             await ctx.send(f"Error: Invalid {error.args[0]} Argument.")
         elif isinstance(error, commands.CheckFailure):
-            await ctx.send(f"***{error}***", delete_after=30)
+            await ctx.send(f"***{error}***")
+        elif isinstance(error, commands.MemberNotFound):
+            await ctx.send(f"🚫 Member not found.")
         else:
+            await ctx.send(f"An unknown error occurred")
             await ctx.send(f"***{error}***")
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{ctx.command}` failed due to `{error}`", description=fancy_traceback(error),
@@ -147,12 +139,18 @@ class Ready(commands.Cog):
 
     # slash errors
     @commands.Cog.listener()
-    async def on_slash_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError) -> None:
+    async def on_slash_command_error(self, inter: disnake.ApplicationCommandInteraction,
+                                     error: commands.CommandError) -> None:
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions) or isinstance(error, commands.BotMissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
+        elif isinstance(error, commands.NoPrivateMessage):
+            await inter.response.send_message("🚫 You can't do that in DMs.")
+        elif isinstance(error, commands.MemberNotFound):
+            await inter.response.send_message(f"🚫 Member not found.")
         else:
+            await inter.response.send_message(f"An unknown error occurred")
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
@@ -160,13 +158,18 @@ class Ready(commands.Cog):
 
     # Message Context Error
     @commands.Cog.listener()
-    async def on_message_command_error(self, inter: ApplicationCommandInteraction,
+    async def on_message_command_error(self, inter: disnake.ApplicationCommandInteraction,
                                        error: commands.CommandError) -> None:
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
+        elif isinstance(error, commands.NoPrivateMessage):
+            await inter.response.send_message("🚫 You can't do that in DMs.")
+        elif isinstance(error, commands.MemberNotFound):
+            await inter.response.send_message(f"🚫 Member not found.")
         else:
+            await inter.response.send_message(f"An unknown error occurred")
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
@@ -174,12 +177,18 @@ class Ready(commands.Cog):
 
     # User Context Error
     @commands.Cog.listener()
-    async def on_user_command_error(self, inter: ApplicationCommandInteraction, error: commands.CommandError) -> None:
+    async def on_user_command_error(self, inter: disnake.ApplicationCommandInteraction,
+                                    error: commands.CommandError) -> None:
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
             await inter.response.send_message(error, ephemeral=True)
+        elif isinstance(error, commands.NoPrivateMessage):
+            await inter.response.send_message("🚫 You can't do that in DMs.")
+        elif isinstance(error, commands.MemberNotFound):
+            await inter.response.send_message(f"🚫 Member not found.")
         else:
+            await inter.response.send_message(f"An unknown error occurred")
             channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )

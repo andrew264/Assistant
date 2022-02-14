@@ -2,28 +2,27 @@
 import os
 import re
 
-from disnake import FFmpegPCMAudio, Member, Client, ApplicationCommandInteraction
+import disnake
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake.utils import get
 from gtts import gTTS
 
 
 class TextToSpeech(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     @commands.slash_command(description="Text To Speech")
     @commands.guild_only()
-    async def tts(self, inter: ApplicationCommandInteraction,
+    async def tts(self, inter: disnake.ApplicationCommandInteraction,
                   message: str = Param(description="Enter a message"), ) -> None:
-        if isinstance(inter.author, Member) and inter.author.voice is None:
+        if isinstance(inter.author, disnake.Member) and inter.author.voice is None:
             await inter.response.send_message("You are not connected to a Voice Channel.", ephemeral=True)
             return
-        voice = get(self.client.voice_clients, guild=inter.guild)
+        voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
         if voice and voice.is_connected():
             pass
-        elif isinstance(inter.author, Member) and voice is None:
+        elif isinstance(inter.author, disnake.Member) and voice is None:
             voiceChannel = inter.author.voice.channel
             voice = await voiceChannel.connect()
         if message:
@@ -37,7 +36,7 @@ class TextToSpeech(commands.Cog):
             new_str = re.sub(r"[^A-Za-z0-9 ]+", "", message)
             gTTS(f"{name} says {new_str}").save("tts.mp3")
             if voice.is_playing() is False & voice.is_playing() is False:
-                voice.play(FFmpegPCMAudio("tts.mp3"))
+                voice.play(disnake.FFmpegPCMAudio("tts.mp3"))
             await inter.response.send_message(f"{inter.author.display_name} says: {message}")
 
 

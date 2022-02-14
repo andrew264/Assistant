@@ -2,12 +2,11 @@
 from time import time
 
 import disnake
-from disnake import Client
 from disnake.ext import commands
 
 
 class EvalCommand(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     @staticmethod

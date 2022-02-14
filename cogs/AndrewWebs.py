@@ -4,7 +4,6 @@ from random import choice, randint
 
 import disnake
 import emoji
-from disnake import Client, Message, TextChannel, Webhook
 from disnake.ext import commands
 
 from EnvVariables import Owner_ID
@@ -24,8 +23,12 @@ with open("data/AndrewReplies.json", "r") as replyJSON:
     replyJSON.close()
 
 
-def checks(message: Message) -> bool:
+def checks(message: disnake.Message) -> bool:
     if message.author.bot:
+        return False
+    if isinstance(message.channel, disnake.DMChannel):
+        return False
+    if isinstance(message.channel, disnake.Thread):
         return False
     if message.author.id == Owner_ID:
         return False
@@ -38,21 +41,21 @@ def checks(message: Message) -> bool:
     return False
 
 
-async def FetchHook(channel: TextChannel) -> Webhook:
+async def FetchHook(channel: disnake.TextChannel) -> disnake.Webhook:
     webhooks = await channel.webhooks()
     for webhook in webhooks:
         if webhook.name == "Reply Hook":
             return webhook
-    webhook: Webhook = await channel.create_webhook(name="Reply Hook")
+    webhook: disnake.Webhook = await channel.create_webhook(name="Reply Hook")
     return webhook
 
 
 class AndrewWebs(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
 
     @commands.Cog.listener()
-    async def on_message(self, message: Message) -> None:
+    async def on_message(self, message: disnake.Message) -> None:
         if checks(message) is False:
             return
         member: disnake.Member = message.guild.get_member(Owner_ID)
@@ -84,10 +87,10 @@ class AndrewWebs(commands.Cog):
         await self.ReplyWebhook(message.channel, member, choice(["😏", "🙄", "mmm", "huh"]))
 
     @staticmethod
-    async def ReplyWebhook(channel: TextChannel, member: disnake.Member, response: str):
-        webhook: Webhook = await FetchHook(channel)
+    async def ReplyWebhook(channel: disnake.TextChannel, member: disnake.Member, response: str):
+        webhook: disnake.Webhook = await FetchHook(channel)
         await webhook.send(content=response, username=member.display_name, avatar_url=member.display_avatar.url)
 
 
-def setup(client: Client):
+def setup(client: disnake.Client):
     client.add_cog(AndrewWebs(client))

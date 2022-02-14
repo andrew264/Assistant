@@ -1,14 +1,8 @@
 ﻿# Imports
 import asyncio
 
-import lavalink
 import disnake
-from disnake import (
-    Activity,
-    ActivityType,
-    Client,
-    Status,
-)
+import lavalink
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
@@ -27,7 +21,7 @@ def time_in_seconds(timestamp: str) -> int:
 
 
 class Music(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: disnake.Client):
         self.client = client
         lavalink.add_event_hook(self.track_hook)
 
@@ -60,17 +54,19 @@ class Music(commands.Cog):
         if isinstance(event, lavalink.events.TrackStartEvent):
             song = event.player.current
             if song:
-                await self.client.change_presence(activity=Activity(type=ActivityType.listening,
-                                                                    name=song.title, ))
+                await self.client.change_presence(activity=disnake.Activity(type=disnake.ActivityType.listening,
+                                                                            name=song.title, ))
         if isinstance(event, lavalink.events.TrackEndEvent):
             player: Player = event.player
             if not player.is_playing:
-                await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
-                                                                                          name="yall Homies."), )
+                await self.client.change_presence(status=disnake.Status.online,
+                                                  activity=disnake.Activity(type=disnake.ActivityType.watching,
+                                                                            name="yall Homies."), )
         if isinstance(event, lavalink.events.QueueEndEvent):
             player: Player = event.player
-            await self.client.change_presence(status=Status.online, activity=Activity(type=ActivityType.watching,
-                                                                                      name="yall Homies."), )
+            await self.client.change_presence(status=disnake.Status.online,
+                                              activity=disnake.Activity(type=disnake.ActivityType.watching,
+                                                                        name="yall Homies."), )
             await player.stop()
 
     # Skip

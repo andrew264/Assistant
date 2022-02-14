@@ -2,11 +2,9 @@
 
 import disnake
 from disnake import (
-    Embed,
     Button,
     Interaction,
     ButtonStyle,
-    MessageInteraction,
 )
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
@@ -32,7 +30,7 @@ class NP(commands.Cog):
             async def on_timeout(self):
                 self.stop()
 
-            async def interaction_check(self, interaction: MessageInteraction) -> bool:
+            async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
                 if interaction.author.voice is None:
                     await interaction.response.send_message("You are not connected to a voice channel.", ephemeral=True)
                     return False
@@ -126,7 +124,7 @@ class NP(commands.Cog):
                 await interaction.response.edit_message(view=self)
 
             @property
-            def NPEmbed(self) -> Embed:
+            def NPEmbed(self) -> disnake.Embed:
                 current_song: VideoTrack = player.current
                 percentile = round((player.position / current_song.duration) * 20)
                 bar = "────────────────────"
@@ -134,7 +132,7 @@ class NP(commands.Cog):
                 song_on = current_song.format_time(player.position)
                 song_end = current_song.format_time(current_song.duration)
                 current_song.fetch_info()
-                embed = Embed(color=0xEB459E)
+                embed = disnake.Embed(color=0xEB459E)
                 embed.set_thumbnail(url=f"{current_song.thumbnail}")
                 embed.set_author(name=current_song.title, url=current_song.uri, icon_url=current_song.avatar_url)
                 embed.add_field(name=f"{song_on} {progress_bar} {song_end}", value="\u200b",

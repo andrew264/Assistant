@@ -1,6 +1,6 @@
 from typing import Optional
 
-from disnake import Member
+import disnake
 from lavalink import AudioTrack
 from pyyoutube import Api
 
@@ -19,7 +19,7 @@ def human_format(num):
 
 class VideoTrack(AudioTrack):
 
-    def __init__(self, data: dict, author: Member, **extra):
+    def __init__(self, data: dict, author: disnake.Member, **extra):
         super().__init__(data, author.id, **extra)
         self.author = author
         self.thumbnail: Optional[str] = None

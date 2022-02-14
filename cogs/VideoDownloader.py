@@ -1,5 +1,6 @@
 # Imports
 import os
+import re
 
 import yt_dlp.YoutubeDL as YDL
 from disnake import Client, ApplicationCommandInteraction, Embed, File
@@ -24,7 +25,16 @@ class VidDownload(commands.Cog):
 
     @commands.slash_command(name="videodownloader", description="Get Video Sent in Chat")
     async def VDownloader(self, inter: ApplicationCommandInteraction,
-                          url: str = Param(description="Video URL", default=None)) -> None:
+                          url: str = Param(description="Video URL")) -> None:
+        """
+        Get Video Sent in Chat
+        """
+        url_rx = re.compile(r'https?://(?:www\.)?.+')
+        if not url_rx.match(url):
+            await inter.response.send_message(
+                embed=Embed(title="Invalid URL", description="Please provide a valid URL"))
+            return
+
         await inter.response.defer(ephemeral=True)
         with YDL(ydl_opts) as ydl:
             video_info = ydl.extract_info(url, download=True)
