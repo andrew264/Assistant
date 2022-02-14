@@ -30,6 +30,8 @@ def ActivityVal(activity: Activity | Game) -> str:
 
 def timeDelta(timestamp: datetime) -> str:
     """Returns a human readable time delta"""
+    if timestamp is None:
+        return "(None)"
     delta = datetime.now(timezone.utc) - timestamp
     if delta.days > 0:
         return f"({delta.days} days ago)"
