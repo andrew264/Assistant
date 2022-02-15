@@ -116,7 +116,7 @@ class UserInfo(commands.Cog):
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.add_field(name=f"Joined {user.guild.name} on",
-                        value=f"{user.joined_at.strftime(date_format)} **{timeDelta(user.joined_at)} days ago)**", )
+                        value=f"{user.joined_at.strftime(date_format)} **{timeDelta(user.joined_at)}**", )
         embed.add_field(name="Account created on",
                         value=f"{user.created_at.strftime(date_format)} **{timeDelta(user.created_at)}**", )
         if user.nick is not None:
