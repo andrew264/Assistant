@@ -5,13 +5,13 @@ from typing import Optional
 
 import disnake
 import yt_dlp.YoutubeDL as YDL
-from disnake import Embed
 from disnake.ext import commands
 from disnake.ext.commands import Param
 from lavalink import DefaultPlayer as Player
 from lyricsgenius import Genius
 from lyricsgenius.types import Song
 
+import assistant
 from EnvVariables import GENIUS_TOKEN
 
 ydl_opts = {'quiet': True, 'no_warnings': True}
@@ -40,8 +40,9 @@ class SongInfo:
         lyrics_list = list(lyrics.split("\n\n"))
         return lyrics_list
 
-    def generate_embed(self, pg_no: int, ) -> Embed:
-        embed = Embed(title=f"{self.title}", url=self.track_url, color=0x1DB954, description=self.lyrics_list[pg_no])
+    def generate_embed(self, pg_no: int, ) -> disnake.Embed:
+        embed = disnake.Embed(title=f"{self.title}", url=self.track_url,
+                              color=0x1DB954, description=self.lyrics_list[pg_no])
         embed.set_thumbnail(url=self.album_art)
         embed.set_footer(text=f"({pg_no + 1}/{len(self.lyrics_list)})", icon_url=self.avatar_url)
         return embed
@@ -78,7 +79,7 @@ class Pages(disnake.ui.View):
 
 
 class Lyrics(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")

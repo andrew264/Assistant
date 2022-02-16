@@ -2,11 +2,11 @@
 import disnake
 from disnake.ext import commands
 
-from EnvVariables import DM_Channel
+import assistant
 
 
 class OnDM(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # Replies
@@ -17,7 +17,6 @@ class OnDM(commands.Cog):
         if message.author.bot:
             return
         else:
-            channel = self.client.get_channel(DM_Channel)
             msg_content = "──────────────────────────────\n"
             msg_content += f"UserID: `{message.author.id}`\nMessage Author: `{message.author}`"
             if len(message.content):
@@ -27,19 +26,18 @@ class OnDM(commands.Cog):
                 for attachment in message.attachments:
                     msg_content += f"\n{str(attachment)}"
             msg_content += "\n──────────────────────────────"
-            if isinstance(channel, disnake.TextChannel):
-                await channel.send(msg_content)
+            await self.client.log(msg_content)
 
     # slide to dms
     @commands.command()
     @commands.is_owner()
     async def dm(self, ctx: commands.Context, user: disnake.User, *, msg: str) -> None:
-        channel = await user.create_dm()
         msg_content = f"{msg}\n"
         if ctx.message.attachments:
             for attachment in ctx.message.attachments:
                 msg_content += f"{str(attachment)}\n"
         try:
+            channel = await user.create_dm()
             await channel.send(msg_content)
         except (disnake.Forbidden | disnake.HTTPException):
             await ctx.send(f"Failed to DM {user}.")

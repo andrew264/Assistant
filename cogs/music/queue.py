@@ -4,9 +4,11 @@ import disnake
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
+import assistant
+
 
 class Queue(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # Queue

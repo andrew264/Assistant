@@ -6,6 +6,7 @@ import disnake
 import emoji
 from disnake.ext import commands
 
+import assistant
 from EnvVariables import Owner_ID
 
 references = ["andrew",
@@ -51,7 +52,7 @@ async def FetchHook(channel: disnake.TextChannel) -> disnake.Webhook:
 
 
 class AndrewWebs(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @commands.Cog.listener()

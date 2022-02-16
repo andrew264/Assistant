@@ -1,4 +1,6 @@
 ﻿# Import
+from typing import Optional
+
 import disnake
 from disnake import (
     Colour,
@@ -7,15 +9,17 @@ from disnake import (
 from disnake.ext import commands
 from disnake.ui import View, button
 
+import assistant
+
 
 class HelpMe(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     class HelpButtons(View):
         def __init__(self):
             super().__init__(timeout=60.0)
-            self.inter: disnake.ApplicationCommandInteraction
+            self.inter: Optional[disnake.ApplicationCommandInteraction] = None
 
         async def on_timeout(self):
             await self.inter.edit_original_message(view=None)

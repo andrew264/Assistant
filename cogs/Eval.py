@@ -4,9 +4,11 @@ from time import time
 import disnake
 from disnake.ext import commands
 
+import assistant
+
 
 class EvalCommand(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @staticmethod

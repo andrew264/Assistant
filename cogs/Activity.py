@@ -1,6 +1,8 @@
 import disnake
 from disnake.ext import commands
 
+import assistant
+
 activities = [
     disnake.OptionChoice("YouTube Watch Together", str(disnake.PartyType.watch_together.value)),
     disnake.OptionChoice("Sketch Heads", str(disnake.PartyType.sketch_heads.value)),
@@ -11,7 +13,7 @@ activities = [
 
 
 class Activity(commands.Cog):
-    def __init__(self, client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @commands.slash_command(name="activity")

@@ -9,11 +9,11 @@ from disnake import (
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
-from cogs.music.lavatrack import VideoTrack
+import assistant
 
 
 class NP(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # Now Playing
@@ -125,7 +125,7 @@ class NP(commands.Cog):
 
             @property
             def NPEmbed(self) -> disnake.Embed:
-                current_song: VideoTrack = player.current
+                current_song: assistant.VideoTrack = player.current
                 percentile = round((player.position / current_song.duration) * 20)
                 bar = "────────────────────"
                 progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]

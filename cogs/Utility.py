@@ -2,23 +2,15 @@
 from typing import Optional
 
 import aiohttp
-from disnake import (
-    Activity,
-    ActivityType,
-    ApplicationCommandInteraction,
-    Client,
-    Status,
-    Member,
-    Message,
-    MessageCommandInteraction,
-    User,
-)
+import disnake
 from disnake.ext import commands
 from disnake.ext.commands import Param
 
+import assistant
+
 
 class Utility(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # echo
@@ -31,7 +23,7 @@ class Utility(commands.Cog):
 
     # ping
     @commands.slash_command(description="Get Bot's Latency")
-    async def ping(self, inter: ApplicationCommandInteraction) -> None:
+    async def ping(self, inter: disnake.ApplicationCommandInteraction) -> None:
         await inter.response.send_message(f"Client Latency: {round(self.client.latency * 1000)}  ms")
 
     # Fetch external IPv4
@@ -54,27 +46,32 @@ class Utility(commands.Cog):
 
     @commands.slash_command(description="Set Bot's Activity")
     @commands.is_owner()
-    async def status(self, inter: ApplicationCommandInteraction, state: State = Param(description="Set Bot's Status"),
+    async def status(self, inter: disnake.ApplicationCommandInteraction,
+                     state: State = Param(description="Set Bot's Status"),
                      activity: ActType = Param(description="Set Bot's Activity Type"),
                      name: str = Param(description="Set Bot's Activity Name", default="yall Homies"), ) -> None:
-        await self.client.change_presence(status=Status(state),
-                                          activity=Activity(type=ActivityType(int(activity)), name=name), )
-        await inter.response.send_message(
-            f"Status set to `{Status(state).name.capitalize()}`|`{ActivityType(int(activity)).name.title()}: {name}`",
-            ephemeral=True, )
+        await self.client.change_presence(status=disnake.Status(state),
+                                          activity=disnake.Activity(type=disnake.ActivityType(int(activity)),
+                                                                    name=name), )
+        await inter.edit_original_message(
+            f"Status set to `{disnake.Status(state).name.capitalize()}`|`{disnake.ActivityType(int(activity)).name.title()}: {name}`", )
 
     # clear
     @commands.command(aliases=["delete"])
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def clear(self, ctx: commands.Context, user: Optional[User], no_of_msgs: Optional[int] = 5) -> None:
+    async def clear(self, ctx: commands.Context, user: Optional[disnake.User], no_of_msgs: Optional[int] = 5) -> None:
         if isinstance(no_of_msgs, int) and no_of_msgs > 420:
             await ctx.reply(f"No")
             return
-        await ctx.message.delete()
+        try:
+            await ctx.message.delete()
+        except disnake.Forbidden as e:
+            await ctx.send(e.text)
+            return
         if user is not None:
 
-            def check(msg: Message):
+            def check(msg: disnake.Message):
                 return msg.author.id == user.id
 
             await ctx.channel.purge(limit=no_of_msgs, check=check)
@@ -88,16 +85,16 @@ class Utility(commands.Cog):
     @commands.message_command(name="Delete till HERE")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def ContextClear(self, inter: MessageCommandInteraction) -> None:
+    async def ContextClear(self, inter: disnake.MessageCommandInteraction) -> None:
+        await inter.response.defer(ephemeral=True)
         await inter.channel.purge(after=inter.target)
-        await inter.response.send_message(
-            f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}'s` message",
-            ephemeral=True, )
+        await inter.edit_original_message(
+            content=f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}'s` message", )
 
     @commands.command(aliases=["yeet"])
     @commands.guild_only()
     @commands.is_owner()
-    async def purge_user(self, ctx: commands.Context, user: Member = None) -> None:
+    async def purge_user(self, ctx: commands.Context, user: disnake.Member = None) -> None:
         if user is None:
             await ctx.send("Mention Someone")
             return

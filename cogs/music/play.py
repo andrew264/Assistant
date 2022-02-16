@@ -5,23 +5,20 @@ import lavalink
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
-from cogs.music.lavaclient import LavalinkVoiceClient
-from cogs.music.lavatrack import VideoTrack
+import assistant
 
 
 class Play(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
-        if not hasattr(client, 'lavalink'):
-            client.lavalink = lavalink.Client(client.user.id)
-            client.lavalink.add_node('192.168.1.36', 2333, 'youshallnotpass', 'in', 'assistant-node')
+        self.lavalink = client.lavalink
 
     # Play
     @commands.command(pass_context=True, aliases=["p"])
     @commands.guild_only()
     async def play(self, ctx: commands.Context, *, query: str = None) -> None:
 
-        player: Player = self.client.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
+        player: Player = self.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
         await ctx.message.delete(delay=5)
         # If player is paused, resume player
         if query is None:
@@ -46,11 +43,11 @@ class Play(commands.Cog):
             if results['loadType'] == 'PLAYLIST_LOADED':
                 tracks = results['tracks']
                 for track in tracks:
-                    track = VideoTrack(data=track, author=ctx.author)
+                    track = assistant.VideoTrack(data=track, author=ctx.author)
                     player.add(requester=ctx.author.id, track=track)
                 await ctx.send(f"{len(tracks)} tracks added from {results['playlistInfo']['name']}", delete_after=20)
             else:
-                track = VideoTrack(data=results['tracks'][0], author=ctx.author)
+                track = assistant.VideoTrack(data=results['tracks'][0], author=ctx.author)
                 player.add(requester=ctx.author.id, track=track)
                 await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
                 yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
@@ -62,7 +59,7 @@ class Play(commands.Cog):
         if voice and player.is_connected:
             pass
         elif voice is None:
-            await ctx.author.voice.channel.connect(cls=LavalinkVoiceClient)
+            await ctx.author.voice.channel.connect(cls=assistant.VoiceClient)
 
         if player.queue and not player.is_playing:
             await player.set_volume(40)

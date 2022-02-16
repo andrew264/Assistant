@@ -5,6 +5,7 @@ import platform
 import disnake
 from disnake.ext import commands
 
+import assistant
 from EnvVariables import Owner_ID
 from cogs.UserInfo import AvailableClients, timeDelta
 
@@ -35,7 +36,7 @@ def activity_string(member: disnake.Member):
 
 
 class Ready(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # Update Printed Text
@@ -85,12 +86,8 @@ class Ready(commands.Cog):
     # Start
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        # Load Music Cogs
-        self.client.load_extension("cogs.music.play")
-        self.client.load_extension("cogs.music.commands")
-        self.client.load_extension("cogs.music.nowplaying")
-        self.client.load_extension("cogs.music.queue")
-        self.client.load_extension("cogs.music.effects")
+        # load music cogs
+        self.client.load_extensions("./cogs/music")
 
         # Print in Terminal
         await self.Output()

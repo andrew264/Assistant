@@ -3,8 +3,10 @@ import disnake
 import sounddevice as sd
 from disnake.ext import commands
 
-
 # Gets audio from the microphone
+import assistant
+
+
 class MicrophoneAudioSource(disnake.PCMAudio):
     def __init__(self, duration_ms=20):
         self.SAMP_RATE_HZ = 48000.0
@@ -21,7 +23,7 @@ class MicrophoneAudioSource(disnake.PCMAudio):
 
 
 class LeMeSpeak(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
         self.mikeAudioSource = MicrophoneAudioSource()
 

@@ -10,6 +10,7 @@ from disnake import (
 )
 from disnake.ext import commands
 
+import assistant
 from EnvVariables import Owner_ID, Log_Channel
 from cogs.UserInfo import AvailableClients
 
@@ -44,7 +45,7 @@ def ActivityVal(activities: Tuple[disnake.Activity | disnake.Game |
 
 
 class Surveillance(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
         self.log_channel: Optional[disnake.TextChannel] = None
         self.log_guild: Optional[disnake.Guild] = None

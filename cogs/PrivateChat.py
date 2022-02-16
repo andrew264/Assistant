@@ -1,25 +1,26 @@
 # Imports
 import disnake
-from disnake import ApplicationCommandInteraction, Client, Embed, Member, VoiceRegion
 from disnake.ext import commands
 from disnake.utils import find
 
+import assistant
+
 
 class PrivateChat(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # Create private category for DMs
     @commands.slash_command(description="Create a Private Chat & VC.")
     @commands.guild_only()
-    async def chat(self, inter: ApplicationCommandInteraction) -> None:
+    async def chat(self, inter: disnake.ApplicationCommandInteraction) -> None:
         pass
 
     @chat.sub_command(description="Create a new Private Chat.")
-    async def create(self, inter: ApplicationCommandInteraction) -> None:
+    async def create(self, inter: disnake.ApplicationCommandInteraction) -> None:
         overwrites_readEnable = disnake.PermissionOverwrite(read_messages=True)
         for category in inter.guild.categories:
-            if category.name == f"{inter.author.display_name}'s Chat" and isinstance(inter.author, Member):
+            if category.name == f"{inter.author.display_name}'s Chat" and isinstance(inter.author, disnake.Member):
                 for channel in category.channels:
                     await channel.set_permissions(inter.author, overwrite=overwrites_readEnable)
                 await category.set_permissions(inter.author, overwrite=overwrites_readEnable)
@@ -39,13 +40,14 @@ class PrivateChat(commands.Cog):
         textChannel = await category.create_text_channel("private-chat", overwrites=overwrites_readTrue)
         voiceChannel = await category.create_voice_channel("Private Call Booth", overwrites=overwrites_readTrue)
         await inter.response.send_message(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
-        await voiceChannel.edit(rtc_region=VoiceRegion.india, bitrate=96000)
-        embed = Embed(colour=0x002366, title=f"Welcome, {inter.author.display_name}!",
-                      description="This is a Private Chat.\nNo one else can see this channel other than us.\n:3", )
+        await voiceChannel.edit(rtc_region=disnake.VoiceRegion.india, bitrate=96000)
+        embed = disnake.Embed(colour=0x002366, title=f"Welcome, {inter.author.display_name}!",
+                              description="""This is a Private Chat.No one else can see this channel other than us.\n:3""",
+                              timestamp=disnake.utils.utcnow())
         await textChannel.send(embed=embed)
 
     @chat.sub_command(description="Delete existing Private Chat.")
-    async def delete(self, inter: ApplicationCommandInteraction) -> None:
+    async def delete(self, inter: disnake.ApplicationCommandInteraction) -> None:
         overwrites_readFalse = disnake.PermissionOverwrite(read_messages=False)
         category = None
         for i in inter.guild.categories:
@@ -53,7 +55,7 @@ class PrivateChat(commands.Cog):
                 category = i
             else:
                 category = None
-        if isinstance(category, disnake.CategoryChannel) and isinstance(inter.author, Member):
+        if isinstance(category, disnake.CategoryChannel) and isinstance(inter.author, disnake.Member):
             for channel in category.channels:
                 await channel.set_permissions(inter.author, overwrite=overwrites_readFalse)
             await category.set_permissions(inter.author, overwrite=overwrites_readFalse)
@@ -64,7 +66,7 @@ class PrivateChat(commands.Cog):
     @commands.command()
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def purge_category(self, inter: ApplicationCommandInteraction) -> None:
+    async def purge_category(self, inter: disnake.ApplicationCommandInteraction) -> None:
         """delete all channels in the category"""
         await inter.response.send_message("Purging...")
         for category in inter.guild.categories:

@@ -6,9 +6,11 @@ from disnake import ButtonStyle, Button, Interaction
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
+import assistant
+
 
 class Effects(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @commands.command(aliases=["filter", "effects"])
@@ -383,8 +385,8 @@ class Effects(commands.Cog):
         await ctx.send(f"Tremolo set to {hertz} Hz, {depth} depth.")
 
     @commands.command()
-    async def karaoke(self, ctx: commands.Context, level: Optional[float], monolevel: Optional[float]
-                      , filterband: Optional[float], filterwidth: Optional[float]):
+    async def karaoke(self, ctx: commands.Context, level: Optional[float], monolevel: Optional[float],
+                      filterband: Optional[float], filterwidth: Optional[float]):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         if not level and not monolevel and not filterband and not filterwidth:
             await player.remove_filter(lavalink.filters.Karaoke())

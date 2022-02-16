@@ -2,9 +2,11 @@
 import disnake
 from disnake.ext import commands
 
+import assistant
+
 
 class ReactionRoles(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
         self.role_message_id = 891793035959078932
         self.emoji_to_role = {

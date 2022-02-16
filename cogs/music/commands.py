@@ -6,7 +6,8 @@ import lavalink
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
-from cogs.music.lavatrack import VideoTrack
+import assistant
+from assistant import VideoTrack
 
 
 def time_in_seconds(timestamp: str) -> int:
@@ -15,13 +16,14 @@ def time_in_seconds(timestamp: str) -> int:
     """
     seconds = 0
     for i in timestamp.split(':'):
-        if int(i) > 60 or int(i) < 0: i = 0
+        if int(i) > 60 or int(i) < 0:
+            i = 0
         seconds = seconds * 60 + int(i)
     return seconds
 
 
 class Music(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
         lavalink.add_event_hook(self.track_hook)
 

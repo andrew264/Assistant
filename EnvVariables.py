@@ -18,3 +18,8 @@ GENIUS_TOKEN = config["GENIUS_API_KEY"]
 
 # Youtube Data API
 YT_TOKEN = config["YOUTUBE_API_KEY"]
+
+# Lavalink Node
+LL_Host = config["LAVALINK_HOST"]
+LL_Port = config["LAVALINK_PORT"]
+LL_Password = config["LAVALINK_PASSWORD"]

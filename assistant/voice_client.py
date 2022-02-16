@@ -2,7 +2,7 @@ import disnake
 import lavalink
 
 
-class LavalinkVoiceClient(disnake.VoiceClient):
+class VoiceClient(disnake.VoiceClient):
     """
     This is the preferred way to handle external voice sending
     This client will be created via a cls in the connect method of the channel

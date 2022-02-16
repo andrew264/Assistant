@@ -18,6 +18,7 @@ from disnake import (
 from disnake.ext import commands
 from disnake.ext.commands import Param
 
+import assistant
 from EnvVariables import Owner_ID
 
 
@@ -83,7 +84,7 @@ def human_bytes(_bytes: int) -> str:
 
 
 class UserInfo(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @commands.slash_command(description="Luk wat he be doing over der")
@@ -184,7 +185,7 @@ class UserInfo(commands.Cog):
                         value=f"v. {disnake.__version__}", inline=False)
         embed.add_field(name="Lavalink Version",
                         value=f"v. {lavalink.__version__}" if lavalink is not None else "Not Installed")
-        lava_stats = self.client.lavalink.node_manager.nodes[0].stats
+        lava_stats: lavalink.Stats = self.client.lavalink.node_manager.nodes[0].stats
         embed.add_field(name="Lavalink Memory Usage",
                         value=f"{human_bytes(lava_stats.memory_used)}/{human_bytes(lava_stats.memory_allocated)}")
         embed.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%", inline=False)
@@ -215,8 +216,8 @@ class UserInfo(commands.Cog):
 
         await inter.response.send_modal(modal=MyModal())
 
-    @staticmethod
-    async def AddDatatoDB(user_id: int, message: str) -> None:
+    async def AddDatatoDB(self, user_id: int, message: str) -> None:
+        await self.client.log(f"Adding introduction for {user_id}: {message}")
         async with aiosqlite.connect("./data/database.sqlite3") as db:
             async with db.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})") as cursor:
                 alreadyExists = (await cursor.fetchone())[0]

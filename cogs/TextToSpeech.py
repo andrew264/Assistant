@@ -7,9 +7,11 @@ from disnake.ext import commands
 from disnake.ext.commands import Param
 from gtts import gTTS
 
+import assistant
+
 
 class TextToSpeech(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     @commands.slash_command(description="Text To Speech")

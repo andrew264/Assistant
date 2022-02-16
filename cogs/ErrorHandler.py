@@ -4,7 +4,7 @@ import disnake
 from disnake import Embed, Color
 from disnake.ext import commands
 
-from EnvVariables import DM_Channel
+import assistant
 
 
 def fancy_traceback(exc: Exception) -> str:
@@ -13,7 +13,7 @@ def fancy_traceback(exc: Exception) -> str:
 
 
 class ErrorHandler(commands.Cog):
-    def __init__(self, client: disnake.Client):
+    def __init__(self, client: assistant.Client):
         self.client = client
 
     # Unknown commands
@@ -22,6 +22,8 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, commands.MissingPermissions):
+            await ctx.send(error, delete_after=60)
+        elif isinstance(error, commands.BotMissingPermissions):
             await ctx.send(error, delete_after=60)
         elif isinstance(error, commands.NotOwner):
             await ctx.send("🚫 You can't do that.")
@@ -33,11 +35,9 @@ class ErrorHandler(commands.Cog):
             await ctx.send(f"🚫 Member not found.")
         else:
             await ctx.send(f"An unknown error occurred")
-            await ctx.send(f"***{error}***")
-            channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{ctx.command}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
-            await channel.send(embed=embed)
+            await self.client.log(embed=embed)
 
     # slash errors
     @commands.Cog.listener()
@@ -53,10 +53,9 @@ class ErrorHandler(commands.Cog):
             await inter.response.send_message(f"🚫 Member not found.")
         else:
             await inter.response.send_message(f"An unknown error occurred")
-            channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
-            await channel.send(embed=embed)
+            await self.client.log(embed=embed)
 
     # Message Context Error
     @commands.Cog.listener()
@@ -72,10 +71,9 @@ class ErrorHandler(commands.Cog):
             await inter.response.send_message(f"🚫 Member not found.")
         else:
             await inter.response.send_message(f"An unknown error occurred")
-            channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
-            await channel.send(embed=embed)
+            await self.client.log(embed=embed)
 
     # User Context Error
     @commands.Cog.listener()
@@ -91,10 +89,9 @@ class ErrorHandler(commands.Cog):
             await inter.response.send_message(f"🚫 Member not found.")
         else:
             await inter.response.send_message(f"An unknown error occurred")
-            channel = self.client.get_channel(DM_Channel)
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
-            await channel.send(embed=embed)
+            await self.client.log(embed=embed)
 
 
 def setup(client):
