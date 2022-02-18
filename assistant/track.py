@@ -5,16 +5,9 @@ from lavalink import AudioTrack
 from pyyoutube import Api
 
 from EnvVariables import YT_TOKEN
+from assistant import human_int
 
 api = Api(api_key=YT_TOKEN)
-
-
-def human_format(num):
-    """Convert Integers to Human readable formats."""
-    for x in ["", "K", "M", "B", "T"]:
-        if num < 1000:
-            return "%3.1f %s" % (num, x)
-        num /= 1000
 
 
 class VideoTrack(AudioTrack):
@@ -52,12 +45,12 @@ class VideoTrack(AudioTrack):
     @property
     def views(self):
         """Video Views in Human readable format"""
-        return human_format(int(self._views))
+        return human_int(int(self._views))
 
     @property
     def likes(self):
         """Video Likes in Human readable format"""
-        return human_format(int(self._likes))
+        return human_int(int(self._likes))
 
     def fetch_info(self) -> None:
         """Fetch the video info from YouTube"""

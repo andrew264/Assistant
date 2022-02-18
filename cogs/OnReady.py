@@ -7,7 +7,7 @@ from disnake.ext import commands
 
 import assistant
 from EnvVariables import Owner_ID
-from cogs.UserInfo import AvailableClients, timeDelta
+from assistant import available_clients, time_delta
 
 old_str1 = ""
 
@@ -27,11 +27,11 @@ def activity_string(member: disnake.Member):
     str1 = ""
     for activity in member.activities:
         if isinstance(activity, disnake.Spotify):
-            str1 += f"\n\t\t\t> Listening to {activity.title} by {', '.join(activity.artists)} {timeDelta(activity.start)}"
+            str1 += f"\n\t\t\t> Listening to {activity.title} by {', '.join(activity.artists)} {time_delta(activity.start)}"
         elif isinstance(activity, disnake.CustomActivity):
-            str1 += f"\n\t\t\t> {CustomActVal(member.activity)} {timeDelta(activity.created_at)}"
+            str1 += f"\n\t\t\t> {CustomActVal(member.activity)} {time_delta(activity.created_at)}"
         else:
-            str1 += f"\n\t\t\t> Playing {activity.name} {timeDelta(activity.created_at)}"
+            str1 += f"\n\t\t\t> Playing {activity.name} {time_delta(activity.created_at)}"
     return str1
 
 
@@ -60,7 +60,7 @@ class Ready(commands.Cog):
             str1 += f"\n\t{guild.name} (ID: {guild.id}) (Member Count: {guild.member_count})"
         str1 += f"\n\nClient Latency: {round(self.client.latency * 1000)}  ms"
         user = disnake.utils.get(self.client.get_all_members(), id=Owner_ID)
-        str1 += f"\n\t\t{str(user)} is {AvailableClients(user)}"
+        str1 += f"\n\t\t{str(user)} is {available_clients(user)}"
         str1 += f"{activity_string(user)}"
         str1 += "\n\nPeople in VC:\n"
         for guild in self.client.guilds:
@@ -80,7 +80,7 @@ class Ready(commands.Cog):
                     if member.voice.self_video:
                         str1 += "📷"
                     str1 += activity_string(member)
-                    str1 += f"\n\t\t\t> {AvailableClients(member)}\n"
+                    str1 += f"\n\t\t\t> {available_clients(member)}\n"
         return str1
 
     # Start
