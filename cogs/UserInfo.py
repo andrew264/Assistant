@@ -1,4 +1,5 @@
 ﻿# Imports
+import asyncio
 from os import getpid
 from platform import python_version
 
@@ -117,32 +118,31 @@ class UserInfo(commands.Cog):
 
     @commands.slash_command(description="Introduce Yourself to Others.")
     async def introduce(self, inter: disnake.ApplicationCommandInteraction, ) -> None:
-        class MyModal(disnake.ui.Modal):
-            def __init__(self) -> None:
-                components = [disnake.ui.TextInput(label="Introduce Yourself",
-                                                   placeholder="I am a big pussy",
-                                                   custom_id="content",
-                                                   style=disnake.TextInputStyle.long,
-                                                   min_length=5, max_length=512, ), ]
-
-                super().__init__(title="Add Introduction", custom_id="add_intro", components=components)
-
-            async def callback(self, _inter: disnake.ModalInteraction) -> None:
-                await UserInfo.AddDatatoDB(user_id=inter.author.id,
-                                           message=_inter.text_values['content'].replace('"', ''))
-                await _inter.response.send_message("Introduction Added.", ephemeral=True)
-
-            async def on_error(self, error: Exception, _inter: disnake.ModalInteraction) -> None:
-                await _inter.response.send_message("Oops, something went wrong.", ephemeral=True)
-
-        await inter.response.send_modal(modal=MyModal())
+        await inter.response.send_modal(title="Add Introduction",
+                                        custom_id="add_intro",
+                                        components=[disnake.ui.TextInput(label="Introduce Yourself",
+                                                                         placeholder="I am a big pussy",
+                                                                         custom_id="introduction",
+                                                                         style=disnake.TextInputStyle.long,
+                                                                         min_length=5, max_length=512, ), ]
+                                        )
+        try:
+            modal_inter: disnake.ModalInteraction = await self.client.wait_for(
+                "modal_submit",
+                check=lambda i: i.custom_id == "add_intro" and i.author.id == inter.author.id,
+                timeout=120, )
+        except asyncio.TimeoutError:
+            return
+        await self.AddDatatoDB(user_id=inter.author.id,
+                               message=modal_inter.text_values['introduction'].replace('"', ''))
+        await modal_inter.response.send_message("Introduction Added.", ephemeral=True)
 
     async def AddDatatoDB(self, user_id: int, message: str) -> None:
         await self.client.log(f"Adding introduction for {user_id}: {message}")
         async with aiosqlite.connect("./data/database.sqlite3") as db:
             async with db.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})") as cursor:
-                alreadyExists = (await cursor.fetchone())[0]
-                if alreadyExists:
+                already_exists = (await cursor.fetchone())[0]
+                if already_exists:
                     await db.execute(f"""UPDATE Members SET ABOUT = "{message}" WHERE USERID = {user_id}""")
                 else:
                     await db.execute(f"""INSERT INTO Members (USERID, ABOUT) VALUES ({user_id}, "{message}")""")
@@ -153,8 +153,8 @@ class UserInfo(commands.Cog):
     async def GetAboutfromDB(user_id: int) -> str | None:
         async with aiosqlite.connect("./data/database.sqlite3") as db:
             async with db.execute(f"SELECT EXISTS(SELECT 1 FROM Members WHERE USERID = {user_id})") as cursor:
-                alreadyExists = (await cursor.fetchone())[0]
-                if alreadyExists:
+                already_exists = (await cursor.fetchone())[0]
+                if already_exists:
                     async with db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor1:
                         async for row in cursor1:
                             return row[1]
