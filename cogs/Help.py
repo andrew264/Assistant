@@ -53,6 +53,7 @@ class HelpMe(commands.Cog):
             music_embed.add_field(name="`.stop`", value="Disconnect Bot from VC")
             music_embed.add_field(name="`.np`", value="Display Now Playing")
             music_embed.add_field(name="`.queue`", value="Songs in Queue")
+            music_embed.add_field(name="`.seek`   <01:23>", value="Seek to a specific time")
             music_embed.add_field(name="`.skip`\t<song_index>", value="Skip Songs")
             music_embed.add_field(name="`.loop`", value="Toggle Loop")
             music_embed.add_field(name="`.jump`\t<song_index>", value="Skip to a Song")
