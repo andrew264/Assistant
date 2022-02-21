@@ -42,7 +42,7 @@ class Music(commands.Cog):
             # Stop the current track.
             # Force disconnect to fix reconnecting issues.
             player: Player = self.client.lavalink.player_manager.get(member.guild.id)
-            if player.current:
+            if player and player.current:
                 for _filter in list(player.filters):
                     await player.remove_filter(_filter)
                 player.queue.clear()

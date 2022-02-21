@@ -17,5 +17,8 @@ client = assistant.Client(
 
 # load all cogs
 client.load_extensions("./cogs")
+client.load_extensions("./cogs/admin")
+client.load_extensions("./cogs/misc")
+client.load_extensions("./cogs/tasks")
 
 client.run(TOKEN)

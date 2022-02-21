@@ -11,7 +11,7 @@ from disnake.ext import commands
 
 import assistant
 from EnvVariables import Owner_ID, Log_Channel
-from assistant import available_clients, all_activities, custom_activity
+from assistant import available_clients, all_activities
 
 
 def ActivityVal(activities: Tuple[disnake.Activity | disnake.Game |
