@@ -53,8 +53,18 @@ class Utility(commands.Cog):
         await self.client.change_presence(status=disnake.Status(state),
                                           activity=disnake.Activity(type=disnake.ActivityType(int(activity)),
                                                                     name=name), )
-        await inter.edit_original_message(content=f"Status set to `{disnake.Status(state).name.capitalize()}`|\
-        `{disnake.ActivityType(int(activity)).name.title()}: {name}`", )
+        embed = disnake.Embed(title=f"Status set to {disnake.Status(state).name.capitalize()}", )
+        embed.add_field(name=disnake.ActivityType(int(activity)).name.title(),
+                        value=f"{name}")
+        if state == "offline":
+            embed.colour = disnake.Color.light_gray()
+        elif state == "dnd":
+            embed.colour = disnake.Color.red()
+        elif state == "idle":
+            embed.colour = disnake.Color.yellow()
+        else:
+            embed.colour = disnake.Color.green()
+        await inter.response.send_message(embed=embed, ephemeral=True)
 
     # clear
     @commands.command(aliases=["delete"])

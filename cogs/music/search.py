@@ -4,11 +4,11 @@ import disnake
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
-import assistant
+from assistant import Client
 
 
 class Search(commands.Cog):
-    def __init__(self, client: assistant.Client):
+    def __init__(self, client: Client):
         self.client = client
         self.lavalink = client.lavalink
 
@@ -29,14 +29,15 @@ class Search(commands.Cog):
 
         class Select(disnake.ui.Select):
             def __init__(self):
-                options = [disnake.SelectOption(label=track['title'], value=track['uri']) for track in tracks]
+                options = [disnake.SelectOption(label=track['info']['title'], value=track['info']['uri']) for track in
+                           tracks]
                 super().__init__(placeholder="Select a song", options=options,
                                  min_values=1, max_values=1, )
 
             async def callback(self, interaction: disnake.MessageInteraction):
                 if interaction.author == ctx.author:
                     await ctx.invoke(client.get_command("play"), query=self.values[0])
-                    await interaction.message.edit(content="kthxbye", embed=None, view=None, delete_after=10)
+                    await interaction.message.edit(content="kthxbye", embed=None, view=None)
                 else:
                     await interaction.send(content="You can't select a song.", ephemeral=True)
 
@@ -48,10 +49,11 @@ class Search(commands.Cog):
 
             async def on_timeout(self) -> None:
                 self.stop()
-                await self.msg.delete()
+                await self.msg.delete(delay=1)
 
         embed = disnake.Embed(title=f"Search Results for `{query}`", color=0x00ff00)
-        embed.description = "\n".join(f"`{i + 1}.` [{t['title']}]({t['uri']})" for i, t in enumerate(tracks))
+        embed.description = "\n".join(
+            f"`{i + 1}.` [{t['info']['title']}]({t['info']['uri']})" for i, t in enumerate(tracks))
         embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         view = DropDown()
         view.msg = await ctx.send(embed=embed, view=view)
@@ -69,5 +71,5 @@ class Search(commands.Cog):
             raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
 
 
-def setup(client: assistant.Client):
+def setup(client: Client):
     client.add_cog(Search(client))
