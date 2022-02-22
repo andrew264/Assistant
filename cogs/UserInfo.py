@@ -1,5 +1,6 @@
 ﻿# Imports
 import asyncio
+from datetime import timedelta
 from os import getpid
 from platform import python_version
 
@@ -49,10 +50,11 @@ class UserInfo(commands.Cog):
 
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.add_field(name=f"Joined {user.guild.name} on",
-                        value=f"{user.joined_at.strftime(date_format)} **{time_delta(user.joined_at)}**", )
+        is_owner: bool = user.guild.owner == user and (user.guild.created_at-user.joined_at) <= timedelta(seconds=1)
+        embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
+                        value=f"<t:{int(user.joined_at.timestamp())}:D>\n**{time_delta(user.joined_at)}**", )
         embed.add_field(name="Account created on",
-                        value=f"{user.created_at.strftime(date_format)} **{time_delta(user.created_at)}**", )
+                        value=f"<t:{int(user.created_at.timestamp())}:D>\n**{time_delta(user.created_at)}**", )
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients
