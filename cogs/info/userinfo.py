@@ -31,7 +31,6 @@ class UserInfo(commands.Cog):
 
     async def WhoIsEmbed(self, user: disnake.Member) -> disnake.Embed:
 
-        date_format = "%a, %d %b %Y %I:%M %p"
         embed = disnake.Embed(color=colour_gen(user.id))
         # Description
         about = await self.fetch_description(user.id)
@@ -42,7 +41,8 @@ class UserInfo(commands.Cog):
 
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
-        is_owner: bool = user.guild.owner == user and (user.guild.created_at - user.joined_at) <= timedelta(seconds=1)
+        is_owner: bool = user.guild.owner == user and \
+                         timedelta(seconds=0) <= (user.guild.created_at - user.joined_at) <= timedelta(seconds=1)
         embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
                         value=f"<t:{int(user.joined_at.timestamp())}:D>\n**{time_delta(user.joined_at)}**", )
         embed.add_field(name="Account created on",
