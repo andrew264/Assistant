@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+import disnake
+
 
 def time_delta(timestamp: datetime) -> str:
     """Returns a human readable time delta"""
@@ -23,9 +25,17 @@ def human_bytes(_bytes: int) -> str:
         _bytes /= 1024.0
 
 
-def human_int(num):
+def human_int(num) -> str:
     """Convert Integers to Human readable formats."""
     for x in ["", "K", "M", "B", "T"]:
         if num < 1000:
             return f"{num:.1f} {x}"
         num /= 1000
+
+
+def colour_gen(any_id: int) -> disnake.Colour:
+    """Generates a discord colour based on an ID"""
+    r = int(any_id % 255)
+    g = int(any_id / 255 % 255)
+    b = int(any_id / 255 / 255 % 255)
+    return disnake.Color.from_rgb(r, g, b)

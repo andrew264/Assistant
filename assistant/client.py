@@ -1,5 +1,6 @@
 from typing import Optional, Any
 
+import aiosqlite
 import disnake
 import lavalink
 from disnake.ext import commands
@@ -20,6 +21,7 @@ class Client(commands.Bot):
         self._lava_region: str = options.get('lava_region')
         self._lava_node_name: str = options.get('lava_node_name')
         self._lavalink: Optional[lavalink.Client] = None
+        self._db: Optional[aiosqlite.Connection] = None
 
     @property
     def lavalink(self):
@@ -31,6 +33,14 @@ class Client(commands.Bot):
             self._lavalink.add_node(self._lava_host, self._lava_port,
                                     self._lava_password, self._lava_region, self._lava_node_name)
         return self._lavalink
+
+    async def db_connect(self) -> aiosqlite.Connection:
+        """
+        Returns the Database Connection
+        """
+        if self._db is None:
+            self._db = await aiosqlite.connect("./data/database.sqlite3")
+        return self._db
 
     async def log(self, content: Optional[str] = None, embed: Optional[disnake.Embed] = None) -> None:
         """

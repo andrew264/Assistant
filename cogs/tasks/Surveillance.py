@@ -3,15 +3,12 @@ from datetime import datetime
 from typing import Tuple, Optional
 
 import disnake
-from disnake import (
-    Colour,
-    Embed,
-)
+from disnake import Embed
 from disnake.ext import commands
 
 import assistant
 from EnvVariables import Owner_ID, Log_Channel
-from assistant import available_clients, all_activities
+from assistant import available_clients, all_activities, colour_gen
 
 
 def ActivityVal(activities: Tuple[disnake.Activity | disnake.Game |
@@ -56,7 +53,7 @@ class Surveillance(commands.Cog):
             return
         if before.clean_content == after.clean_content:
             return
-        embed = Embed(colour=Colour.teal())
+        embed = Embed(colour=colour_gen(before.author.id))
         embed.set_author(name=f"{before.author} edited a message in #{before.channel.name}",
                          icon_url=before.author.display_avatar.url, )
         embed.add_field(name="Original Message", value=before.clean_content, inline=False)
@@ -72,7 +69,7 @@ class Surveillance(commands.Cog):
             return
         if message.author.id == Owner_ID:
             return
-        embed = Embed(colour=Colour.orange())
+        embed = Embed(colour=colour_gen(message.author.id))
         embed.set_author(name=f"{message.author} deleted a message in #{message.channel.name}",
                          icon_url=message.author.display_avatar.url, )
         embed.add_field(name="Message Content", value=message.content, inline=False)
@@ -89,7 +86,7 @@ class Surveillance(commands.Cog):
             return
         if before.display_name == after.display_name:
             return
-        embed = Embed(colour=Colour.dark_orange())
+        embed = Embed(colour=colour_gen(before.id))
         embed.set_author(name=f"{before} updated their Nickname", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
         embed.add_field(name="New Name", value=after.display_name, inline=False)
@@ -107,7 +104,7 @@ class Surveillance(commands.Cog):
             return
         if before.name == after.name and before.discriminator == after.discriminator:
             return
-        embed = Embed(colour=Colour.brand_green())
+        embed = Embed(colour=colour_gen(before.id))
         embed.set_author(name=f"{before} updated their Username", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Username", value=str(before), inline=False, )
         embed.add_field(name="New Username", value=str(after), inline=False, )
@@ -122,7 +119,7 @@ class Surveillance(commands.Cog):
             return
         if before.id == Owner_ID:
             return
-        embed = Embed(colour=Colour.gold())
+        embed = Embed(colour=colour_gen(before.id))
         embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url, )
         if available_clients(before) != available_clients(after):
             embed.add_field(name=f"Client/Status", value=f"{available_clients(before)} ──> {available_clients(after)}",
