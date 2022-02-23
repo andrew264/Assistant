@@ -9,11 +9,14 @@ import assistant
 
 
 class UrbanDefinition:
-    def __init__(self, _word: str, definition: str, example: str, permalink: str):
+    def __init__(self, _word: str, definition: str, example: str):
         self.word = _word
         self.definition = definition
         self.example = example
-        self.url = permalink
+
+    @property
+    def url(self):
+        return f"https://www.urbandictionary.com/define.php?term={quote(self.word)}"
 
 
 class UrbanDictionary(commands.Cog):
@@ -37,8 +40,7 @@ class UrbanDictionary(commands.Cog):
             return 'No results found'
         return UrbanDefinition(data['list'][0]['word'],
                                data['list'][0]['definition'],
-                               data['list'][0]['example'],
-                               url)
+                               data['list'][0]['example'])
 
     @commands.slash_command()
     async def define(self, inter: disnake.ApplicationCommandInteraction,
