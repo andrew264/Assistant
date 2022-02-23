@@ -20,7 +20,7 @@ class Guild(commands.Cog):
         embed.add_field(name="Guild ID", value=guild.id)
         members = [member for member in guild.members if not member.bot]
         embed.add_field(name="No. of Members", value=len(members))
-        online_members = [member for member in guild.members if member.raw_status != "offline" or member.bot]
+        online_members = [member for member in guild.members if member.raw_status != "offline" and not member.bot]
         embed.add_field(name="Members Online", value=len(online_members))
         bot_members = [member for member in guild.members if member.bot]
         embed.add_field(name="No. of Bots",
