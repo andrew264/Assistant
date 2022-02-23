@@ -8,13 +8,18 @@ def time_delta(timestamp: datetime) -> str:
     if not timestamp:
         return ""
     delta = datetime.now(timezone.utc) - timestamp
-    if delta.days > 0:
-        return f"({delta.days} days ago)"
+    if delta.days > 365:
+        return f"({delta.days // 365}Y, {int(delta.days % 365 // 30.5)}M, {int(delta.days % 365 % 30.5)}D)"
+    elif delta.days > 30.5:
+        return f"({int(delta.days // 30.5)}M, {int(delta.days % 30.5)}D)"
+    elif delta.days > 0:
+        return f"({delta.days}D, {delta.seconds // 3600}hrs)"
     if delta.seconds > 3600:
         return f"({delta.seconds // 3600}hrs {(delta.seconds // 60) % 60}mins)"
-    if delta.seconds > 60:
+    elif delta.seconds > 60:
         return f"({delta.seconds // 60}mins {delta.seconds % 60}secs)"
-    return f"({delta.seconds} secs)"
+    else:
+        return f"({delta.seconds} secs)"
 
 
 def human_bytes(_bytes: int) -> str:
@@ -35,7 +40,7 @@ def human_int(num) -> str:
 
 def colour_gen(any_id: int) -> disnake.Colour:
     """Generates a discord colour based on an ID"""
-    r = int(any_id % 255)
-    g = int(any_id / 255 % 255)
-    b = int(any_id / 255 / 255 % 255)
+    r = int(any_id / 420 % 255)
+    g = int(any_id / 69 / 69 % 255)
+    b = int(any_id / 420 / 420 % 255)
     return disnake.Color.from_rgb(r, g, b)
