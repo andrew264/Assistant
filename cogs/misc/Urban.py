@@ -6,6 +6,7 @@ import disnake
 from disnake.ext import commands
 
 import assistant
+from assistant import colour_gen
 
 
 class UrbanDefinition:
@@ -54,7 +55,7 @@ class UrbanDictionary(commands.Cog):
             await inter.edit_original_message(content=definition)
         else:
             embed = disnake.Embed(title=f"Define: {definition.word.title()}",
-                                  description=definition.definition, colour=disnake.Colour.blurple(),
+                                  description=definition.definition, colour=colour_gen(inter.author.id),
                                   url=definition.url)
             embed.add_field(name='Example', value=definition.example)
             await inter.edit_original_message(embed=embed)

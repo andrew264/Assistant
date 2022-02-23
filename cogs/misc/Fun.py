@@ -7,6 +7,7 @@ from disnake.ext.commands import Param
 from disnake.utils import find
 
 import assistant
+from assistant import colour_gen
 
 
 def DeathMsgGen(victim: str, killer: str) -> str:
@@ -43,7 +44,7 @@ class Fun(commands.Cog):
                  user: disnake.Member = Param(description="Mention a User",
                                               default=lambda inter: inter.author), ) -> None:
         pp404 = find(lambda r: r.id == 838868317779394560, user.roles)
-        ppembed = disnake.Embed(colour=user.color)
+        ppembed = disnake.Embed(colour=colour_gen(user.id))
         ppembed.set_author(name=user, icon_url=user.display_avatar.url)
         if pp404 is not None:
             ppembed.add_field(name="There is no sign of PP in here.", value="\u200b")
@@ -61,7 +62,7 @@ class Fun(commands.Cog):
         if user is None or user == inter.author:
             await inter.response.send_message("Stop, Get some Help.")
             return
-        killembed = disnake.Embed(colour=user.color)
+        killembed = disnake.Embed(colour=colour_gen(user.id))
         killembed.set_author(name=user, icon_url=user.display_avatar.url)
         if user.bot:
             killembed.add_field(name="You cannot attack my kind.", value="\u200b")
