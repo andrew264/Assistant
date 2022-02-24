@@ -50,7 +50,10 @@ class VideoTrack(AudioTrack):
     @property
     def likes(self):
         """Video Likes in Human readable format"""
-        return human_int(int(self._likes))
+        if self._likes:
+            return human_int(int(self._likes))
+        else:
+            return "Disabled"
 
     def fetch_info(self) -> None:
         """Fetch the video info from YouTube"""
