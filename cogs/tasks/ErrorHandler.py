@@ -52,7 +52,10 @@ class ErrorHandler(commands.Cog):
         elif isinstance(error, commands.MemberNotFound):
             await inter.response.send_message(f"🚫 Member not found.")
         else:
-            await inter.response.send_message(f"An unknown error occurred")
+            try:
+                await inter.response.send_message(f"An unknown error occurred")
+            except disnake.InteractionResponded:
+                await inter.edit_original_message(content=f"An unknown error occurred")
             embed = Embed(title=f"Command `{inter.application_command.name}` failed due to `{error}`",
                           description=fancy_traceback(error), color=Color.red(), )
             await self.client.log(embed=embed)
