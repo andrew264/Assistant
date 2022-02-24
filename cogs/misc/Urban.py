@@ -9,22 +9,23 @@ import assistant
 from assistant import colour_gen
 
 
-class UrbanDefinition:
-    def __init__(self, _word: str, definition: str, example: str):
-        self.word = _word
-        self.definition = definition
-        self.example = example
+class UrbanDictionary:
+    def __init__(self):
+        self._word: Optional[str] = None
+        self.definition: Optional[str] = None
+        self.example: Optional[str] = None
+        self.result: Optional[str] = None
+        self.response: bool = False
 
     @property
     def url(self):
-        return f"https://www.urbandictionary.com/define.php?term={quote(self.word)}"
+        return f"https://www.urbandictionary.com/define.php?term={quote(self._word)}"
 
+    @property
+    def word(self):
+        return self._word.title()
 
-class UrbanDictionary(commands.Cog):
-    def __init__(self, client: assistant.Client):
-        self.client = client
-
-    async def get_urban_definition(self, word: Optional[str]) -> str | UrbanDefinition:
+    async def get(self, word: Optional[str]):
         """
         Fetch a definition from Urban Dictionary
         """
@@ -34,32 +35,41 @@ class UrbanDictionary(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 data = await response.json()
-                await session.close()
+            await session.close()
         if data is None or any(e in data for e in ('error', 'errors')):
-            return 'Invalid input for Urban Dictionary API'
+            self.result = 'Error: Invalid input for Urban Dictionary API'
+            return
         if len(data['list']) == 0:
-            return 'No results found'
-        return UrbanDefinition(data['list'][0]['word'],
-                               data['list'][0]['definition'],
-                               data['list'][0]['example'])
+            self.result = 'Error: No results found'
+            return
+        self._word = data['list'][0]['word']
+        self.definition = data['list'][0]['definition'][-3000:]
+        self.example = data['list'][0]['example'][-1000:]
+        self.response = True
+
+
+class Dictionary(commands.Cog):
+    def __init__(self, client: assistant.Client):
+        self.client = client
 
     @commands.slash_command()
     async def define(self, inter: disnake.ApplicationCommandInteraction,
                      word: str = commands.Param(description="Enter a word to define", default=None)):
         """
-        Fetch a definition from Urban Dictionary
+        Fetch definition from Urban Dictionary
         """
         await inter.response.defer()
-        definition = await self.get_urban_definition(word)
-        if isinstance(definition, str):
-            await inter.edit_original_message(content=definition)
+        urban = UrbanDictionary()
+        await urban.get(word)
+        if not urban.response:
+            await inter.edit_original_message(content=urban.result)
         else:
-            embed = disnake.Embed(title=f"Define: {definition.word.title()}",
-                                  description=definition.definition, colour=colour_gen(inter.author.id),
-                                  url=definition.url)
-            embed.add_field(name='Example', value=definition.example)
+            embed = disnake.Embed(title=f"Define: {urban.word}",
+                                  description=urban.definition, colour=colour_gen(inter.author.id),
+                                  url=urban.url)
+            embed.add_field(name='Example', value=urban.example)
             await inter.edit_original_message(embed=embed)
 
 
 def setup(client):
-    client.add_cog(UrbanDictionary(client))
+    client.add_cog(Dictionary(client))
