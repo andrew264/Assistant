@@ -11,26 +11,6 @@ from EnvVariables import Owner_ID, Log_Channel
 from assistant import available_clients, all_activities, colour_gen
 
 
-def ActivityVal(activities: Tuple[disnake.Activity | disnake.Game |
-                                  disnake.CustomActivity | disnake.Streaming
-                                  | disnake.Spotify, ...]) -> list:
-    activitiesList = []
-    for activity in activities:
-        if isinstance(activity, disnake.Game):
-            activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
-        elif isinstance(activity, disnake.Streaming):
-            activitiesList.append(f"Streaming {activity.name}")
-        elif isinstance(activity, disnake.Spotify):
-            # we don't need spotify activities
-            continue
-        elif isinstance(activity, disnake.CustomActivity):
-            # handle CustomActivity Separately
-            continue
-        elif isinstance(activity, disnake.Activity):
-            activitiesList.append(f"{activity.type.name.capitalize()} {activity.name}")
-    return activitiesList
-
-
 class Surveillance(commands.Cog):
     def __init__(self, client: assistant.Client):
         self.client = client
@@ -132,7 +112,7 @@ class Surveillance(commands.Cog):
         for b_key, b_value in all_activities(before).items():
             if b_key == "Spotify":
                 continue
-            for a_key, a_value in all_activities(after).items():
+            for a_key, a_value in all_activities(after, with_url=True).items():
                 if b_key == a_key and b_value != a_value:
                     if b_value and not a_value:
                         embed.add_field(name=f"Stopped: {b_key}", value=f"{b_value}", inline=False, )

@@ -11,8 +11,8 @@ from lavalink import DefaultPlayer as Player
 from lyricsgenius import Genius
 from lyricsgenius.types import Song
 
-import assistant
 from EnvVariables import GENIUS_TOKEN
+from assistant import remove_brackets, Client
 
 ydl_opts = {'quiet': True, 'no_warnings': True}
 genius = Genius(GENIUS_TOKEN, verbose=False)
@@ -79,7 +79,7 @@ class Pages(disnake.ui.View):
 
 
 class Lyrics(commands.Cog):
-    def __init__(self, client: assistant.Client):
+    def __init__(self, client: Client):
         self.client = client
 
     @commands.slash_command(description="Get Lyrics for the song you are currently listening to.")
@@ -100,7 +100,7 @@ class Lyrics(commands.Cog):
         if not title:
             for activity in inter.author.activities:
                 if isinstance(activity, disnake.Spotify):
-                    title = activity.title
+                    title = remove_brackets(activity.title)
                     artist = activity.artist
                     track_url = activity.track_url
                     spotify = True

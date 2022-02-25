@@ -53,7 +53,7 @@ class UserInfo(commands.Cog):
         if user.raw_status != "offline":
             embed.add_field(name="Available Clients", value=available_clients(user))
         # Activity
-        for key, value in all_activities(user, with_time=True).items():
+        for key, value in all_activities(user, with_time=True, with_url=True).items():
             if value:
                 embed.add_field(name=key, value=value)
 
