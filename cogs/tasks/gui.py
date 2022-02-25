@@ -1,6 +1,8 @@
 # Imports
+import asyncio
 import threading
 import tkinter as tk
+from typing import Optional
 
 import disnake
 from disnake.ext import commands
@@ -12,12 +14,13 @@ from assistant import Client, colour_gen, all_activities, available_clients
 class App(tk.Tk):
     def __init__(self, client: Client) -> None:
         super().__init__()
+        self.timer: Optional[threading.Timer] = None
         self.bot = client
         self.wm_title("Andrew's Assistant")
         self.iconphoto(True, tk.PhotoImage(file="./data/icon.png"))
         self.geometry("1000x500")
         self.configure(background="#2C2F33")
-        self.protocol("WM_DELETE_WINDOW", self.callback)
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.Refresher()
         self.mainloop()
 
@@ -28,8 +31,11 @@ class App(tk.Tk):
             label.destroy()
         tk.Label(self, text=f"Connected as {self.bot.user}", font=(font, 15), bg=bg,
                  fg='#0ee3ff').pack(anchor='w', side=tk.TOP)
-        tk.Label(self, text=f"PING: {int(self.bot.latency * 1000)} ms", font=(font, 10), bg=bg,
-                 fg='#0ee3ff').pack(anchor='e', side=tk.BOTTOM)
+        try:
+            tk.Label(self, text=f"PING: {int(self.bot.latency * 1000)} ms", font=(font, 10), bg=bg,
+                     fg='#0ee3ff').pack(anchor='e', side=tk.BOTTOM)
+        except OverflowError:
+            return
         user = disnake.utils.get(self.bot.get_all_members(), id=Owner_ID)
         tk.Label(self, text=f"{user}: {available_clients(user)}", font=(font, 10), bg=bg,
                  fg='#0ee3ff').pack(anchor='w', side=tk.BOTTOM)
@@ -64,16 +70,12 @@ class App(tk.Tk):
 
     def Refresher(self):
         self.Draw()
-        threading.Timer(1, self.Refresher).start()
+        self.timer = threading.Timer(1, self.Refresher)
+        self.timer.start()
 
-    def bot_info(self):
-        str1 = f"{self.bot.user}  is connected to the following guild:"
-        for guild in self.bot.guilds:
-            str1 += f"\n\t> {guild.name}: ({guild.id}) with {len(guild.members)} members"
-        return str1
-
-    def callback(self):
-        self.quit()
+    def on_closing(self):
+        self.timer.cancel()
+        self.destroy()
 
 
 class UI(commands.Cog):
@@ -85,6 +87,11 @@ class UI(commands.Cog):
         thread = threading.Thread(target=App, args=(self.client,))
         thread.start()
         print("GUI started")
+        while thread.is_alive():
+            await asyncio.sleep(1)
+        else:
+            print("GUI stopped")
+            await self.client.close()
 
 
 def setup(client: Client):
