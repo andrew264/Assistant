@@ -14,6 +14,7 @@ client = assistant.Client(
     activity=disnake.Activity(type=disnake.ActivityType.watching, name="yall Homies."),
     lava_host=LL_Host, lava_port=LL_Port, lava_password=LL_Password,
     lava_region="in", lava_node_name="assistant-node",
+    enable_debug_events=True,
 )
 
 # load all cogs
