@@ -2,13 +2,18 @@
 import asyncio
 import threading
 import tkinter as tk
+from os import getpid
+from tkinter import ttk
 from typing import Optional
 
 import disnake
+import psutil
 from disnake.ext import commands
 
 from EnvVariables import Owner_ID
-from assistant import Client, colour_gen, all_activities, available_clients
+from assistant import Client, colour_gen, all_activities, available_clients, human_bytes
+
+font = 'Bahnschrift SemiBold SemiConden'
 
 
 class App(tk.Tk):
@@ -19,37 +24,44 @@ class App(tk.Tk):
         self.wm_title("Andrew's Assistant")
         self.iconphoto(True, tk.PhotoImage(file="./data/icon.png"))
         self.geometry("1000x500")
-        self.configure(background="#2C2F33")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        # create notebook
+        self.tabControl = ttk.Notebook(self)
+        self.tabControl.pack(expand=1, fill="both")
+        # create tabs
+        self.tab1 = ttk.Frame(self.tabControl)
+        self.tab2 = ttk.Frame(self.tabControl)
+        self.tab1.pack(expand=1, fill="both")
+        self.tab2.pack(expand=1, fill="both")
+        # add tabs to notebook
+        self.tabControl.add(self.tab1, text="Guild/VC")
+        self.tabControl.add(self.tab2, text='Stats')
+        # set style
+        self.tk.call("source", "sun-valley.tcl")
+        self.tk.call("set_theme", "dark")
         self.Refresher()
         self.mainloop()
 
-    def Draw(self):
-        font = 'Bahnschrift SemiBold SemiConden'
-        bg = "#2C2F33"
-        for label in list(self.children.values()):
+    def tab_1(self):
+        for label in list(self.tab1.children.values()):
             label.destroy()
-        tk.Label(self, text=f"Connected as {self.bot.user}", font=(font, 15), bg=bg,
-                 fg='#0ee3ff').pack(anchor='w', side=tk.TOP)
-        try:
-            tk.Label(self, text=f"PING: {int(self.bot.latency * 1000)} ms", font=(font, 10), bg=bg,
-                     fg='#0ee3ff').pack(anchor='e', side=tk.BOTTOM)
-        except OverflowError:
-            return
-        user = disnake.utils.get(self.bot.get_all_members(), id=Owner_ID)
-        tk.Label(self, text=f"{user}: {available_clients(user)}", font=(font, 10), bg=bg,
-                 fg='#0ee3ff').pack(anchor='w', side=tk.BOTTOM)
-        tk.Label(self, text=f"Guilds Available ({len(self.bot.guilds)}):", font=(font, 12), bg=bg,
-                 fg='#0ee3ff').pack(anchor='w', side=tk.TOP)
+        # Connected As
+        ttk.Label(self.tab1, text=f"Connected as {self.bot.user}", font=(font, 15), ) \
+            .pack(anchor='w', side=tk.TOP)
+        # Guilds
+        ttk.Label(self.tab1, text=f"Guilds Available ({len(self.bot.guilds)}):", font=(font, 12), ) \
+            .pack(anchor='w', side=tk.TOP)
         for guild in self.bot.guilds:
-            tk.Label(self, text=f"\t{guild.name}: ({guild.id}) ({len(guild.members)} members)", font=(font, 12), bg=bg,
-                     fg='#ff867e', ).pack(anchor='w', side=tk.TOP)
+            ttk.Label(self.tab1, text=f"\t{guild.name}: ({guild.id}) ({len(guild.members)} members)",
+                      font=(font, 12), foreground='#ff867e', ).pack(anchor='w', side=tk.TOP)
+        # Voice Channels
         for guild in self.bot.guilds:
             for vc in guild.voice_channels:
                 if vc.members:
-                    tk.Label(self, text=f"🔊 {vc.name}:", font=(font, 12), bg=bg,
-                             fg=f'{colour_gen(guild.id)}', ).pack(anchor='w', side=tk.TOP)
+                    ttk.Label(self.tab1, text=f"🔊 {vc.name}:", font=(font, 12),
+                              foreground=f'{colour_gen(guild.id)}', ).pack(anchor='w', side=tk.TOP)
                     for member in vc.members:
+                        # Member
                         name = f"{member.display_name} "
                         if not (member.voice.self_deaf or member.voice.deaf):
                             name += "🎧"
@@ -58,19 +70,69 @@ class App(tk.Tk):
                         if member.voice.self_stream or member.voice.self_video:
                             name += " 📺"
 
-                        tk.Label(self, text=f"\t{name}", font=(font, 11), bg=bg,
-                                 fg=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
-                        tk.Label(self, text=f"\t\t{available_clients(member)}", font=('Bahnschrift', 10), bg=bg,
-                                 fg=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
+                        ttk.Label(self.tab1, text=f"\t{name}", font=(font, 11),
+                                  foreground=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
+                        # Member Client
+                        ttk.Label(self.tab1, text=f"\t\t{available_clients(member)}", font=('Bahnschrift', 10),
+                                  foreground=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
+                        # Member Activity
                         activities = all_activities(member)
                         for key, value in activities.items():
                             if value:
-                                tk.Label(self, text=f"\t\t{key}: {value}", font=('Bahnschrift', 10), bg=bg,
-                                         fg=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
+                                ttk.Label(self.tab1, text=f"\t\t{key}: {value}", font=('Bahnschrift', 10),
+                                          foreground=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
+        # client latency
+        try:
+            ttk.Label(self.tab1, text=f"PING: {int(self.bot.latency * 1000)} ms", font=(font, 10)) \
+                .pack(anchor='e', side=tk.BOTTOM)
+        except OverflowError:
+            return
+        # show my online status
+        user = disnake.utils.get(self.bot.get_all_members(), id=Owner_ID)
+        ttk.Label(self.tab1, text=f"{user}: {available_clients(user)}", font=(font, 10), ) \
+            .pack(anchor='w', side=tk.BOTTOM)
+
+    def tab_2(self):
+        for label in list(self.tab2.children.values()):
+            label.destroy()
+        # Create Table
+        table = ttk.Treeview(self.tab2, columns=('name', 'value'), show='headings', height=10)
+        table.heading('name', text='Name', anchor=tk.CENTER)
+        table.column('name', anchor=tk.CENTER)
+        table.heading('value', text='Value', anchor=tk.CENTER)
+        table.column('value', anchor=tk.CENTER)
+        # Bot User
+        table.insert('', 'end', values=('Bot', f"{self.bot.user} ({self.bot.user.id})"))
+        # Bot Activity
+        table.insert('', 'end', values=(
+            'Status', f"{self.bot.status.name.title()} {self.bot.activity.type.name.title()} {self.bot.activity.name}"))
+        # Bot Uptime
+        table.insert('', 'end', values=('Uptime', f"{self.bot.up_time}"))
+        # Bot Latency
+        table.insert('', 'end', values=('Ping', f"{int(self.bot.latency * 1000)} ms"))
+        # Bot Guilds and Members
+        table.insert('', 'end', values=('No. of Guilds', f"{len(self.bot.guilds)}"))
+        table.insert('', 'end', values=('No. of Users', f"{len(self.bot.users)}"))
+        # Socket Event Counter
+        table.insert('', 'end', values=('Socket Send', f"{self.bot.events['socket_send']}"))
+        table.insert('', 'end', values=('Socket Receive', f"{self.bot.events['socket_receive']}"))
+        # Message Event Counter
+        table.insert('', 'end', values=('Messages Received', f"{self.bot.events['messages']}"))
+        # Presence Event Counter
+        table.insert('', 'end', values=('Presence Updates', f"{self.bot.events['presence_update']}"))
+        # Memory Usage
+        used_memory = psutil.Process(getpid()).memory_info().rss
+        table.insert('', 'end', values=('Memory Usage', f"{human_bytes(used_memory)}"))
+        # CPU Usage
+        table.insert('', 'end', values=('CPU Usage', f"{psutil.cpu_percent()}%"))
+        table.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
     def Refresher(self):
-        self.Draw()
-        self.timer = threading.Timer(1, self.Refresher)
+        # Guilds/VC
+        self.tab_1()
+        # Bot Stats
+        self.tab_2()
+        self.timer = threading.Timer(2.5, self.Refresher)
         self.timer.start()
 
     def on_closing(self):
@@ -88,7 +150,7 @@ class UI(commands.Cog):
         thread.start()
         print("GUI started")
         while thread.is_alive():
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
         else:
             print("GUI stopped")
             await self.client.close()

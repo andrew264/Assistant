@@ -23,3 +23,7 @@ MusicCache.json
 
 #Downloaded Videos
 /downloads
+
+# theme
+/theme
+*.tcl
