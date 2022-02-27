@@ -83,10 +83,11 @@ class App(tk.Tk):
                                           foreground=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
         # client latency
         try:
-            ttk.Label(self.tab1, text=f"PING: {int(self.bot.latency * 1000)} ms", font=(font, 10)) \
-                .pack(anchor='e', side=tk.BOTTOM)
+            ping = max(int(self.bot.latency*1000), 0)
         except OverflowError:
             return
+        ttk.Label(self.tab1, text=f"PING: {ping} ms", font=(font, 10)) \
+            .pack(anchor='e', side=tk.BOTTOM)
         # show my online status
         user = disnake.utils.get(self.bot.get_all_members(), id=Owner_ID)
         ttk.Label(self.tab1, text=f"{user}: {available_clients(user)}", font=(font, 10), ) \
@@ -109,7 +110,11 @@ class App(tk.Tk):
         # Bot Uptime
         table.insert('', 'end', values=('Uptime', f"{self.bot.up_time}"))
         # Bot Latency
-        table.insert('', 'end', values=('Ping', f"{int(self.bot.latency * 1000)} ms"))
+        try:
+            ping = max(int(self.bot.latency*1000), 0)
+        except OverflowError:
+            return
+        table.insert('', 'end', values=('Ping', f"{ping} ms"))
         # Bot Guilds and Members
         table.insert('', 'end', values=('No. of Guilds', f"{len(self.bot.guilds)}"))
         table.insert('', 'end', values=('No. of Users', f"{len(self.bot.users)}"))
