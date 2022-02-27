@@ -109,17 +109,18 @@ class Surveillance(commands.Cog):
                 return
 
         # Activities
-        for b_key, b_value in all_activities(before).items():
+        for b_key, b_value in all_activities(before, with_url=True).items():
             if b_key == "Spotify":
                 continue
             for a_key, a_value in all_activities(after, with_url=True).items():
-                if b_key == a_key and b_value != a_value:
-                    if b_value and not a_value:
-                        embed.add_field(name=f"Stopped: {b_key}", value=f"{b_value}", inline=False, )
-                    elif not b_value and a_value:
-                        embed.add_field(name=f"Started: {b_key}", value=f"{a_value}", inline=False, )
-                    else:
-                        embed.add_field(name=f"Changed: {b_key}", value=f"{b_value} ──> {a_value}", inline=False, )
+                if b_key != a_key or b_value == a_value:
+                    continue
+                if b_value and not a_value:
+                    embed.add_field(name=f"Stopped {b_key}:", value=f"{b_value}", inline=False, )
+                elif a_value and not b_value:
+                    embed.add_field(name=f"Started {b_key}:", value=f"{a_value}", inline=False, )
+                else:
+                    embed.add_field(name=f"Changed {b_key}:", value=f"{b_value} ──> {a_value}", inline=False, )
 
         if len(embed.fields):
             await self.log_channel.send(embed=embed, delete_after=900)
