@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 import disnake
 
@@ -38,9 +39,9 @@ def human_int(num) -> str:
         num /= 1000
 
 
-def colour_gen(any_id: int) -> disnake.Colour:
+def colour_gen(any_id: int, as_hex: Optional[bool] = False) -> [disnake.Colour | int]:
     """Generates a discord colour based on an ID"""
     r = int(any_id / 420 % 255)
     g = int(any_id / 69 / 69 % 255)
     b = int(any_id / 420 / 420 % 255)
-    return disnake.Color.from_rgb(r, g, b)
+    return disnake.Color.from_rgb(r, g, b) if not as_hex else int(f"0x{r:02x}{g:02x}{b:02x}", 16)
