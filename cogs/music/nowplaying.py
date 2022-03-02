@@ -131,7 +131,6 @@ class NP(commands.Cog):
                 progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]
                 song_on = current_song.format_time(player.position)
                 song_end = current_song.format_time(current_song.duration)
-                current_song.fetch_info()
                 embed = disnake.Embed(color=0xEB459E)
                 embed.set_thumbnail(url=f"{current_song.thumbnail}")
                 embed.set_author(name=current_song.title, url=current_song.uri, icon_url=current_song.avatar_url)
@@ -139,7 +138,7 @@ class NP(commands.Cog):
                                 inline=False, )
                 embed.add_field(name="Views:", value=f"{current_song.views}", inline=True)
                 embed.add_field(name="Likes:", value=f"{current_song.likes}", inline=True)
-                embed.add_field(name="Uploaded on:", value=f"{current_song.upload_date}", inline=True)
+                embed.add_field(name="Uploaded:", value=f"{current_song.upload_date}", inline=True)
                 if player.queue and player.repeat:
                     embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
                 elif player.queue and not player.repeat:

@@ -74,7 +74,7 @@ class GLyrics:
             title, artist = await loop.run_in_executor(None, self._get_from_yt, yt.identifier)
             self.url = yt.uri
             self.icon = "https://www.gstatic.com/images/branding/product/1x/youtube_64dp.png"
-            self.album_art = f"https://i.ytimg.com/vi/{yt.identifier}/hqdefault.jpg"
+            self.album_art = yt.thumbnail
             self.colour = 0xFF0000
         else:
             self.icon = author.display_avatar.url
