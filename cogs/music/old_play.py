@@ -14,7 +14,7 @@ class Play(commands.Cog):
         self.lavalink = client.lavalink
 
     # Play
-    @commands.command(pass_context=True, aliases=["p"])
+    @commands.command(pass_context=True, aliases=["p", "play"])
     @commands.guild_only()
     async def old_play(self, ctx: commands.Context, *, query: str = None) -> None:
 
@@ -22,36 +22,43 @@ class Play(commands.Cog):
         await ctx.message.delete(delay=5)
         # If player is paused, resume player
         if query is None:
-            if player.current and player.paused:
-                if ctx.voice_client is None:
-                    return
-                await player.set_pause(pause=False)
-                await ctx.send(f"Resumed {player.current.title}", delete_after=10)
+            if ctx.voice_client is None:
                 return
+            if player.current:
+                if player.paused:
+                    await player.set_pause(pause=False)
+                    await ctx.send(f"Resumed {player.current.title}", delete_after=10)
+                    return
+                else:
+                    await player.set_pause(pause=True)
+                    await ctx.send("Paused", delete_after=10)
+                    return
             else:
-                await player.set_pause(pause=True)
-                await ctx.send("Paused", delete_after=10)
+                await ctx.send("Nothing to Play", delete_after=10)
                 return
 
         async with ctx.typing():
+
             url_rx = re.compile(r'https?://(?:www\.)?.+')
-            if not url_rx.match(query):
-                query = f'ytsearch:{query}'
+            is_search = False if url_rx.match(query) else True
+            query = f'ytsearch:{query}' if is_search else query
+
             results = await player.node.get_tracks(query)
-            seek_time = 0
             if not results or not results['tracks']:
-                await ctx.send("Nothing to Play", delete_after=10)
+                await ctx.send("No Results Found.", delete_after=10)
                 return
             for track in results["tracks"]:
-                player.add(VideoTrack(data=track, author=ctx.author))
+                player.add(track=VideoTrack(data=track, author=ctx.author))
+                if is_search:  # If is_search, only add first result
+                    break
             if results['loadType'] == 'PLAYLIST_LOADED':
                 await ctx.send(f"{len(results['tracks'])} tracks added from {results['playlistInfo']['name']}",
                                delete_after=20)
             else:
                 await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
                 yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
-                if yt_time_rx.match(query):
-                    seek_time = int(re.sub(yt_time_rx, "", query)) * 1000
+
+        seek_time = int(re.sub(yt_time_rx, "", query)) * 1000 if yt_time_rx.match(query) else 0
 
         # Join VC
         voice = disnake.utils.get(self.client.voice_clients, guild=ctx.guild)
@@ -62,17 +69,10 @@ class Play(commands.Cog):
 
         if player.queue and not player.is_playing:
             await player.set_volume(40)
-            bands = [
-                (0, 0.0), (1, 0.0), (2, 0.0), (3, 0.0), (4, 0.0),
-                (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0),
-                (10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0), (14, 0.0)
-            ]
             flat_eq = lavalink.filters.Equalizer()
-            flat_eq.update(bands=bands)
+            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])  # Flat EQ
             await player.set_filter(flat_eq)
-            await player.play()
-            if seek_time:
-                await player.seek(seek_time)
+            await player.play(start_time=seek_time)
 
     # Play Checks
     @old_play.before_invoke
