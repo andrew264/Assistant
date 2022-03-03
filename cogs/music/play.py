@@ -1,66 +1,42 @@
 import re
+from typing import Optional
 
 import disnake
 import lavalink
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
-import assistant
+from assistant import Client, VideoTrack, VoiceClient
 
 
-class Play(commands.Cog):
-    def __init__(self, client: assistant.Client):
+class SlashPlay(commands.Cog):
+    def __init__(self, client: Client):
+        self.player: Optional[Player] = None
         self.client = client
         self.lavalink = client.lavalink
 
-    # Play
-    @commands.command(pass_context=True, aliases=["p"])
-    @commands.guild_only()
-    async def play(self, ctx: commands.Context, *, query: str = None) -> None:
-
-        player: Player = self.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
-        await ctx.message.delete(delay=5)
-        # If player is paused, resume player
-        if query is None:
-            if player.current and player.paused:
-                if ctx.voice_client is None:
-                    return
-                await player.set_pause(pause=False)
-                return
-            else:
-                await ctx.send("Nothing to Play", delete_after=10)
-                return
-
-        async with ctx.typing():
-            url_rx = re.compile(r'https?://(?:www\.)?.+')
-            if not url_rx.match(query):
-                query = f'ytsearch:{query}'
-            results = await player.node.get_tracks(query)
-            seek_time = 0
-            if not results or not results['tracks']:
-                await ctx.send("Nothing to Play", delete_after=10)
-                return
-            if results['loadType'] == 'PLAYLIST_LOADED':
-                tracks = results['tracks']
-                for track in tracks:
-                    track = assistant.VideoTrack(data=track, author=ctx.author)
-                    player.add(requester=ctx.author.id, track=track)
-                await ctx.send(f"{len(tracks)} tracks added from {results['playlistInfo']['name']}", delete_after=20)
-            else:
-                track = assistant.VideoTrack(data=results['tracks'][0], author=ctx.author)
-                player.add(requester=ctx.author.id, track=track)
-                await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
-                yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
-                if yt_time_rx.match(query):
-                    seek_time = int(re.sub(yt_time_rx, "", query)) * 1000
-
+    @commands.slash_command(name="play", description="Play Music in VC 🎶", guild_ids=[821758346054467584])
+    async def play(self, inter: disnake.ApplicationCommandInteraction,
+                   query: str = commands.Param(description="Search or Enter URL", )) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        await inter.response.send_message("Adding to queue...", delete_after=10)
+        results = await player.node.get_tracks(query)
+        for track in results["tracks"]:
+            player.add(VideoTrack(data=track, author=inter.author))
+        if results['loadType'] == 'PLAYLIST_LOADED':
+            await inter.followup.send(content=f"Playlist **{results['playlistInfo']['name']}** added to queue.",
+                                      delete_after=30)
+        else:
+            await inter.followup.send(content=f"Added `{results['tracks'][0]['info']['title']}` to queue.",
+                                      delete_after=30)
         # Join VC
-        voice = disnake.utils.get(self.client.voice_clients, guild=ctx.guild)
+        voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
         if voice and player.is_connected:
             pass
         elif voice is None:
-            await ctx.author.voice.channel.connect(cls=assistant.VoiceClient)
+            await inter.author.voice.channel.connect(cls=VoiceClient)
 
+        # Start playing
         if player.queue and not player.is_playing:
             await player.set_volume(40)
             bands = [
@@ -72,21 +48,35 @@ class Play(commands.Cog):
             flat_eq.update(bands=bands)
             await player.set_filter(flat_eq)
             await player.play()
-            if seek_time:
-                await player.seek(seek_time)
 
-    # Play Checks
+    @play.autocomplete('query')
+    async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:
+        if not self.player:
+            self.player: Player = self.lavalink.player_manager.create(inter.guild.id)
+        if not query or len(query) < 3:
+            return {}
+        url_rx = re.compile(r'https?://(?:www\.)?.+')
+        query = query if url_rx.match(query) else f'ytsearch:{query}'
+        results = await self.player.node.get_tracks(query)
+        if not results or not results["tracks"]:
+            return {}
+        elif results['loadType'] == 'PLAYLIST_LOADED':
+            return {results['playlistInfo']['name']: query}
+        else:
+            return {result["info"]["title"]: result["info"]["uri"] for result in results["tracks"][:5]}
+
+    # Checks
     @play.before_invoke
-    async def check_play(self, ctx: commands.Context) -> None:
-        if ctx.author.voice is None:
+    async def check_play(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        if inter.author.voice is None:
             raise commands.CheckFailure("You are not connected to a voice channel.")
-        if ctx.voice_client is not None and ctx.author.voice is not None:
-            if ctx.voice_client.channel != ctx.author.voice.channel:
+        if inter.guild.voice_client is not None and inter.author.voice is not None:
+            if inter.guild.voice_client.channel != inter.author.voice.channel:
                 raise commands.CheckFailure("You must be in same VC as Bot.")
-        permissions = ctx.author.voice.channel.permissions_for(ctx.me)
+        permissions = inter.author.voice.channel.permissions_for(inter.me)
         if not permissions.connect or not permissions.speak:
             raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
 
 
-def setup(client):
-    client.add_cog(Play(client))
+def setup(client: Client):
+    client.add_cog(SlashPlay(client))

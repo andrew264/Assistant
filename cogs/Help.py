@@ -47,8 +47,8 @@ class HelpMe(commands.Cog):
             # Music Commands
             music_embed = Embed(color=Colour.green())
             music_embed.set_author(name="Play Music from YouTube in VC")
-            music_embed.add_field(name="`.play`   <search>", value="Search or Enter URL")
-            music_embed.add_field(name="`.search`   <query>", value="Select a song to add to queue")
+            music_embed.add_field(name="`.p`   <query>", value="Search or Enter URL")
+            music_embed.add_field(name="`/play`", value="Same as `.p` but BETTER")
             music_embed.add_field(name="`.pause`", value="Pause Music")
             music_embed.add_field(name="`.stop`", value="Disconnect Bot from VC")
             music_embed.add_field(name="`.np`", value="Display Now Playing")
