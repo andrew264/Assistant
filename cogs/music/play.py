@@ -8,6 +8,8 @@ from lavalink import DefaultPlayer as Player
 
 from assistant import Client, VideoTrack, VoiceClient
 
+url_rx = re.compile(r'https?://(?:www\.)?.+')
+
 
 class SlashPlay(commands.Cog):
     def __init__(self, client: Client):
@@ -20,9 +22,16 @@ class SlashPlay(commands.Cog):
                    query: str = commands.Param(description="Search or Enter URL", )) -> None:
         player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
         await inter.response.send_message("Adding to queue...", delete_after=10)
+
+        # search again it query is not url
+        is_search = False if url_rx.match(query) else True
+        query = f'ytsearch:{query}' if is_search else query
+
         results = await player.node.get_tracks(query)
         for track in results["tracks"]:
             player.add(VideoTrack(data=track, author=inter.author))
+            if is_search:  # if is_search, only add the first track
+                break
         if results['loadType'] == 'PLAYLIST_LOADED':
             await inter.followup.send(content=f"Playlist **{results['playlistInfo']['name']}** added to queue.",
                                       delete_after=30)
@@ -55,7 +64,6 @@ class SlashPlay(commands.Cog):
             self.player: Player = self.lavalink.player_manager.create(inter.guild.id)
         if not query or len(query) < 3:
             return {}
-        url_rx = re.compile(r'https?://(?:www\.)?.+')
         query = query if url_rx.match(query) else f'ytsearch:{query}'
         results = await self.player.node.get_tracks(query)
         if not results or not results["tracks"]:
