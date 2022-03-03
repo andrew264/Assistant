@@ -51,6 +51,8 @@ class ErrorHandler(commands.Cog):
             await inter.response.send_message("🚫 You can't do that in DMs.")
         elif isinstance(error, commands.MemberNotFound):
             await inter.response.send_message(f"🚫 Member not found.")
+        elif isinstance(error, commands.CheckFailure):
+            await inter.response.send_message(f"***{error}***")
         else:
             try:
                 await inter.response.send_message(f"An unknown error occurred")
