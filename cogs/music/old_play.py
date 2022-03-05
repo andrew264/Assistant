@@ -1,3 +1,4 @@
+import asyncio
 import re
 
 import disnake
@@ -66,6 +67,10 @@ class Play(commands.Cog):
             pass
         elif voice is None:
             await ctx.author.voice.channel.connect(cls=VoiceClient)
+            if isinstance(ctx.author.voice.channel, disnake.StageChannel):
+                if ctx.author.voice.channel.permissions_for(ctx.me).stage_moderator:
+                    await asyncio.sleep(0.5)
+                    await ctx.me.request_to_speak()
 
         if player.queue and not player.is_playing:
             await player.set_volume(40)

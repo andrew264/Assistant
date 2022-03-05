@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Optional
 
@@ -17,7 +18,8 @@ class SlashPlay(commands.Cog):
         self.client = client
         self.lavalink = client.lavalink
 
-    @commands.slash_command(name="play", description="Play Music in VC 🎶", guild_ids=[821758346054467584])
+    @commands.slash_command(name="play", description="Play Music in VC 🎶")
+    @commands.guild_only()
     async def play(self, inter: disnake.ApplicationCommandInteraction,
                    query: str = commands.Param(description="Search or Enter URL", )) -> None:
         player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
@@ -44,17 +46,16 @@ class SlashPlay(commands.Cog):
             pass
         elif voice is None:
             await inter.author.voice.channel.connect(cls=VoiceClient)
+            if isinstance(inter.author.voice.channel, disnake.StageChannel):
+                if inter.author.voice.channel.permissions_for(inter.guild.me).stage_moderator:
+                    await asyncio.sleep(0.5)
+                    await inter.guild.me.request_to_speak()
 
         # Start playing
         if player.queue and not player.is_playing:
             await player.set_volume(40)
-            bands = [
-                (0, 0.0), (1, 0.0), (2, 0.0), (3, 0.0), (4, 0.0),
-                (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0),
-                (10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0), (14, 0.0)
-            ]
             flat_eq = lavalink.filters.Equalizer()
-            flat_eq.update(bands=bands)
+            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])  # Flat EQ
             await player.set_filter(flat_eq)
             await player.play()
 
