@@ -63,9 +63,7 @@ class Play(commands.Cog):
 
         # Join VC
         voice = disnake.utils.get(self.client.voice_clients, guild=ctx.guild)
-        if voice and player.is_connected:
-            pass
-        elif voice is None:
+        if voice is None:
             await ctx.author.voice.channel.connect(cls=VoiceClient)
             if isinstance(ctx.author.voice.channel, disnake.StageChannel):
                 if ctx.author.voice.channel.permissions_for(ctx.me).stage_moderator:
@@ -73,11 +71,10 @@ class Play(commands.Cog):
                     await ctx.me.request_to_speak()
 
         if player.queue and not player.is_playing:
-            await player.set_volume(40)
             flat_eq = lavalink.filters.Equalizer()
             flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])  # Flat EQ
             await player.set_filter(flat_eq)
-            await player.play(start_time=seek_time)
+            await player.play(start_time=seek_time, volume=40)
 
     # Play Checks
     @old_play.before_invoke

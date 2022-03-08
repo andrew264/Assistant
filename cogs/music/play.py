@@ -42,9 +42,7 @@ class SlashPlay(commands.Cog):
                                       delete_after=30)
         # Join VC
         voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
-        if voice and player.is_connected:
-            pass
-        elif voice is None:
+        if voice is None:
             await inter.author.voice.channel.connect(cls=VoiceClient)
             if isinstance(inter.author.voice.channel, disnake.StageChannel):
                 if inter.author.voice.channel.permissions_for(inter.guild.me).stage_moderator:
@@ -53,26 +51,25 @@ class SlashPlay(commands.Cog):
 
         # Start playing
         if player.queue and not player.is_playing:
-            await player.set_volume(40)
             flat_eq = lavalink.filters.Equalizer()
             flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])  # Flat EQ
             await player.set_filter(flat_eq)
-            await player.play()
+            await player.play(volume=40)
 
     @play.autocomplete('query')
     async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:
         if not self.player:
             self.player: Player = self.lavalink.player_manager.create(inter.guild.id)
         if not query or len(query) < 3:
-            return {}
+            return {"No Results Found": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
         query = query if url_rx.match(query) else f'ytsearch:{query}'
         results = await self.player.node.get_tracks(query)
         if not results or not results["tracks"]:
-            return {}
+            return {"No Results Found": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
         elif results['loadType'] == 'PLAYLIST_LOADED':
             return {results['playlistInfo']['name']: query}
         else:
-            return {result["info"]["title"]: result["info"]["uri"] for result in results["tracks"][:5]}
+            return {result["info"]["title"]: result["info"]["uri"] for result in results["tracks"][:7]}
 
     # Checks
     @play.before_invoke
