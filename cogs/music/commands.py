@@ -70,6 +70,18 @@ class Music(commands.Cog):
                                               activity=disnake.Activity(type=disnake.ActivityType.watching,
                                                                         name="yall Homies."), )
             await player.stop()
+            await self._dc_from_voice(player)
+
+    async def _dc_from_voice(self, player: Player):
+        """
+        Disconnects the bot from a voice channel.
+        """
+        await asyncio.sleep(30)
+        voice = self.client.get_guild(player.guild_id).voice_client
+        if voice and player.is_connected and not player.is_playing:
+            for _filter in list(player.filters):
+                await player.remove_filter(_filter)
+                await voice.disconnect(force=True)
 
     # Skip
     @commands.command()
