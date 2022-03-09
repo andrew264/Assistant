@@ -21,9 +21,9 @@ MusicCache.json
 # PyCharm
 /.idea
 
-#Downloaded Videos
-/downloads
-
 # theme
 /theme
 *.tcl
+
+# audio clips
+/clips

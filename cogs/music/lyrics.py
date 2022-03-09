@@ -125,7 +125,7 @@ class Lyrics(commands.Cog):
                 async def on_timeout(self):
                     try:
                         await inter.edit_original_message(view=None)
-                    except disnake.NotFound | disnake.Forbidden:
+                    except disnake.NotFound:
                         pass
 
                 @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.blurple)

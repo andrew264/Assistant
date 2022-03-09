@@ -25,8 +25,8 @@ class TextToSpeech(commands.Cog):
         if voice and voice.is_connected():
             pass
         elif isinstance(inter.author, disnake.Member) and voice is None:
-            voiceChannel = inter.author.voice.channel
-            voice = await voiceChannel.connect()
+            vc = inter.author.voice.channel
+            voice = await vc.connect()
         if message:
             pre_tts = os.path.isfile("tts.mp3")
             try:

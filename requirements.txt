@@ -9,3 +9,4 @@ aiosqlite
 lavalink
 psutil
 aiohttp
+asyncpraw

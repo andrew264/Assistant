@@ -83,7 +83,7 @@ class App(tk.Tk):
                                           foreground=f'{member.colour}', ).pack(anchor='w', side=tk.TOP)
         # client latency
         try:
-            ping = max(int(self.bot.latency*1000), 0)
+            ping = max(int(self.bot.latency * 1000), 0)
         except OverflowError:
             return
         ttk.Label(self.tab1, text=f"PING: {ping} ms", font=(font, 10)) \
@@ -111,7 +111,7 @@ class App(tk.Tk):
         table.insert('', 'end', values=('Uptime', f"{self.bot.up_time}"))
         # Bot Latency
         try:
-            ping = max(int(self.bot.latency*1000), 0)
+            ping = max(int(self.bot.latency * 1000), 0)
         except OverflowError:
             return
         table.insert('', 'end', values=('Ping', f"{ping} ms"))

@@ -7,7 +7,7 @@ from EnvVariables import TOKEN, Owner_ID, LL_Host, LL_Port, LL_Password
 
 # Client
 client = assistant.Client(
-    command_prefix=commands.when_mentioned_or("."), case_insensitive=True,
+    command_prefix=('.', '+'), case_insensitive=True,
     intents=disnake.Intents.all(), help_command=None,
     owner_id=Owner_ID, description="Andrew's Assistant",
     status=disnake.Status.online,

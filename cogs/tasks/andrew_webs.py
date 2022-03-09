@@ -6,8 +6,8 @@ import disnake
 import emoji
 from disnake.ext import commands
 
-import assistant
 from EnvVariables import Owner_ID
+from assistant import Client, prob_hook
 
 references = ["andrew",
               "santhosh",
@@ -42,17 +42,8 @@ def checks(message: disnake.Message) -> bool:
     return False
 
 
-async def FetchHook(channel: disnake.TextChannel) -> disnake.Webhook:
-    webhooks = await channel.webhooks()
-    for webhook in webhooks:
-        if webhook.name == "Reply Hook":
-            return webhook
-    webhook: disnake.Webhook = await channel.create_webhook(name="Reply Hook")
-    return webhook
-
-
 class AndrewWebs(commands.Cog):
-    def __init__(self, client: assistant.Client):
+    def __init__(self, client: Client):
         self.client = client
 
     @commands.Cog.listener()
@@ -71,7 +62,7 @@ class AndrewWebs(commands.Cog):
         # Emoji tings
         if any(word in message.content.lower().split() for word in emoji.UNICODE_EMOJI_ENGLISH):
             response = choice(["👍", "😂", "🥲", "🤨", "🙄", "😏", "👽", "💩", "🤌", "🤝"])
-            await self.ReplyWebhook(message.channel, f"{response * randint(1, 7)}")
+            await self.ReplyWebhook(message.channel, member, response=f"{response * randint(1, 7)}")
             return
 
         # just mentions
@@ -89,9 +80,9 @@ class AndrewWebs(commands.Cog):
 
     @staticmethod
     async def ReplyWebhook(channel: disnake.TextChannel, member: disnake.Member, response: str):
-        webhook: disnake.Webhook = await FetchHook(channel)
+        webhook: disnake.Webhook = await prob_hook(channel)
         await webhook.send(content=response, username=member.display_name, avatar_url=member.display_avatar.url)
 
 
-def setup(client: disnake.Client):
+def setup(client: Client):
     client.add_cog(AndrewWebs(client))

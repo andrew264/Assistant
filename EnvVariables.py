@@ -23,3 +23,12 @@ YT_TOKEN = config["YOUTUBE_API_KEY"]
 LL_Host = config["LAVALINK_HOST"]
 LL_Port = config["LAVALINK_PORT"]
 LL_Password = config["LAVALINK_PASSWORD"]
+
+# Homies
+HOMIES = config["HOMIES"]
+
+# Reddit things
+R_CLI: str = config["REDDIT"]["R_CLIENT_ID"]
+R_SEC: str = config["REDDIT"]["R_CLIENT_SECRET"]
+R_USR: str = config["REDDIT"]["R_USER"]
+R_PAS: str = config["REDDIT"]["R_PASS"]

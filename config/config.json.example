@@ -7,5 +7,12 @@
     "YOUTUBE_API_KEY": ""
     "LAVALINK_HOST": "",
     "LAVALINK_PORT": 0,
-    "LAVALINK_PASSWORD": ""
+    "LAVALINK_PASSWORD": "",
+    "HOMIES": 0,
+    "REDDIT": {
+        "R_CLIENT_ID": "",
+        "R_CLIENT_SECRET": "",
+        "R_USER": "",
+        "R_PASS": ""
+    },
 }

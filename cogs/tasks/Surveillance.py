@@ -1,14 +1,14 @@
 ﻿# Imports
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Optional
 
 import disnake
 from disnake import Embed
 from disnake.ext import commands
 
 import assistant
-from EnvVariables import Owner_ID, Log_Channel
-from assistant import available_clients, all_activities, colour_gen
+from EnvVariables import Owner_ID, Log_Channel, HOMIES
+from assistant import available_clients, all_activities, colour_gen, is_prob, prob_hook
 
 
 class Surveillance(commands.Cog):
@@ -20,8 +20,12 @@ class Surveillance(commands.Cog):
         return self.client.get_channel(Log_Channel)
 
     @property
+    def prob_log(self):
+        return self.client.get_channel(880285098354835546)
+
+    @property
     def log_guild(self) -> Optional[disnake.Guild]:
-        return self.log_channel.guild
+        return self.client.get_guild(HOMIES)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: disnake.Message, after: disnake.Message) -> None:
@@ -58,8 +62,6 @@ class Surveillance(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: disnake.Member, after: disnake.Member) -> None:
-        if before.guild is None or before.guild != self.log_guild:
-            return
         if before.bot:
             return
         if before.id == Owner_ID:
@@ -71,7 +73,12 @@ class Surveillance(commands.Cog):
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
         embed.add_field(name="New Name", value=after.display_name, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await self.log_channel.send(embed=embed, delete_after=600)
+        if is_prob(before.guild):
+            hook = await prob_hook(self.prob_log)
+            await hook.send(embed=embed)
+            return
+        elif before.guild.id == HOMIES:
+            await self.log_channel.send(embed=embed, delete_after=600)
 
     @commands.Cog.listener()
     async def on_user_update(self, before: disnake.User, after: disnake.User) -> None:
@@ -128,20 +135,22 @@ class Surveillance(commands.Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member, before: disnake.VoiceState,
                                     after: disnake.VoiceState) -> None:
-        if member.guild != self.log_guild:
-            return
         if member.bot or member.id == Owner_ID:
             return
-        if after.channel == before.channel:
+        if after.channel == before.channel or (before is None and after is None):
             return
-        if after.channel is None:
-            await self.log_channel.send(f"{member.display_name} left {before.channel.mention}", delete_after=900)
-        if before.channel is None:
-            await self.log_channel.send(f"{member.display_name} joined {after.channel.mention}", delete_after=900, )
-        elif after.channel is not None and before.channel is not None:
-            await self.log_channel.send(
-                f"{member.display_name} moved to {after.channel.mention} from {before.channel.mention}",
-                delete_after=600, )
+        if after.channel and not before.channel:
+            msg = f"{member.display_name} joined {after.channel.name}"
+        elif before.channel and not after.channel:
+            msg = f"{member.display_name} left {before.channel.name}"
+        else:
+            msg = f"{member.display_name} moved from {before.channel.name} to {after.channel.name}"
+        if is_prob(member.guild):
+            hook = await prob_hook(self.prob_log)
+            await hook.send(msg, delete_after=120)
+            return
+        elif member.guild.id == HOMIES:
+            await self.log_channel.send(msg, delete_after=600)
 
     @commands.Cog.listener()
     async def on_typing(self, channel: disnake.TextChannel, user: disnake.Member, when: datetime) -> None:

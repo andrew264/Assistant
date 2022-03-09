@@ -13,12 +13,12 @@ class UserInfo(commands.Cog):
         self.client = client
         self.db: Optional[aiosqlite.Connection] = None
 
-    @commands.slash_command(description="Luk wat he be doing over der")
+    @commands.slash_command(description="View Info", name="userinfo")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
-    async def whois(self, inter: disnake.ApplicationCommandInteraction,
-                    user: disnake.Member = commands.Param(description="Mention a User",
-                                                          default=lambda inter: inter.author), ) -> None:
+    async def slash_whois(self, inter: disnake.ApplicationCommandInteraction,
+                          user: disnake.Member = commands.Param(description="Mention a User",
+                                                                default=lambda inter: inter.author), ) -> None:
         embed = await self.WhoIsEmbed(user)
         await inter.response.send_message(embed=embed)
 
@@ -28,6 +28,15 @@ class UserInfo(commands.Cog):
     async def ContextWhoIs(self, inter: disnake.UserCommandInteraction) -> None:
         embed = await self.WhoIsEmbed(inter.target)
         await inter.response.send_message(embed=embed)
+
+    @commands.command()
+    @commands.guild_only()
+    @commands.bot_has_permissions(embed_links=True)
+    async def whois(self, ctx: commands.Context, user: Optional[disnake.Member]) -> None:
+        if user is None:
+            user = ctx.author
+        embed = await self.WhoIsEmbed(user)
+        await ctx.send(embed=embed)
 
     async def WhoIsEmbed(self, user: disnake.Member) -> disnake.Embed:
 
