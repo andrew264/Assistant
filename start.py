@@ -12,6 +12,7 @@ client = assistant.Client(
     owner_id=Owner_ID, description="Andrew's Assistant",
     status=disnake.Status.online,
     activity=disnake.Activity(type=disnake.ActivityType.watching, name="yall Homies."),
+    allowed_mentions=disnake.AllowedMentions.all(),
     lava_host=LL_Host, lava_port=LL_Port, lava_password=LL_Password,
     lava_region="in", lava_node_name="assistant-node",
     enable_debug_events=True,
