@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import random
 from typing import Optional
 
 import disnake
@@ -116,10 +117,16 @@ class RPS(commands.Cog):
         host_view = RPSButtons(host)
         player_view = RequestButtons(player)
 
-        await inter.response.send_message(f"Waiting for {player.mention} to Accept", view=player_view)
+        if player.bot:  # If the player is a bot, we spoof the player
+            await inter.response.defer()
+            player_view.accepted = True
+            player_view.choice_view.selected = True
+            player_view.choice_view.choice = Choice(random.randint(1, 3))
+        else:
+            await inter.response.send_message(f"Waiting for {player.mention} to Accept", view=player_view)
+            while player_view.accepted is None:
+                await asyncio.sleep(0.33)
 
-        while player_view.accepted is None:
-            await asyncio.sleep(0.33)
         if player_view.accepted:
             await inter.edit_original_message(
                 content=f"Rock Paper Scissor!\n{host.mention} vs. {player.mention}\nLets see who wins!", view=None)
