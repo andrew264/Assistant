@@ -6,7 +6,6 @@ from typing import Optional
 import disnake
 from disnake.ext import commands
 
-from EnvVariables import HOMIES
 from assistant import Client
 
 
@@ -75,7 +74,7 @@ class RequestButtons(disnake.ui.View):
 
     async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
         if interaction.author != self.author:
-            await interaction.response.send_message("Start your OWN Game", ephemeral=True)
+            await interaction.response.send_message("Start your OWN Game with `/rps`", ephemeral=True)
             return False
         return True
 
@@ -88,7 +87,7 @@ class RequestButtons(disnake.ui.View):
         await interaction.response.edit_message(content="Accepted", view=self)
         await interaction.followup.send("Select one:", view=self.choice_view, ephemeral=True)
 
-    @disnake.ui.button(label="Denied", emoji="❌", style=disnake.ButtonStyle.gray)
+    @disnake.ui.button(label="Deny", emoji="❌", style=disnake.ButtonStyle.gray)
     async def deny(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
         button.style = disnake.ButtonStyle.red
         for _button in self.children:
