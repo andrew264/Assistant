@@ -67,6 +67,7 @@ class HelpMe(commands.Cog):
             fun_embed.set_author(name="Fun Stuff")
             fun_embed.add_field(name="`/kill`", value="Delete someone's existence", inline=False)
             fun_embed.add_field(name="`/pp`", value="Measure someone in Inches 🤏", inline=False)
+            fun_embed.add_field(name="`/rps`", value="Rock Paper Scissors", inline=False)
             fun_embed.add_field(name="`/lyrics`", value="Get lyrics from Spotify Activity", inline=False)
             fun_embed.add_field(name="`/reddit`", value="Fetch Top Memes from Reddit", inline=False)
             fun_embed.add_field(name="`/nsfw`", value="Some Dirty Stuff", inline=False)

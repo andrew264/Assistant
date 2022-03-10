@@ -101,7 +101,7 @@ class RPS(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(name="rps", description="Play Rock Paper Scissors", guild_ids=[HOMIES])
+    @commands.slash_command(name="rps", description="Play Rock Paper Scissors")
     async def rockpaperscissor(self, inter: disnake.ApplicationCommandInteraction,
                                player: disnake.Member = commands.Param(description="The player to play against",
                                                                        default=None)):
