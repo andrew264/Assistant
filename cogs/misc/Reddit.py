@@ -45,6 +45,7 @@ class Reddit(commands.Cog):
             self.add_item(disnake.ui.Button(style=disnake.ButtonStyle.link, label=label, url=url))
 
     @commands.slash_command(description="Fetch a meme from Reddit")
+    @commands.guild_only()
     async def meme(self, inter: disnake.ApplicationCommandInteraction) -> None:
         await inter.response.defer()
         sub_list = ["memes", "dankmemes", "funny", "MemeEconomy", "terriblefacebookmemes", "teenagers"]
@@ -64,6 +65,7 @@ class Reddit(commands.Cog):
             await inter.edit_original_message(embed=embed)
 
     @commands.slash_command(description="Fetch a NSFW Post from Reddit")
+    @commands.guild_only()
     async def nsfw(self, inter: disnake.ApplicationCommandInteraction,
                    subreddit: str = Param(description="Enter a subreddit (Optional)", default=None), ) -> None:
         if inter.channel.is_nsfw() is False:
