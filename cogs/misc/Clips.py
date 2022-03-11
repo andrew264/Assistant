@@ -35,12 +35,17 @@ class Clips(commands.Cog):
             async def on_timeout(self) -> None:
                 await voice.disconnect(force=True)
                 try:
-                    await inter.edit_original_message(content="Bye have a great time", view=None)
+                    await inter.delete_original_message(delay=2)
                 except disnake.HTTPException:
                     pass
 
             @disnake.ui.button(emoji="▶️", style=disnake.ButtonStyle.primary)
             async def play(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
+                if interaction.guild.voice_client is None:
+                    await interaction.response.edit_message(
+                        content="Disconnected for Voice. Use `/clip` to play clips.", view=None)
+                    self.stop()
+                    return
                 for child in self.children:
                     if isinstance(child, disnake.ui.Select):
                         if child.values:
@@ -55,10 +60,10 @@ class Clips(commands.Cog):
                 await interaction.response.edit_message(content=f"Playing {clip}...")
 
             @disnake.ui.button(emoji="⏹️", style=disnake.ButtonStyle.danger)
-            async def stop(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
-                if voice:
-                    await voice.disconnect(force=True)
+            async def stop_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
+                await voice.disconnect(force=True)
                 await interaction.response.edit_message(content="Bye have a great time", view=None)
+                await interaction.delete_original_message(delay=30)
 
         await inter.response.send_message("Select a clip", view=ClipView())
 
