@@ -71,10 +71,15 @@ class Play(commands.Cog):
                     await ctx.me.request_to_speak()
 
         if player.queue and not player.is_playing:
-            flat_eq = lavalink.filters.Equalizer()
-            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])  # Flat EQ
+            for _filter in list(player.filters):
+                await player.remove_filter(_filter)
+            vol_filter = lavalink.filters.Volume()
+            vol_filter.update(volume=0.4)
+            await player.set_filter(vol_filter)
+            flat_eq = lavalink.Equalizer()
+            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
             await player.set_filter(flat_eq)
-            await player.play(start_time=seek_time, volume=40)
+            await player.play()
 
     # Play Checks
     @old_play.before_invoke

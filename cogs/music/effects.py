@@ -60,14 +60,11 @@ class Effects(commands.Cog):
             async def resetffilters(self, button: Button, interaction: Interaction):
                 # remove all applied filters and effects and apply flat EQ
                 for _filter in list(player.filters):
+                    if _filter.lower() == "volume":
+                        continue
                     await player.remove_filter(_filter)
-                bands = [
-                    (0, 0.0), (1, 0.0), (2, 0.0), (3, 0.0), (4, 0.0),
-                    (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0),
-                    (10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0), (14, 0.0)
-                ]
-                flat_eq = lavalink.filters.Equalizer()
-                flat_eq.update(bands=bands)
+                flat_eq = lavalink.Equalizer()
+                flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
                 await player.set_filter(flat_eq)
                 await interaction.response.edit_message(content="Removed all Applied Filters", view=None, )
                 self.timeout = 15

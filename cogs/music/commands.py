@@ -174,15 +174,15 @@ class Music(commands.Cog):
     @commands.guild_only()
     async def volume(self, ctx: commands.Context, volume_int: int = None) -> None:
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        volume_filter = lavalink.Volume()
+        current_volume: int = round((await player.get_filter('Volume')).values * 100)
         await ctx.message.delete()
         if volume_int is None:
-            await ctx.send(f"Volume: {player.volume}%", delete_after=15)
+            await ctx.send(f"Volume: {current_volume}%", delete_after=15)
         elif 0 < volume_int <= 100:
-            try:
-                await player.set_volume(round(volume_int))
-                await ctx.send(f"Volume is set to `{round(volume_int)}%`", delete_after=15)
-            except AttributeError:
-                pass
+            volume_filter.update(volume=volume_int / 100)
+            await player.set_filter(volume_filter)
+            await ctx.send(f"Volume is set to `{round(volume_int)}%`", delete_after=15)
         else:
             await ctx.send("Set Volume between `1 and 100`.", delete_after=10)
 

@@ -10,6 +10,7 @@ from lavalink import DefaultPlayer as Player
 from assistant import Client, VideoTrack, VoiceClient
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
+no_results = {"No Results Found": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
 
 
 class SlashPlay(commands.Cog):
@@ -18,12 +19,12 @@ class SlashPlay(commands.Cog):
         self.client = client
         self.lavalink = client.lavalink
 
-    @commands.slash_command(description="Play Music in VC 🎶")
+    @commands.slash_command(description="Play Music in VC 🎶", guild_ids=[368297437057515522])
     @commands.guild_only()
     async def play(self, inter: disnake.ApplicationCommandInteraction,
                    query: str = commands.Param(description="Search or Enter URL", )) -> None:
         player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
-        await inter.response.send_message("Adding to queue...", delete_after=10)
+        await inter.response.defer()
 
         # search again it query is not url
         is_search = False if url_rx.match(query) else True
@@ -35,11 +36,10 @@ class SlashPlay(commands.Cog):
             if is_search:  # if is_search, only add the first track
                 break
         if results['loadType'] == 'PLAYLIST_LOADED':
-            await inter.followup.send(content=f"Playlist **{results['playlistInfo']['name']}** added to queue.",
-                                      delete_after=30)
+            await inter.edit_original_message(content=f"Playlist **{results['playlistInfo']['name']}** added to queue.")
         else:
-            await inter.followup.send(content=f"Added `{results['tracks'][0]['info']['title']}` to queue.",
-                                      delete_after=30)
+            await inter.edit_original_message(content=f"Added `{results['tracks'][0]['info']['title']}` to queue.", )
+        await inter.delete_original_message(delay=30)
         # Join VC
         voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
         if voice is None:
@@ -51,21 +51,26 @@ class SlashPlay(commands.Cog):
 
         # Start playing
         if player.queue and not player.is_playing:
-            flat_eq = lavalink.filters.Equalizer()
-            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])  # Flat EQ
+            for _filter in list(player.filters):
+                await player.remove_filter(_filter)
+            vol_filter = lavalink.Volume()
+            vol_filter.update(volume=0.4)
+            await player.set_filter(vol_filter)
+            flat_eq = lavalink.Equalizer()
+            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
             await player.set_filter(flat_eq)
-            await player.play(volume=40)
+            await player.play()
 
     @play.autocomplete('query')
     async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:
-        if not self.player:
-            self.player: Player = self.lavalink.player_manager.create(inter.guild.id)
         if not query or len(query) < 3:
-            return {"No Results Found": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
+            return no_results
+        if self.player is None:
+            self.player: Player = self.lavalink.player_manager.create(inter.guild.id)
         query = query if url_rx.match(query) else f'ytsearch:{query}'
         results = await self.player.node.get_tracks(query)
         if not results or not results["tracks"]:
-            return {"No Results Found": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
+            return no_results
         elif results['loadType'] == 'PLAYLIST_LOADED':
             return {results['playlistInfo']['name']: query}
         else:
