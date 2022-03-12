@@ -1,6 +1,5 @@
 ﻿# Imports
 import disnake
-from disnake.ext import commands
 
 import assistant
 from EnvVariables import TOKEN, Owner_ID, LL_Host, LL_Port, LL_Password
