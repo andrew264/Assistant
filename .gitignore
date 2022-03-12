@@ -9,9 +9,6 @@ config.json
 #ignore batch files
 *.bat
 
-# ignore tts files
-*.mp3
-
 # ignore database
 *.sqlite3
 
