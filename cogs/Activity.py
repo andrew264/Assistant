@@ -2,7 +2,6 @@ import disnake
 from disnake.ext import commands
 
 import assistant
-from assistant import is_prob, prob_hook
 
 activities = [
     disnake.OptionChoice("YouTube Watch Together", str(disnake.PartyType.watch_together.value)),
@@ -30,11 +29,6 @@ class Activity(commands.Cog):
         invite = await inter.author.voice.channel.create_invite(target_type=disnake.InviteTarget.embedded_application,
                                                                 target_application=disnake.PartyType(int(activity)),
                                                                 max_age=300)
-        if is_prob(inter.guild):
-            await inter.response.send_message("Creating Invite", ephemeral=True)
-            hook = await prob_hook(inter.channel)
-            await hook.send(content=f"Invite link: {invite}", delete_after=300)
-            return
         await inter.response.send_message(f"Invite link: {invite}", delete_after=300)
 
 

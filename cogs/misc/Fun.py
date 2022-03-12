@@ -5,11 +5,12 @@ from random import randint, choice
 import disnake
 from disnake.ext import commands
 from disnake.ext.commands import Param
-from disnake.utils import find
 
 import assistant
-from EnvVariables import HOMIES
-from assistant import colour_gen, is_prob, prob_hook
+from EnvVariables import Owner_ID
+from assistant import colour_gen, getch_hook
+
+FEMALE_ROLES = (789081456110075936, 838868317779394560,)
 
 
 def DeathMsgGen(victim: str, killer: str) -> str:
@@ -37,7 +38,7 @@ def DeathMsgGen(victim: str, killer: str) -> str:
 
 
 def PPgen(user_id: int) -> str:
-    special_characters = [493025015445454868]
+    special_characters = (Owner_ID,)
     if user_id in special_characters:
         return f'[8{"=" * randint(7, 12)}D](https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
     else:
@@ -60,26 +61,16 @@ class Fun(commands.Cog):
     async def pp(self, inter: disnake.ApplicationCommandInteraction,
                  user: disnake.Member = Param(description="Mention a User",
                                               default=lambda inter: inter.author), ) -> None:
-        if is_prob(inter.guild):
-            pp404 = find(lambda r: r.id == 789081456110075936, user.roles)
-        elif inter.guild == HOMIES:
-            pp404 = find(lambda r: r.id == 838868317779394560, user.roles)
-        else:
-            pp404 = None
+        is_female = any(role.id in FEMALE_ROLES for role in user.roles)
         pp_embed = disnake.Embed(colour=colour_gen(user.id))
         pp_embed.set_author(name=user, icon_url=user.display_avatar.url)
-        if pp404:
+        if is_female:
             pp_embed.add_field(name="There is no sign of PP in here.", value="\u200b")
         elif user.bot:
             pp_embed.add_field(name="There is no sign of life in here.", value="\u200b")
         else:
             pp_embed.add_field(name=f"{user.display_name}'s PP:", value=PPgen(user.id), )
         pp_embed.set_footer(text=f"Inspected by: {inter.author.display_name}")
-        if is_prob(inter.guild):
-            await inter.response.send_message("Measuring...", ephemeral=True)
-            hook = await prob_hook(inter.guild)
-            await hook.send(embed=pp_embed)
-            return
         await inter.response.send_message(embed=pp_embed)
 
     @commands.slash_command(description="Delete their existence")
@@ -95,11 +86,6 @@ class Fun(commands.Cog):
             kill_embed.add_field(name="You cannot attack my kind.", value="\u200b")
         else:
             kill_embed.add_field(name=DeathMsgGen(user.display_name, inter.author.display_name), value="\u200b", )
-        if is_prob(inter.guild):
-            await inter.response.send_message(f"Hunting down {user}", ephemeral=True)
-            hook = await prob_hook(inter.guild)
-            await hook.send(embed=kill_embed)
-            return
         await inter.response.send_message(embed=kill_embed)
 
     @commands.slash_command(description="Bam a User from this server.")
@@ -119,7 +105,7 @@ class Fun(commands.Cog):
             user = inter.author
 
         # Fetch Webhook
-        webhook = await prob_hook(inter.channel)
+        webhook = await getch_hook(inter.channel)
 
         # Reply Msg
         match types:

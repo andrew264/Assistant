@@ -7,7 +7,7 @@ import emoji
 from disnake.ext import commands
 
 from EnvVariables import Owner_ID
-from assistant import Client, prob_hook
+from assistant import Client, getch_hook
 
 references = ["andrew",
               "santhosh",
@@ -56,13 +56,13 @@ class AndrewWebs(commands.Cog):
         for word in message.content.lower().split():
             if word in keys:
                 response = replies[word]
-                await self.ReplyWebhook(message.channel, member, response)
+                await self.reply_hook(message.channel, member, response)
                 return
 
         # Emoji tings
         if any(word in message.content.lower().split() for word in emoji.UNICODE_EMOJI_ENGLISH):
             response = choice(["👍", "😂", "🥲", "🤨", "🙄", "😏", "👽", "💩", "🤌", "🤝"])
-            await self.ReplyWebhook(message.channel, member, response=f"{response * randint(1, 7)}")
+            await self.reply_hook(message.channel, member, response=f"{response * randint(1, 7)}")
             return
 
         # just mentions
@@ -72,15 +72,15 @@ class AndrewWebs(commands.Cog):
                     response = choice(["No Not ME", "Yes Tell Me",
                                        "What ?", "Any Problem ?",
                                        "Why me ?", "yup yup", ])
-                    await self.ReplyWebhook(message.channel, member, response)
+                    await self.reply_hook(message.channel, member, response)
                     return
 
         # await message.add_reaction("🤔")
-        await self.ReplyWebhook(message.channel, member, choice(["😏", "🙄", "mmm", "huh"]))
+        await self.reply_hook(message.channel, member, choice(["😏", "🙄", "mmm", "huh"]))
 
     @staticmethod
-    async def ReplyWebhook(channel: disnake.TextChannel, member: disnake.Member, response: str):
-        webhook: disnake.Webhook = await prob_hook(channel)
+    async def reply_hook(channel: disnake.TextChannel, member: disnake.Member, response: str):
+        webhook: disnake.Webhook = await getch_hook(channel)
         await webhook.send(content=response, username=member.display_name, avatar_url=member.display_avatar.url)
 
 

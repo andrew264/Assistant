@@ -10,7 +10,6 @@ with open("config/config.json", "r") as configFile:
 
 TOKEN = config["DISCORD_TOKEN"]
 DM_Channel = config["DM_CHANNEL_ID"]
-Log_Channel = config["LOG_CHANNEL_ID"]
 Owner_ID = config["OWNER_ID"]
 
 # Genius API
@@ -24,8 +23,13 @@ LL_Host = config["LAVALINK_HOST"]
 LL_Port = config["LAVALINK_PORT"]
 LL_Password = config["LAVALINK_PASSWORD"]
 
-# Homies
-HOMIES = config["HOMIES"]
+# Guilds that are Important
+HOMIES = 821758346054467584
+PROB = 368297437057515522
+
+# Log Channels
+HOMIES_LOG = 891369472101863494
+PROB_LOG = 880285098354835546
 
 # Reddit things
 R_CLI: str = config["REDDIT"]["R_CLIENT_ID"]
