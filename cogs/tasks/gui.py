@@ -11,7 +11,7 @@ import psutil
 from disnake.ext import commands
 
 from EnvVariables import Owner_ID
-from assistant import Client, colour_gen, all_activities, available_clients, human_bytes
+from assistant import Client, colour_gen, all_activities, available_clients, human_bytes, time_delta
 
 font = 'Bahnschrift SemiBold SemiConden'
 
@@ -108,7 +108,7 @@ class App(tk.Tk):
         table.insert('', 'end', values=(
             'Status', f"{self.bot.status.name.title()} {self.bot.activity.type.name.title()} {self.bot.activity.name}"))
         # Bot Uptime
-        table.insert('', 'end', values=('Uptime', f"{self.bot.up_time}"))
+        table.insert('', 'end', values=('Uptime', f"{time_delta(self.bot.start_time)}"))
         # Bot Latency
         try:
             ping = max(int(self.bot.latency * 1000), 0)

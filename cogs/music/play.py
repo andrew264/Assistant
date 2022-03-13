@@ -19,7 +19,7 @@ class SlashPlay(commands.Cog):
         self.client = client
         self.lavalink = client.lavalink
 
-    @commands.slash_command(description="Play Music in VC 🎶", guild_ids=[368297437057515522])
+    @commands.slash_command(description="Play Music in VC 🎶")
     @commands.guild_only()
     async def play(self, inter: disnake.ApplicationCommandInteraction,
                    query: str = commands.Param(description="Search or Enter URL", )) -> None:

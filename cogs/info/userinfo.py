@@ -5,7 +5,7 @@ import aiosqlite
 import disnake
 from disnake.ext import commands
 
-from assistant import Client, time_delta, available_clients, all_activities, colour_gen
+from assistant import Client, available_clients, all_activities, colour_gen, relative_time, long_date
 
 
 class UserInfo(commands.Cog):
@@ -53,9 +53,9 @@ class UserInfo(commands.Cog):
         is_owner: bool = user.guild.owner == user and \
                          timedelta(seconds=0) <= (user.guild.created_at - user.joined_at) <= timedelta(seconds=1)
         embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
-                        value=f"<t:{int(user.joined_at.timestamp())}:D>\n**{time_delta(user.joined_at)}**", )
+                        value=f"{long_date(user.joined_at)}\n{relative_time(user.joined_at)}", )
         embed.add_field(name="Account created on",
-                        value=f"<t:{int(user.created_at.timestamp())}:D>\n**{time_delta(user.created_at)}**", )
+                        value=f"{long_date(user.created_at)}\n{relative_time(user.created_at)}", )
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
         # Clients

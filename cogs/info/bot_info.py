@@ -7,7 +7,7 @@ import psutil
 from disnake.ext import commands
 
 from EnvVariables import Owner_ID
-from assistant import Client, human_bytes, time_delta
+from assistant import Client, human_bytes, relative_time, long_date
 
 
 class BotInfo(commands.Cog):
@@ -21,10 +21,10 @@ class BotInfo(commands.Cog):
         embed.set_author(name=user, icon_url=user.avatar.url)
         embed.set_thumbnail(url=user.avatar.url)
         embed.add_field(name="Created by", value=f"<@{Owner_ID}>")
-        embed.add_field(name="Created on", value=f"<t:{int(user.created_at.timestamp())}:D>\
-                                                    \n**{time_delta(user.created_at)}**")
+        embed.add_field(name="Created on", value=f"{long_date(user.created_at)}\n{relative_time(user.created_at)}")
         embed.add_field(name="No. of Guilds", value=f"{len(self.client.guilds)}", inline=False)
         embed.add_field(name="No. of Users", value=f"{len(self.client.users)}", inline=False)
+        embed.add_field(name="Uptime", value=f"{relative_time(self.client.start_time)}", inline=False)
         embed.set_footer(text=f"User ID: {user.id}")
         await inter.response.send_message(embed=embed)
 

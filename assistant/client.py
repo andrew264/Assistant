@@ -7,7 +7,6 @@ import lavalink
 from disnake.ext import commands
 
 from EnvVariables import DM_Channel
-from .presence import time_delta
 
 
 class Client(commands.Bot):
@@ -44,11 +43,11 @@ class Client(commands.Bot):
         return self._lavalink
 
     @property
-    def up_time(self) -> str:
+    def start_time(self) -> datetime:
         """
-        Returns the uptime of the bot
+        Returns the start time of the bot
         """
-        return time_delta(self._start_time)
+        return self._start_time
 
     async def db_connect(self) -> aiosqlite.Connection:
         """

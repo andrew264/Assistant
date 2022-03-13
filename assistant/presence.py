@@ -2,7 +2,7 @@ import re
 
 import disnake
 
-from .converters import time_delta
+from .converters import relative_time
 
 
 def available_clients(member: disnake.Member) -> str:
@@ -42,7 +42,7 @@ def custom_activity(activity: disnake.CustomActivity, with_time: bool = False, w
     if activity.name is not None:
         value += f"{activity.name}"
     if with_time:
-        value += f"\n{time_delta(activity.created_at)}"
+        value += f"\n**<t:{int(activity.created_at.timestamp())}:R>**"
     return value
 
 
@@ -60,7 +60,7 @@ def all_activities(member: disnake.Member, with_time: bool = False, with_url: bo
 
         elif isinstance(_activity, disnake.Game):
             activities["Playing"] = \
-                f"{_activity.name}\n**{time_delta(_activity.created_at)}**" if with_time else f"{_activity.name}"
+                f"{_activity.name}\n**{relative_time(_activity.created_at)}**" if with_time else f"{_activity.name}"
 
         elif isinstance(_activity, disnake.Streaming):
             activities["Streaming"] = f"[{_activity.name}]({_activity.url})" if with_url else f"{_activity.name}"
@@ -73,9 +73,9 @@ def all_activities(member: disnake.Member, with_time: bool = False, with_url: bo
         elif isinstance(_activity, disnake.Activity):
             if activities["Playing"] is None:
                 activities[_activity.type.name.capitalize()] = \
-                    f"{_activity.name}\n**{time_delta(_activity.created_at)}**" if with_time else f"{_activity.name}"
+                    f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" if with_time else f"{_activity.name}"
             else:
                 activities["Also Playing"] = \
-                    f"{_activity.name}\n**{time_delta(_activity.created_at)}**" if with_time else f"{_activity.name}"
+                    f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" if with_time else f"{_activity.name}"
 
     return activities

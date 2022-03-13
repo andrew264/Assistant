@@ -1,7 +1,7 @@
 import disnake
 from disnake.ext import commands
 
-from assistant import Client, time_delta, colour_gen
+from assistant import Client, colour_gen, long_date, relative_time
 
 
 class Guild(commands.Cog):
@@ -16,7 +16,7 @@ class Guild(commands.Cog):
         embed.description = guild.description if guild.description else ""
         embed.add_field(name="Guild Owner", value=guild.owner.mention)
         embed.add_field(name="Created At",
-                        value=f"<t:{int(guild.created_at.timestamp())}:D>\n**{time_delta(guild.created_at)}**")
+                        value=f"{long_date(guild.created_at)}\n{relative_time(guild.created_at)}")
         embed.add_field(name="Guild ID", value=guild.id)
         members = [member for member in guild.members if not member.bot]
         embed.add_field(name="No. of Members", value=len(members))

@@ -4,23 +4,32 @@ from typing import Optional
 import disnake
 
 
-def time_delta(timestamp: datetime) -> str:
-    """Returns a human readable time delta"""
+def relative_time(timestamp: datetime) -> str:
+    """Returns a relative time from a given timestamp"""
     if not timestamp:
         return ""
-    delta = datetime.now(timezone.utc) - timestamp
-    if delta.days > 365:
-        return f"({delta.days // 365}Y, {int(delta.days % 365 // 30.5)}M, {int(delta.days % 365 % 30.5)}D)"
-    elif delta.days > 30.5:
-        return f"({int(delta.days // 30.5)}M, {int(delta.days % 30.5)}D)"
-    elif delta.days > 0:
-        return f"({delta.days}D, {delta.seconds // 3600}hrs)"
+    return f"<t:{int(timestamp.timestamp())}:R>"
+
+
+def long_date(timestamp: datetime) -> str:
+    """Returns a long date from a given timestamp"""
+    if not timestamp:
+        return ""
+    return f"<t:{int(timestamp.timestamp())}:D>"
+
+
+def time_delta(time: datetime) -> str:
+    """Converts a time delta to a human readable format"""
+    if not time:
+        return ""
+    delta = datetime.now(timezone.utc) - time
+    if delta.days > 0:
+        return f"{delta.days}days"
     if delta.seconds > 3600:
-        return f"({delta.seconds // 3600}hrs {(delta.seconds // 60) % 60}mins)"
-    elif delta.seconds > 60:
-        return f"({delta.seconds // 60}mins {delta.seconds % 60}secs)"
-    else:
-        return f"({delta.seconds} secs)"
+        return f"{delta.seconds // 3600}hrs {delta.seconds % 3600 // 60}mins"
+    if delta.seconds > 60:
+        return f"{delta.seconds // 60}min {delta.seconds % 60}secs"
+    return f"{delta.seconds}s"
 
 
 def human_bytes(_bytes: int) -> str:
