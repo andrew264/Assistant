@@ -29,6 +29,8 @@ class TicTacToeButton(disnake.ui.Button["TicTacToe"]):
             view.current_player = view.O
             content = f"It is now {opponent.mention}'s turn"
         elif view.current_player == view.O and interaction.author == opponent:
+            if opponent.bot:
+                pass  # this should be playable against bots some time in the future
             self.style = disnake.ButtonStyle.success
             self.emoji = "⭕"
             self.disabled = True
