@@ -7,7 +7,7 @@ from disnake.ext import commands
 
 import assistant
 from EnvVariables import *
-from assistant import available_clients, all_activities, colour_gen
+from assistant import available_clients, all_activities, colour_gen, getch_hook
 
 
 class Surveillance(commands.Cog):
@@ -32,13 +32,14 @@ class Surveillance(commands.Cog):
             return
         if before.clean_content == after.clean_content:
             return
-        embed = Embed(colour=colour_gen(before.author.id))
-        embed.set_author(name=f"{before.author} edited a message in #{before.channel.name}",
-                         icon_url=before.author.display_avatar.url, )
+        author = before.author
+        embed = Embed(title="Message Edit", description=f"in {before.channel.mention}", colour=colour_gen(author.id))
         embed.add_field(name="Original Message", value=before.clean_content, inline=False)
         embed.add_field(name="Altered Message", value=after.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await self.homies_log.send(embed=embed, delete_after=600)
+        hook = await getch_hook(self.homies_log)
+        await hook.send(embed=embed,
+                        username=author.display_name, avatar_url=author.display_avatar.url, delete_after=600)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: disnake.Message) -> None:
@@ -46,12 +47,14 @@ class Surveillance(commands.Cog):
             return
         if message.author.bot or message.author.id == Owner_ID:
             return
-        embed = Embed(colour=colour_gen(message.author.id))
-        embed.set_author(name=f"{message.author} deleted a message in #{message.channel.name}",
-                         icon_url=message.author.display_avatar.url, )
-        embed.add_field(name="Message Content", value=message.content, inline=False)
+        author = message.author
+        embed = Embed(title="Deleted Message", description=f"{message.channel.mention}",
+                      colour=colour_gen(author.id))
+        embed.add_field(name="Message Content", value=message.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await self.homies_log.send(embed=embed, delete_after=600)
+        hook = await getch_hook(self.homies_log)
+        await hook.send(embed=embed,
+                        username=author.display_name, avatar_url=author.display_avatar.url, delete_after=600)
 
     @commands.Cog.listener()
     async def on_member_update(self, before: disnake.Member, after: disnake.Member) -> None:
@@ -63,15 +66,18 @@ class Surveillance(commands.Cog):
             return
         if before.display_name == after.display_name:
             return
-        embed = Embed(colour=colour_gen(before.id))
-        embed.set_author(name=f"{before} updated their Nickname", icon_url=before.display_avatar.url)
+        embed = Embed(title="Nickname Update", colour=colour_gen(before.id))
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
         embed.add_field(name="New Name", value=after.display_name, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
+        hook = None
         if before.guild.id == PROB:
-            await self.prob_log.send(embed=embed, delete_after=600)
+            hook = await getch_hook(self.prob_log)
         elif before.guild.id == HOMIES:
-            await self.homies_log.send(embed=embed, delete_after=600)
+            hook = await getch_hook(self.homies_log)
+        if hook:
+            await hook.send(embed=embed,
+                            username=after.display_name, avatar_url=after.display_avatar.url, delete_after=600)
 
     @commands.Cog.listener()
     async def on_user_update(self, before: disnake.User, after: disnake.User) -> None:
@@ -83,11 +89,13 @@ class Surveillance(commands.Cog):
         if str(before) == str(after):
             return
         embed = Embed(colour=colour_gen(before.id))
-        embed.set_author(name=f"{before} updated their Username", icon_url=before.display_avatar.url)
+        embed.set_author(name=f"Username Change", icon_url=before.display_avatar.url)
         embed.add_field(name="Old Username", value=str(before), inline=False, )
         embed.add_field(name="New Username", value=str(after), inline=False, )
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await self.homies_log.send(embed=embed)
+        hook = await getch_hook(self.homies_log)
+        await hook.send(embed=embed,
+                        username=member.display_name, avatar_url=member.display_avatar.url, delete_after=1200)
 
     @commands.Cog.listener()
     async def on_presence_update(self, before: disnake.Member, after: disnake.Member) -> None:
@@ -97,13 +105,14 @@ class Surveillance(commands.Cog):
             return
         if before.id == Owner_ID:
             return
-        embed = Embed(colour=colour_gen(before.id))
-        embed.set_author(name=f"{before.display_name}'s Presence update", icon_url=before.display_avatar.url, )
+        hook = await getch_hook(self.homies_log)
+        embed = Embed(title="Presence Update", colour=colour_gen(before.id))
         if available_clients(before) != available_clients(after):
             embed.add_field(name=f"Client/Status", value=f"{available_clients(before)} ──> {available_clients(after)}",
                             inline=False, )
             if before.raw_status == "offline" or after.raw_status == "offline":
-                await self.homies_log.send(embed=embed, delete_after=1200)
+                await hook.send(embed=embed,
+                                username=after.display_name, avatar_url=after.display_avatar.url, delete_after=1200)
                 return
 
         # Activities
@@ -121,7 +130,8 @@ class Surveillance(commands.Cog):
                     embed.add_field(name=f"Changed {b_key}:", value=f"{b_value} ──> {a_value}", inline=False, )
 
         if len(embed.fields):
-            await self.homies_log.send(embed=embed, delete_after=900)
+            await hook.send(embed=embed,
+                            username=before.display_name, avatar_url=before.display_avatar.url, delete_after=900)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member, before: disnake.VoiceState,
@@ -133,15 +143,18 @@ class Surveillance(commands.Cog):
         if after.channel == before.channel or (before is None and after is None):
             return
         if after.channel and not before.channel:
-            msg = f"{member.display_name} joined {after.channel.name}"
+            msg = f"Joined {after.channel.mention}"
         elif before.channel and not after.channel:
-            msg = f"{member.display_name} left {before.channel.name}"
+            msg = f"Left {before.channel.mention}"
         else:
-            msg = f"{member.display_name} moved from {before.channel.name} to {after.channel.name}"
+            msg = f"Moved from {before.channel.mention} to {after.channel.mention}"
+        hook = None
         if member.guild.id == PROB:
-            await self.prob_log.send(msg, delete_after=120)
+            hook = await getch_hook(self.prob_log)
         elif member.guild.id == HOMIES:
-            await self.homies_log.send(msg, delete_after=600)
+            hook = await getch_hook(self.homies_log)
+        if hook:
+            await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url, delete_after=300)
 
     @commands.Cog.listener()
     async def on_typing(self, channel: disnake.TextChannel, user: disnake.Member, when: datetime) -> None:
