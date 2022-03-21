@@ -53,7 +53,7 @@ class AndrewWebs(commands.Cog):
         member: disnake.Member = message.guild.get_member(Owner_ID)
 
         # Replies
-        for word in message.content.lower().split():
+        for word in message.clean_content.lower().split():
             if word in keys:
                 response = replies[word]
                 await self.reply_hook(message.channel, member, response)
