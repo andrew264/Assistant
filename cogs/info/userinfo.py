@@ -42,7 +42,7 @@ class UserInfo(commands.Cog):
 
         embed = disnake.Embed(color=colour_gen(user.id))
         # Description
-        about = await self.fetch_description(user.id)
+        about, timestamp = await self.fetch_db(user.id)
         if about:
             embed.description = f"{user.mention}: {about}"
         else:
@@ -61,7 +61,11 @@ class UserInfo(commands.Cog):
         # Clients
         if user.raw_status != "offline":
             embed.add_field(name="Available Clients", value=available_clients(user))
-        # Activity
+        # Last Seen
+        if timestamp:
+            embed.add_field(name="Last Seen" if user.raw_status == 'offline' else "Online for",
+                            value=f"{relative_time(timestamp)}")
+        # Activities
         for key, value in all_activities(user, with_time=True, with_url=True).items():
             if value:
                 embed.add_field(name=key, value=value)
@@ -72,11 +76,18 @@ class UserInfo(commands.Cog):
         embed.set_footer(text=f"User ID: {user.id}")
         return embed
 
-    async def fetch_description(self, user_id: int) -> Optional[str]:
+    async def fetch_db(self, user_id: int) -> (str, int):
+        """
+        Fetch the user's info from the database
+        :param user_id: The user's ID
+        :return: The user's description and the timestamp of the last time the user was online
+        """
         self.db = await self.client.db_connect()
         async with self.db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
             value = await cursor.fetchone()
-            return value[1] if value else None
+            about: Optional[str] = value[1] if value else None
+            timestamp: Optional[int] = value[2] if value else None
+            return about, timestamp
 
 
 def setup(client):
