@@ -4,18 +4,18 @@ from typing import Optional
 import disnake
 
 
-def relative_time(timestamp: datetime) -> str:
+def relative_time(timestamp: datetime | int) -> str:
     """Returns a relative time from a given timestamp"""
     if not timestamp:
         return ""
-    return f"<t:{int(timestamp.timestamp())}:R>"
+    return f"<t:{int(timestamp.timestamp())}:R>" if isinstance(timestamp, datetime) else f"<t:{timestamp}:R>"
 
 
-def long_date(timestamp: datetime) -> str:
+def long_date(timestamp: datetime | int) -> str:
     """Returns a long date from a given timestamp"""
     if not timestamp:
         return ""
-    return f"<t:{int(timestamp.timestamp())}:D>"
+    return f"<t:{int(timestamp.timestamp())}:D>" if isinstance(timestamp, datetime) else f"<t:{timestamp}:D>"
 
 
 def time_delta(time: datetime) -> str:
