@@ -17,11 +17,13 @@ class LastSeen(commands.Cog):
     async def on_presence_update(self, before: disnake.Member, after: disnake.Member) -> None:
         if before.bot:
             return
-        if before.raw_status != 'offline' or after.raw_status != 'offline':
+        if (before.raw_status == after.raw_status) or \
+                before.raw_status != 'offline' and after.raw_status != 'offline':
             return
-        self.db = await self.client.db_connect()
+        if self.db is None:
+            self.db = await self.client.db_connect()
         user_id = before.id
-        timestamp = datetime.datetime.now().timestamp()
+        timestamp = int(datetime.datetime.now().timestamp())
         async with self.db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
             value = await cursor.fetchone()
             if value:
