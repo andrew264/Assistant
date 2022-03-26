@@ -38,26 +38,8 @@ class Effects(commands.Cog):
                 except (disnake.HTTPException, disnake.NotFound):
                     pass
 
-            @disnake.ui.button(label="TimeScale", style=ButtonStyle.gray)
-            async def timescale(self, button: Button, interaction: Interaction):
-                await ctx.invoke(self.client.get_command("timescale"))
-                button.disabled = True
-                await interaction.response.edit_message(view=self)
-
-            @disnake.ui.button(label="BassBoost", style=ButtonStyle.gray)
-            async def bassboost(self, button: Button, interaction: Interaction):
-                await ctx.invoke(self.client.get_command("bassboost"))
-                button.disabled = True
-                await interaction.response.edit_message(view=self)
-
-            @disnake.ui.button(label="TrebleBoost", style=ButtonStyle.gray)
-            async def trebleboost(self, button: Button, interaction: Interaction):
-                await ctx.invoke(self.client.get_command("trebleboost"))
-                button.disabled = True
-                await interaction.response.edit_message(view=self)
-
-            @disnake.ui.button(label="ResetFilters", style=ButtonStyle.blurple)
-            async def resetffilters(self, button: Button, interaction: Interaction):
+            @staticmethod
+            async def _reset_filters():
                 # remove all applied filters and effects and apply flat EQ
                 for _filter in list(player.filters):
                     if _filter.lower() == "volume":
@@ -66,6 +48,58 @@ class Effects(commands.Cog):
                 flat_eq = lavalink.Equalizer()
                 flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
                 await player.set_filter(flat_eq)
+
+            @disnake.ui.button(label="TimeScale", style=ButtonStyle.gray)
+            async def timescale(self, button: Button, interaction: Interaction):
+                await ctx.invoke(self.client.get_command("timescale"))
+                button.disabled = True
+                await interaction.response.edit_message(view=self)
+
+            @disnake.ui.button(label="BassBoost", style=ButtonStyle.gray)
+            async def bass_boost(self, button: Button, interaction: Interaction):
+                await ctx.invoke(self.client.get_command("bassboost"))
+                button.disabled = True
+                await interaction.response.edit_message(view=self)
+
+            @disnake.ui.button(label="TrebleBoost", style=ButtonStyle.gray)
+            async def treble_boost(self, button: Button, interaction: Interaction):
+                await ctx.invoke(self.client.get_command("trebleboost"))
+                button.disabled = True
+                await interaction.response.edit_message(view=self)
+
+            @disnake.ui.button(label="NightCore", style=ButtonStyle.blurple, row=1)
+            async def nightcore(self, button: Button, interaction: Interaction):
+                await self._reset_filters()
+                nc = lavalink.Timescale()
+                nc.update(speed=1.29999, pitch=1.29999, rate=1.0)
+                await player.set_filter(nc)
+                await interaction.response.edit_message(content="Nightcore Enabled", view=self)
+
+            @disnake.ui.button(label="VapourWave", style=ButtonStyle.blurple, row=1)
+            async def vapourwave(self, button: Button, interaction: Interaction):
+                await self._reset_filters()
+                eq = lavalink.Equalizer()
+                eq.update(bands=[(0, 0.3), (1, 0.3)])
+                pitch = lavalink.Timescale()
+                pitch.update(pitch=0.5)
+                tremolo = lavalink.Tremolo()
+                tremolo.update(depth=0.3, frequency=14)
+                await player.set_filter(eq)
+                await player.set_filter(pitch)
+                await player.set_filter(tremolo)
+                await interaction.response.edit_message(content="VapourWave Enabled", view=self)
+
+            @disnake.ui.button(label="8D", style=ButtonStyle.blurple, row=1)
+            async def eight_d(self, button: Button, interaction: Interaction):
+                await self._reset_filters()
+                rotate = lavalink.Rotation()
+                rotate.update(rotationHz=0.2)
+                await player.set_filter(rotate)
+                await interaction.response.edit_message(content="8D Surround Enabled", view=self)
+
+            @disnake.ui.button(label="ResetFilters", style=ButtonStyle.danger, row=2)
+            async def reset_filters(self, button: Button, interaction: Interaction):
+                await self._reset_filters()
                 await interaction.response.edit_message(content="Removed all Applied Filters", view=None, )
                 self.timeout = 15
 
