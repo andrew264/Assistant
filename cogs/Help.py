@@ -26,7 +26,7 @@ class HelpMe(commands.Cog):
             # General Embed
             general_embed = Embed(color=Colour.blurple())
             general_embed.set_author(name="General Commands")
-            general_embed.add_field(name="`/whois`", value="User's Info")
+            general_embed.add_field(name="`/userinfo`", value="User's Info")
             general_embed.add_field(name="`/botinfo`", value="Bot's Info")
             general_embed.add_field(name="`/stats`", value="Bot's Stats")
             general_embed.add_field(name="`/guildinfo`", value="Guild's Stats")
@@ -69,16 +69,26 @@ class HelpMe(commands.Cog):
             fun_embed.add_field(name="`/pp`", value="Measure someone in Inches 🤏", inline=False)
             fun_embed.add_field(name="`/rps`", value="Rock Paper Scissors", inline=False)
             fun_embed.add_field(name="`/tictactoe`", value="Play Tic-Tac-Toe", inline=False)
-            fun_embed.add_field(name="`/lyrics`", value="Get lyrics from Spotify Activity", inline=False)
-            fun_embed.add_field(name="`/reddit`", value="Fetch Top Memes from Reddit", inline=False)
-            fun_embed.add_field(name="`/nsfw`", value="Some Dirty Stuff", inline=False)
-            fun_embed.add_field(name="`/ping`", value="Get Bot's Latency", inline=False)
-            fun_embed.add_field(name="`/define`", value="Get Definition from Urban Dictionary", inline=False)
-            fun_embed.add_field(name="`/activity`", value="Start a Voice Activity", inline=False)
             for child in self.children:
                 child.disabled = False
             _button.disabled = True
             await interaction.response.edit_message(embed=fun_embed, view=self)
+
+        @disnake.ui.button(label="Misc Commands", style=disnake.ButtonStyle.blurple)
+        async def misc(self, _button: disnake.Button, interaction: disnake.Interaction) -> None:
+            # Misc Commands
+            misc_embed = Embed(color=Colour.dark_purple())
+            misc_embed.set_author(name="Misc Stuff")
+            misc_embed.add_field(name="`/reddit`", value="Fetch Top Memes from Reddit", inline=False)
+            misc_embed.add_field(name="`/nsfw`", value="Some Dirty Stuff", inline=False)
+            misc_embed.add_field(name="`/ping`", value="Get Bot's Latency", inline=False)
+            misc_embed.add_field(name="`/define`", value="Get Definition from Urban Dictionary", inline=False)
+            misc_embed.add_field(name="`/activity`", value="Start a Voice Activity", inline=False)
+            misc_embed.add_field(name="`/lyrics`", value="Get lyrics from Spotify Activity", inline=False)
+            for child in self.children:
+                child.disabled = False
+            _button.disabled = True
+            await interaction.response.edit_message(embed=misc_embed, view=self)
 
     @commands.slash_command(description="How may I help you ?")
     async def help(self, inter: disnake.ApplicationCommandInteraction) -> None:
