@@ -4,6 +4,7 @@ from typing import Optional
 import disnake
 from disnake.ext import commands
 
+from EnvVariables import PROB
 from assistant import Client
 
 
@@ -11,7 +12,7 @@ class Clips(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(name="clips")
+    @commands.slash_command(name="clips", guild_ids=[PROB])
     @commands.guild_only()
     async def clips(self, inter: disnake.ApplicationCommandInteraction) -> None:
         """Play mp3 in Voice Channel """
