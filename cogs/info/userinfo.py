@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Optional
 
 import aiosqlite
@@ -50,8 +49,7 @@ class UserInfo(commands.Cog):
 
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
-        is_owner: bool = user.guild.owner == user and \
-                         timedelta(seconds=0) <= (user.guild.created_at - user.joined_at) <= timedelta(seconds=1)
+        is_owner: bool = user.guild.owner == user and (user.guild.created_at - user.joined_at).total_seconds() < 2
         embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
                         value=f"{long_date(user.joined_at)}\n{relative_time(user.joined_at)}", )
         embed.add_field(name="Account created on",
