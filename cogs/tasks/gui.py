@@ -158,7 +158,7 @@ class UI(commands.Cog):
             await asyncio.sleep(2)
         else:
             print("GUI stopped")
-            await self.client.close()
+            # await self.client.close()
 
 
 def setup(client: Client):
