@@ -1,5 +1,6 @@
 # Imports
 import random
+from typing import Optional
 
 import asyncpraw as praw
 import disnake
@@ -17,7 +18,7 @@ reddit_ins = praw.Reddit(
     user_agent="discord:prob_bot:v1.0.0 (by u/andrew264)",
 )
 
-gif_sites = ["redgifs.com", "v.redd.it", "imgur.com"]
+gif_sites = ("redgifs.com", "v.redd.it", "imgur.com")
 
 
 class Reddit(commands.Cog):
@@ -25,12 +26,12 @@ class Reddit(commands.Cog):
         self.client = client
 
     @staticmethod
-    async def get_post(subreddit: str, uploaded: str):
+    async def get_post(subreddit: str, uploaded: str, limit: Optional[int] = None):
         subreddit = await reddit_ins.subreddit(subreddit)
         all_subs = []
-        async for submission in subreddit.top(uploaded, limit=100):
+        async for submission in subreddit.top(uploaded, limit=limit if limit else 100):
             all_subs.append(submission)
-        return random.choice(all_subs)
+        return all_subs if limit else [random.choice(all_subs)]
 
     @staticmethod
     def process_link(url: str):
@@ -47,49 +48,55 @@ class Reddit(commands.Cog):
     @commands.slash_command(description="Fetch a meme from Reddit")
     @commands.guild_only()
     async def meme(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        await inter.response.defer()
-        sub_list = ["memes", "dankmemes", "funny", "MemeEconomy", "terriblefacebookmemes", "teenagers"]
+        await inter.response.send_message("Fetching posts...", ephemeral=True)
+        sub_list = ("memes", "dankmemes", "funny", "terriblefacebookmemes", "teenagers")
         subreddit = random.choice(sub_list)
-        post = await self.get_post(subreddit, "week")
-        embed = disnake.Embed(title=post.title, colour=0xFF5700)
-        embed.set_author(name=f"Uploaded by u/{post.author.name} on {post.subreddit_name_prefixed}",
-                         url=f"http://reddit.com{post.permalink}")
-        embed.set_footer(text=f"Requested by: {inter.author.display_name}")
-        if any(vid in post.url for vid in gif_sites):
-            await inter.edit_original_message(embed=embed)
-            await inter.channel.send(post.url)
-        elif "www.reddit.com/gallery" in post.url:
-            await inter.edit_original_message(embed=embed, view=self.CustomUrl(post.url, "🖼 View Gallery"))
-        else:
-            embed.set_image(url=self.process_link(post.url))
-            await inter.edit_original_message(embed=embed)
+        posts = await self.get_post(subreddit, "week", limit=1)
+        for post in posts:
+            embed = disnake.Embed(title=post.title, colour=0xFF5700)
+            embed.set_author(name=f"Uploaded by u/{post.author.name} on {post.subreddit_name_prefixed}",
+                             url=f"http://reddit.com{post.permalink}")
+            embed.set_footer(text=f"Requested by: {inter.author.display_name}")
+            if any(vid in post.url for vid in gif_sites):
+                await inter.channel.send(embed=embed)
+                await inter.channel.send(post.url)
+            elif "www.reddit.com/gallery" in post.url:
+                await inter.channel.send(embed=embed, view=self.CustomUrl(post.url, "🖼 View Gallery"))
+            else:
+                embed.set_image(url=self.process_link(post.url))
+                await inter.channel.send(embed=embed)
 
     @commands.slash_command(description="Fetch a NSFW Post from Reddit")
     @commands.guild_only()
     async def nsfw(self, inter: disnake.ApplicationCommandInteraction,
+                   posts: int = Param(description="Number of posts to fetch", default=1),
                    subreddit: str = Param(description="Enter a subreddit (Optional)", default=None), ) -> None:
         if inter.channel.is_nsfw() is False:
             await inter.response.send_message("This command is only available in NSFW channels.", ephemeral=True)
             return
-        await inter.response.defer()
-        nsfw_sub_list = ["curvy", "sexygirls", "TittyDrop",
+        if posts > 16:
+            await inter.response.send_message("Maximum of 15 posts at a time.", ephemeral=True)
+            return
+        await inter.response.send_message("Fetching posts...", ephemeral=True)
+        nsfw_sub_list = ("curvy", "sexygirls", "TittyDrop",
                          "nudes", "slut", "amateur", "legalteens", "realgirls",
-                         "collegesluts", "wifesharing", "snapleaks", ]
+                         "collegesluts", "wifesharing", "snapleaks",)
         if subreddit is None:
             subreddit = random.choice(nsfw_sub_list)
-        post = await self.get_post(subreddit, "week")
-        embed = disnake.Embed(title=post.title, colour=0xFF5700)
-        embed.set_author(name=f"Uploaded by u/{post.author} on {post.subreddit_name_prefixed}",
-                         url=f"http://reddit.com{post.permalink}")
-        embed.set_footer(text=f"Requested by: {inter.author.display_name}")
-        if any(vid in post.url for vid in gif_sites):
-            await inter.edit_original_message(embed=embed)
-            await inter.channel.send(post.url)
-        elif "www.reddit.com/gallery" in post.url:
-            await inter.edit_original_message(embed=embed, view=self.CustomUrl(post.url, "🖼 View Gallery"))
-        else:
-            embed.set_image(url=self.process_link(post.url))
-            await inter.edit_original_message(embed=embed)
+        posts = await self.get_post(subreddit, "week", limit=None if posts == 1 else posts)
+        for post in posts:
+            embed = disnake.Embed(title=post.title, colour=0xFF5700)
+            embed.set_author(name=f"Uploaded by u/{post.author} on {post.subreddit_name_prefixed}",
+                             url=f"http://reddit.com{post.permalink}")
+            embed.set_footer(text=f"Requested by: {inter.author.display_name}")
+            if any(vid in post.url for vid in gif_sites):
+                await inter.channel.send(embed=embed)
+                await inter.channel.send(post.url)
+            elif "www.reddit.com/gallery" in post.url:
+                await inter.channel.send(embed=embed, view=self.CustomUrl(post.url, "🖼 View Gallery"))
+            else:
+                embed.set_image(url=self.process_link(post.url))
+                await inter.channel.send(embed=embed)
 
 
 def setup(client):
