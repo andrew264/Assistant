@@ -67,11 +67,10 @@ class Reddit(commands.Cog):
                 await inter.channel.send(embed=embed)
 
     @commands.slash_command(description="Fetch a NSFW Post from Reddit")
-    @commands.guild_only()
     async def nsfw(self, inter: disnake.ApplicationCommandInteraction,
                    posts: int = Param(description="Number of posts to fetch", default=1),
                    subreddit: str = Param(description="Enter a subreddit (Optional)", default=None), ) -> None:
-        if inter.channel.is_nsfw() is False:
+        if isinstance(inter.channel, disnake.TextChannel) and inter.channel.is_nsfw() is False:
             await inter.response.send_message("This command is only available in NSFW channels.", ephemeral=True)
             return
         if posts > 16:
