@@ -23,5 +23,6 @@ client.load_extensions("./cogs/admin")
 client.load_extensions("./cogs/misc")
 client.load_extensions("./cogs/tasks")
 client.load_extensions("./cogs/info")
+client.load_extensions("./cogs/notes")
 
 client.run(TOKEN)

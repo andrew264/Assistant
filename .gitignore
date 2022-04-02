@@ -11,6 +11,7 @@ config.json
 
 # ignore database
 *.sqlite3
+*.sql
 
 # ignore Music Cache
 MusicCache.json
