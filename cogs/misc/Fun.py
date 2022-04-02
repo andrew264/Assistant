@@ -10,11 +10,11 @@ import assistant
 from EnvVariables import Owner_ID
 from assistant import colour_gen, getch_hook
 
-FEMALE_ROLES = (789081456110075936, 838868317779394560,)
+FEMALE_ROLES = (789081456110075936, 838868317779394560, 956593551943278612)
 
 
 def DeathMsgGen(victim: str, killer: str) -> str:
-    death_msgs: list[str] = [
+    death_msgs: tuple = (
         " was shot by ",
         " drowned whilst trying to escape ",
         " was blown up by ",
@@ -30,7 +30,7 @@ def DeathMsgGen(victim: str, killer: str) -> str:
         " was doomed to fall by ",
         " got finished off by ",
         " was drowned by ",
-    ]
+    )
     if randint(0, 6):
         return victim + choice(death_msgs) + killer
     else:
