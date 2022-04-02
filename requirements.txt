@@ -10,3 +10,4 @@ lavalink
 psutil
 aiohttp
 asyncpraw
+asyncpg
