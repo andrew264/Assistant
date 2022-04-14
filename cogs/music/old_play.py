@@ -55,8 +55,11 @@ class Play(commands.Cog):
             if results['loadType'] == 'PLAYLIST_LOADED':
                 await ctx.send(f"{len(results['tracks'])} tracks added from {results['playlistInfo']['name']}",
                                delete_after=20)
+                self.client.logger.info(
+                    f"Added {len(results['tracks'])} from {results['playlistInfo']['name']} by {ctx.author}")
             else:
                 await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
+                self.client.logger.info(f"Added {results['tracks'][0]['info']['title']} to Queue by {ctx.author}")
                 yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
 
         seek_time = int(re.sub(yt_time_rx, "", query)) * 1000 if yt_time_rx.match(query) else 0
@@ -65,14 +68,15 @@ class Play(commands.Cog):
         voice = disnake.utils.get(self.client.voice_clients, guild=ctx.guild)
         if voice is None:
             await ctx.author.voice.channel.connect(cls=VoiceClient)
+            self.client.logger.info(f"Connected to {ctx.author.voice.channel}")
             if isinstance(ctx.author.voice.channel, disnake.StageChannel):
                 if ctx.author.voice.channel.permissions_for(ctx.me).stage_moderator:
                     await asyncio.sleep(0.5)
                     await ctx.me.request_to_speak()
+                    self.client.logger.info(f"Requesting to speak")
 
         if player.queue and not player.is_playing:
-            for _filter in list(player.filters):
-                await player.remove_filter(_filter)
+            await player.clear_filters()
             vol_filter = lavalink.filters.Volume()
             vol_filter.update(volume=0.4)
             await player.set_filter(vol_filter)

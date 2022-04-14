@@ -20,7 +20,7 @@ class Avatar(commands.Cog):
     async def ContextAvatar(self, inter: disnake.UserCommandInteraction) -> None:
         avatar = disnake.Embed(title=f"{inter.target.display_name}'s Avatar 🖼", color=colour_gen(inter.target.id))
         avatar.set_image(url=inter.target.display_avatar.url)
-        await inter.response.send_message(embed=avatar)
+        await inter.response.send_message(embed=avatar, ephemeral=True)
 
 
 def setup(client):

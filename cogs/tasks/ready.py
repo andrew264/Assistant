@@ -9,8 +9,8 @@ class Ready(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'{self.client.user} is ready!')
         self.client.load_extensions("./cogs/music")
+        self.client.logger.info(f"{self.client.user} is ready!")
 
     @commands.Cog.listener()
     async def on_socket_raw_send(self, payload):

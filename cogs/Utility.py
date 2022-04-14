@@ -76,6 +76,7 @@ class Utility(commands.Cog):
             await ctx.reply(f"No")
             return
         await ctx.message.delete()
+        self.client.logger.info(f"{ctx.author} cleared {no_of_msgs} messages in {ctx.channel}")
         if user and contains:
 
             def check(msg: disnake.Message) -> bool:
@@ -103,6 +104,7 @@ class Utility(commands.Cog):
         await inter.channel.purge(after=inter.target)
         await inter.edit_original_message(
             content=f"`{inter.author.display_name}` deleted messages till `{inter.target.author.display_name}'s` message", )
+        self.client.logger.info(f"{inter.author} deleted messages till {inter.target.author}")
 
     @commands.command(aliases=["yeet"])
     @commands.guild_only()

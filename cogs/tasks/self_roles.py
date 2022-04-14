@@ -75,6 +75,7 @@ class SelfRoles(commands.Cog):
     async def on_ready(self):
         if not self.views_loaded:
             self.client.add_view(ColourButtons())
+            self.client.logger.info("Loaded Colour Buttons")
             self.views_loaded = True
 
     @commands.command()

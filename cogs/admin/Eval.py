@@ -44,6 +44,8 @@ class EvalCommand(commands.Cog):
         args = {
             "disnake": disnake,
             "import": __import__,
+            "client": self.client,
+            "None": None,
             "self": self,
             "ctx": ctx,
             "channel": ctx.channel,

@@ -19,6 +19,7 @@ class NP(commands.Cog):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         volume_filter = lavalink.Volume()
         vol_initial: float = (await player.get_filter('Volume')).values
+        logger = self.client.logger
 
         await ctx.message.delete()
 
@@ -45,6 +46,7 @@ class NP(commands.Cog):
             async def prev_button(self, button: disnake.Button, interaction: disnake.Interaction):
                 await player.seek(0)
                 await interaction.response.edit_message(embed=self.embed)
+                logger.info(f"{interaction.author} skipped to beginning of {player.current.title}")
 
             @disnake.ui.button(emoji="⏪", style=disnake.ButtonStyle.primary)
             async def reverse_button(self, button: disnake.Button, interaction: disnake.Interaction):
@@ -53,6 +55,7 @@ class NP(commands.Cog):
                 else:
                     await player.seek(0)
                 await interaction.response.edit_message(embed=self.embed)
+                logger.info(f"{interaction.author} rewinded 10 seconds of {player.current.title}")
 
             @disnake.ui.button(emoji="⏸️" if player.paused else "▶️", style=disnake.ButtonStyle.primary)
             async def play_button(self, button: disnake.Button, interaction: disnake.Interaction):
@@ -60,10 +63,12 @@ class NP(commands.Cog):
                     await player.set_pause(pause=True)
                     button.emoji = "▶️"
                     button.style = disnake.ButtonStyle.success
+                    logger.info(f"{interaction.author} paused {player.current.title}")
                 else:
                     await player.set_pause(pause=False)
                     button.emoji = "⏸️"
                     button.style = disnake.ButtonStyle.primary
+                    logger.info(f"{interaction.author} resumed {player.current.title}")
                 await interaction.response.edit_message(view=self)
 
             @disnake.ui.button(emoji="⏩", style=disnake.ButtonStyle.primary)
@@ -73,11 +78,13 @@ class NP(commands.Cog):
                 else:
                     await player.seek(int(player.current.duration))
                 await interaction.response.edit_message(embed=self.embed)
+                logger.info(f"{interaction.author} fast forwarded 10 seconds of {player.current.title}")
 
             @disnake.ui.button(emoji="⏭️", style=disnake.ButtonStyle.primary)
             async def skip_button(self, button: disnake.Button, interaction: disnake.Interaction):
                 await player.skip()
                 await interaction.response.edit_message(embed=self.embed)
+                logger.info(f"{interaction.author} skipped {player.current.title}")
 
             @disnake.ui.button(label="Stop", emoji="⏹️", style=disnake.ButtonStyle.danger, row=1)
             async def stop_button(self, button: disnake.Button, interaction: disnake.Interaction):
@@ -88,16 +95,14 @@ class NP(commands.Cog):
                 await player.stop()
                 await interaction.guild.voice_client.disconnect(force=True)
                 await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
+                logger.info(f"{interaction.author} stopped the music")
 
             @disnake.ui.button(label="Loop", emoji="➡", style=disnake.ButtonStyle.gray, row=1)
             async def loop_button(self, button: disnake.Button, interaction: disnake.Interaction):
-                if player.repeat:
-                    player.set_repeat(False)
-                    button.emoji = "➡"
-                else:
-                    player.set_repeat(True)
-                    button.emoji = "🔁"
+                player.set_repeat(repeat=not player.repeat)
+                button.emoji = "🔁" if player.repeat else "➡"
                 await interaction.response.edit_message(view=self)
+                logger.info(f"{interaction.author} toggled loop")
 
             @disnake.ui.button(emoji="➖", style=disnake.ButtonStyle.green, row=2)
             async def volume_down(self, button: disnake.Button, interaction: disnake.Interaction):
@@ -111,6 +116,7 @@ class NP(commands.Cog):
                 await player.set_filter(volume_filter)
                 self.volume.label = f"Volume: {round(volume_filter.values * 100)}%"
                 await interaction.response.edit_message(view=self)
+                logger.info(f"{interaction.author} decreased volume by 10%")
 
             @disnake.ui.button(label=f"Volume: {round(vol_initial * 100)}%", style=disnake.ButtonStyle.gray,
                                row=2, disabled=True)
@@ -129,6 +135,7 @@ class NP(commands.Cog):
                 await player.set_filter(volume_filter)
                 self.volume.label = f"Volume: {round(volume_filter.values * 100)}%"
                 await interaction.response.edit_message(view=self)
+                logger.info(f"{interaction.author} increased volume by 10%")
 
             async def update_buttons(self):
                 # Play Button
@@ -182,13 +189,13 @@ class NP(commands.Cog):
                 try:
                     await msg.delete()
                 except disnake.NotFound:
-                    pass
+                    logger.warning("Now Playing Message was deleted before it could be deleted")
                 break
             try:
                 await view.update_buttons()
                 await msg.edit(embed=view.embed, view=view)
             except disnake.NotFound | AttributeError:
-                pass
+                logger.warning("Now Playing Message was deleted before it could be edited")
             await asyncio.sleep(5)
 
     @nowplaying.before_invoke

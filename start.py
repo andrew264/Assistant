@@ -16,8 +16,8 @@ def start_client():
         allowed_mentions=disnake.AllowedMentions.all(),
         lava_host=LL_Host, lava_port=LL_Port, lava_password=LL_Password,
         lava_region="in", lava_node_name="assistant-node",
-        enable_debug_events=True,
     )
+    client.logger.info("Starting client...")
 
     # load all cogs
     client.load_extensions("./cogs")
@@ -26,6 +26,8 @@ def start_client():
     client.load_extensions("./cogs/tasks")
     client.load_extensions("./cogs/info")
     client.load_extensions("./cogs/notes")
+
+    client.logger.info("All cogs loaded.")
 
     client.run(TOKEN)
 

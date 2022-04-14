@@ -19,6 +19,7 @@ class ErrorHandler(commands.Cog):
     # Unknown commands
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+        self.client.logger.error(f"Command `{ctx.command.name}` failed due to `{error}`")
         if isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, commands.MissingPermissions):
@@ -43,6 +44,7 @@ class ErrorHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_slash_command_error(self, inter: disnake.ApplicationCommandInteraction,
                                      error: commands.CommandError) -> None:
+        self.client.logger.error(f"Command `{inter.application_command.name}` failed due to `{error}`")
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions) or isinstance(error, commands.BotMissingPermissions):
@@ -66,6 +68,7 @@ class ErrorHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_message_command_error(self, inter: disnake.ApplicationCommandInteraction,
                                        error: commands.CommandError) -> None:
+        self.client.logger.error(f"Command `{inter.application_command.name}` failed due to `{error}`")
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):
@@ -84,6 +87,7 @@ class ErrorHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_user_command_error(self, inter: disnake.ApplicationCommandInteraction,
                                     error: commands.CommandError) -> None:
+        self.client.logger.error(f"Command `{inter.application_command.name}` failed due to `{error}`")
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions):

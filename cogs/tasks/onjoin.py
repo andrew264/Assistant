@@ -25,7 +25,9 @@ class OnJoin(commands.Cog):
                 😀""", )
             try:
                 await member.send(embed=join_dm)
+                self.client.logger.info(f"Sent Welcome message to {member}")
             except disnake.Forbidden or disnake.HTTPException:
+                self.client.logger.warning(f"Couldn't send Welcome message to {member}")
                 pass
 
 

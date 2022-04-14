@@ -11,6 +11,7 @@ from assistant import Client, getch_hook
 class OnDM(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
+        self.logger = client.logger
 
     # Replies
     @commands.Cog.listener()
@@ -24,6 +25,7 @@ class OnDM(commands.Cog):
         webhook = await getch_hook(self.client.get_channel(DM_Channel))
         await webhook.send(content=msg_content, files=files,
                            username=str(message.author), avatar_url=message.author.display_avatar.url)
+        self.logger.info(f"Received a message from {message.author}")
 
     # slide to dms
     @commands.command()
@@ -38,8 +40,10 @@ class OnDM(commands.Cog):
             await channel.send(content=msg if msg else None, files=files)
         except (disnake.Forbidden | disnake.HTTPException):
             await ctx.send(f"Failed to DM {user}.")
+            self.logger.warning(f"Failed to DM {user}.")
         else:
             await ctx.send(f"DM'd {user}.")
+            self.logger.info(f"DM'd {user}.")
 
         # log Sent Direct Messages
         dm = self.client.get_channel(DM_Channel)

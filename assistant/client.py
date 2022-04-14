@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Optional, Any
 
@@ -7,6 +8,7 @@ import lavalink
 from disnake.ext import commands
 
 from EnvVariables import DM_Channel
+from assistant import log
 
 
 class Client(commands.Bot):
@@ -30,6 +32,7 @@ class Client(commands.Bot):
             'presence_update': 0,
         }
         self._start_time = datetime.now(timezone.utc)
+        self._log_handler: Optional[logging.Logger] = None
 
     @property
     def lavalink(self):
@@ -48,6 +51,19 @@ class Client(commands.Bot):
         Returns the start time of the bot
         """
         return self._start_time
+
+    @property
+    def logger(self) -> logging.Logger:
+        """
+        Returns the Logger
+        """
+        if self._log_handler is None:
+            self._log_handler = logging.getLogger("Assistant")
+            self._log_handler.setLevel(logging.INFO)
+            handler = logging.StreamHandler()
+            handler.setFormatter(log.CustomFormatter())
+            self._log_handler.addHandler(handler)
+        return self._log_handler
 
     async def db_connect(self) -> aiosqlite.Connection:
         """

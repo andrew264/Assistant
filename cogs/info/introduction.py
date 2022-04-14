@@ -32,6 +32,7 @@ class Introduction(commands.Cog):
             return
         await self.add_description(inter.author.id, modal_inter.text_values['introduction'])
         await modal_inter.response.send_message("Introduction Added.", ephemeral=True)
+        self.client.logger.info(f"{inter.author}: Added introduction {modal_inter.text_values['introduction']}")
 
     async def add_description(self, user_id: int, message: str) -> None:
         await self.client.log(f"Adding introduction for {user_id}: {message}")

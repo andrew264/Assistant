@@ -67,6 +67,7 @@ class Notes(commands.Cog):
                                           files=[await attachment.to_file()] if attachment else [])
         attach = [attachment] if attachment else None
         await self._add_note_to_db(tag, content, inter.user.id, inter.guild.id, attach)
+        self.client.logger.info(f"{inter.user.name} added note {tag}")
 
     @commands.slash_command(description="Fetch saved notes.", guild_ids=[HOMIES])
     async def notes(self, inter: disnake.ApplicationCommandInteraction,
@@ -87,6 +88,7 @@ class Notes(commands.Cog):
             ),
             # files=files if files else None
         )
+        self.client.logger.info(f"{inter.user.display_name} fetched notes for {tag}")
 
     @notes.autocomplete('tag')
     async def notes_autocomplete(self, inter: disnake.ApplicationCommandInteraction,

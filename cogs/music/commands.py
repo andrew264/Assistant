@@ -99,6 +99,7 @@ class Music(commands.Cog):
             await ctx.send(f"{ctx.author.display_name} removed `{player.current.title}` from Queue.",
                            delete_after=30)
             await player.skip()
+        self.client.logger.info(f"{ctx.author.display_name} skipped a song.")
 
     # Stop
     @commands.command(aliases=["dc", "kelambu"])
@@ -118,6 +119,7 @@ class Music(commands.Cog):
             await ctx.voice_client.disconnect(force=True)
         await ctx.message.add_reaction("👋")
         await ctx.message.delete(delay=30)
+        self.client.logger.info(f"{ctx.author.display_name} stopped the music.")
 
     # Pause
     @commands.command()
@@ -128,9 +130,11 @@ class Music(commands.Cog):
         if player.paused is False:
             await player.set_pause(pause=True)
             await ctx.send(f"{ctx.author.display_name} paused `{player.current.title}`", delete_after=30)
+            self.client.logger.info(f"{ctx.author.display_name} paused the music.")
         else:
             await player.set_pause(pause=False)
             await ctx.send(f"{ctx.author.display_name} resumed `{player.current.title}`", delete_after=30)
+            self.client.logger.info(f"{ctx.author.display_name} resumed the music.")
 
     # Loop
     @commands.command(aliases=["repeat"])
@@ -138,12 +142,8 @@ class Music(commands.Cog):
     async def loop(self, ctx: commands.Context) -> None:
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         await ctx.message.delete()
-        if player.repeat:
-            player.set_repeat(False)
-            await ctx.send("Loop Disabled", delete_after=30)
-        else:
-            player.set_repeat(True)
-            await ctx.send("Loop Enabled", delete_after=30)
+        await player.set_repeat(repeat=not player.repeat)
+        await ctx.send(content="Loop Enabled" if player.repeat else "Loop Disabled", delete_after=30)
 
     # Jump
     @commands.command(aliases=["skipto"])
@@ -155,6 +155,7 @@ class Music(commands.Cog):
             del player.queue[0:song_index - 1]
         await ctx.send("Skipped", delete_after=30)
         await player.play()
+        self.client.logger.info(f"{ctx.author.display_name} skipped to a song.")
 
     # Seek
     @commands.command(aliases=["peek"])
@@ -168,6 +169,7 @@ class Music(commands.Cog):
             await player.seek(time_in_seconds(timestamp) * 1000)
             await asyncio.sleep(0.5)
             await ctx.send(f"Jumped to `{current_track.format_time(player.position)}`", delete_after=30)
+            self.client.logger.info(f"{ctx.author.display_name} seeked to a timestamp.")
 
     # Volume
     @commands.command(aliases=["vol", "v"])
@@ -183,6 +185,7 @@ class Music(commands.Cog):
             volume_filter.update(volume=volume_int / 100)
             await player.set_filter(volume_filter)
             await ctx.send(f"Volume is set to `{round(volume_int)}%`", delete_after=15)
+            self.client.logger.info(f"{ctx.author.display_name} set the volume to `{volume_int}%`.")
         else:
             await ctx.send("Set Volume between `1 and 100`.", delete_after=10)
 

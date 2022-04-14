@@ -74,6 +74,7 @@ class Effects(commands.Cog):
                 nc.update(speed=1.29999, pitch=1.29999, rate=1.0)
                 await player.set_filter(nc)
                 await interaction.response.edit_message(content="Nightcore Enabled", view=self)
+                self.client.logger.info(f"{interaction.author} enabled Nightcore")
 
             @disnake.ui.button(label="VapourWave", style=ButtonStyle.blurple, row=1)
             async def vapourwave(self, button: Button, interaction: Interaction):
@@ -88,6 +89,7 @@ class Effects(commands.Cog):
                 await player.set_filter(pitch)
                 await player.set_filter(tremolo)
                 await interaction.response.edit_message(content="VapourWave Enabled", view=self)
+                self.client.logger.info(f"{interaction.author} enabled VapourWave")
 
             @disnake.ui.button(label="8D", style=ButtonStyle.blurple, row=1)
             async def eight_d(self, button: Button, interaction: Interaction):
@@ -96,11 +98,13 @@ class Effects(commands.Cog):
                 rotate.update(rotationHz=0.2)
                 await player.set_filter(rotate)
                 await interaction.response.edit_message(content="8D Surround Enabled", view=self)
+                self.client.logger.info(f"{interaction.author} enabled 8D Surround")
 
             @disnake.ui.button(label="ResetFilters", style=ButtonStyle.danger, row=2)
             async def reset_filters(self, button: Button, interaction: Interaction):
                 await self._reset_filters()
                 await interaction.response.edit_message(content="Removed all Applied Filters", view=None, )
+                self.client.logger.info(f"{interaction.author} removed all applied filters")
                 self.timeout = 15
 
         view = FilterButtons(self.client)
@@ -110,6 +114,7 @@ class Effects(commands.Cog):
     @commands.command()
     async def timescale(self, ctx: commands.Context):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
+        time_filter = lavalink.filters.Timescale()
 
         class TimeScaleButtons(disnake.ui.View):
             def __init__(self):
@@ -142,7 +147,6 @@ class Effects(commands.Cog):
                     pass
 
             async def apply_filter(self):
-                time_filter = lavalink.filters.Timescale()
                 time_filter.update(speed=self.speed, pitch=self.pitch, rate=self.rate)
                 await player.set_filter(time_filter)
 

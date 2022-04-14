@@ -37,22 +37,27 @@ class SlashPlay(commands.Cog):
                 break
         if results['loadType'] == 'PLAYLIST_LOADED':
             await inter.edit_original_message(content=f"Playlist **{results['playlistInfo']['name']}** added to queue.")
+            self.client.logger.info(
+                f"{inter.author.display_name} added playlist {results['playlistInfo']['name']} to queue.")
         else:
             await inter.edit_original_message(content=f"Added `{results['tracks'][0]['info']['title']}` to queue.", )
+            self.client.logger.info(
+                f"{inter.author.display_name} added {results['tracks'][0]['info']['title']} to queue.")
         await inter.delete_original_message(delay=30)
         # Join VC
         voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
         if voice is None:
             await inter.author.voice.channel.connect(cls=VoiceClient)
+            self.client.logger.info(f"Connected to {inter.author.voice.channel}")
             if isinstance(inter.author.voice.channel, disnake.StageChannel):
                 if inter.author.voice.channel.permissions_for(inter.guild.me).stage_moderator:
                     await asyncio.sleep(0.5)
                     await inter.guild.me.request_to_speak()
+                    self.client.logger.info(f"Requesting to speak.")
 
         # Start playing
         if player.queue and not player.is_playing:
-            for _filter in list(player.filters):
-                await player.remove_filter(_filter)
+            await player.clear_filters()
             vol_filter = lavalink.Volume()
             vol_filter.update(volume=0.4)
             await player.set_filter(vol_filter)
@@ -60,6 +65,7 @@ class SlashPlay(commands.Cog):
             flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
             await player.set_filter(flat_eq)
             await player.play()
+            self.client.logger.info(f"Started playing {player.current.title}")
 
     @play.autocomplete('query')
     async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:

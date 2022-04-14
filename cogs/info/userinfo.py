@@ -26,7 +26,7 @@ class UserInfo(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def ContextWhoIs(self, inter: disnake.UserCommandInteraction) -> None:
         embed = await self.WhoIsEmbed(inter.target)
-        await inter.response.send_message(embed=embed)
+        await inter.response.send_message(embed=embed, ephemeral=True)
 
     @commands.command()
     @commands.guild_only()
