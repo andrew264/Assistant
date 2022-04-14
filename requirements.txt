@@ -11,3 +11,5 @@ psutil
 aiohttp
 asyncpraw
 asyncpg
+python-Levenshtein
+thefuzz
