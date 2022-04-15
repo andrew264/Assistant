@@ -1,11 +1,11 @@
 import datetime
+from io import BytesIO
 from typing import Optional
 
 import asyncpg
 import disnake
 from disnake.ext import commands
 
-from EnvVariables import HOMIES
 from assistant import Client
 
 
@@ -28,18 +28,19 @@ class Notes(commands.Cog):
             return
         timestamp = int(datetime.datetime.now().timestamp())
         attachment_list = [await attachment.read() for attachment in attachments] if attachments else []
+        attach_names = [attachment.filename for attachment in attachments] if attachments else []
         already_exists = await self.conn.fetch("SELECT * FROM notes WHERE tag = $1", tag.lower())
         if already_exists:
             await self.conn.execute(
-                "UPDATE notes SET content = $1, attachment = $2, created_on = $3 WHERE tag = $4",
-                content, attachment_list, timestamp, tag.lower())
+                "UPDATE notes SET content = $1, created_on = $2, attachment = $3, attach_names = $4 WHERE tag = $5",
+                content, timestamp, attachment_list, attach_names, tag.lower())
         else:
             await self.conn.execute(
                 """
-                INSERT INTO notes (tag, content, user_id, guild_id, created_on, attachment)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO notes (tag, content, user_id, guild_id, created_on, attachment, attach_names)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 """,
-                tag.lower(), content, user_id, guild_id, timestamp, attachment_list
+                tag.lower(), content, user_id, guild_id, timestamp, attachment_list, attach_names
             )
 
     async def _get_notes_from_db(self, tag: str, guild_id: int):
@@ -52,7 +53,7 @@ class Notes(commands.Cog):
             """, tag.lower(), guild_id)
         return notes[0] if notes else None
 
-    @commands.slash_command(description="Add notes for later reference.", guild_ids=[HOMIES])
+    @commands.slash_command(description="Add notes for later reference.")
     async def add_note(self, inter: disnake.ApplicationCommandInteraction,
                        tag: str, content: str,
                        attachment: disnake.Attachment = commands.Param(description="Add Files", default=None)
@@ -69,7 +70,25 @@ class Notes(commands.Cog):
         await self._add_note_to_db(tag, content, inter.user.id, inter.guild.id, attach)
         self.client.logger.info(f"{inter.user.name} added note {tag}")
 
-    @commands.slash_command(description="Fetch saved notes.", guild_ids=[HOMIES])
+    @commands.command(aliases=['add_note'])
+    async def command_add_notes(self, ctx: commands.Context, tag: str) -> None:
+        if ctx.message.reference is None:
+            await ctx.send("You must use this command as a reply.")
+            return
+        msg = ctx.message.reference.resolved
+        await self._add_note_to_db(tag, msg.content, msg.author.id, ctx.guild.id, msg.attachments)
+        await msg.reply("Note Added")
+
+    @commands.command(aliases=['delete_note', 'del_note', 'remove_note'])
+    @commands.has_permissions(manage_guild=True)
+    async def commands_remove_notes(self, ctx: commands.Context, tag: str) -> None:
+        await self._connect_to_db()
+        if self.conn is None:
+            return
+        await self.conn.execute("DELETE FROM notes WHERE tag = $1", tag.lower())
+        await ctx.send("Note Removed")
+
+    @commands.slash_command(description="Fetch saved notes.")
     async def notes(self, inter: disnake.ApplicationCommandInteraction,
                     tag: str = commands.Param(description="Tag to search for")):
         """
@@ -79,14 +98,17 @@ class Notes(commands.Cog):
         if not notes:
             await inter.response.send_message("No notes found.")
             return
-        # attachments: list[bytes] = notes["attachment"]
-        # files = [disnake.File(bytes(attachment)) for attachment in attachments]
+        attachments = notes["attachment"]
+        names = notes["attach_names"]
+
+        files = [disnake.File(BytesIO(attachment), filename=name)
+                 for attachment, name in zip(attachments, names)] if attachments else []
         await inter.response.send_message(
             embed=disnake.Embed(
                 title=f"{notes['tag'].title()}",
                 description=notes["content"],
             ),
-            # files=files if files else None
+            files=files if files else []
         )
         self.client.logger.info(f"{inter.user.display_name} fetched notes for {tag}")
 
