@@ -30,11 +30,15 @@ class Notes(commands.Cog):
         timestamp = int(datetime.datetime.now().timestamp())
         attachment_list = [await attachment.read() for attachment in attachments] if attachments else []
         attach_names = [attachment.filename for attachment in attachments] if attachments else []
-        already_exists = await self.conn.fetch("SELECT * FROM notes WHERE tag = $1", tag.lower())
+        already_exists = await self.conn.fetch("SELECT * FROM notes WHERE tag = $1 AND guild_id = $2",
+                                               tag.lower(), guild_id)
         if already_exists:
             await self.conn.execute(
-                "UPDATE notes SET content = $1, created_on = $2, attachment = $3, attach_names = $4 WHERE tag = $5",
-                content, timestamp, attachment_list, attach_names, tag.lower())
+                """
+                UPDATE notes SET content = $1, created_on = $2, attachment = $3, attach_names = $4
+                WHERE tag = $5 AND guild_id = $6""",
+                content, timestamp, attachment_list, attach_names, tag.lower(), guild_id
+            )
         else:
             await self.conn.execute(
                 """
@@ -53,13 +57,15 @@ class Notes(commands.Cog):
 
     @commands.slash_command(description="Add notes for later reference.")
     async def add_note(self, inter: disnake.ApplicationCommandInteraction,
-                       tag: str, content: str,
+                       tag: str = commands.Param(description="The tag for the note."),
+                       content: str = commands.Param(description="The content of the note."),
                        attachment: disnake.Attachment = commands.Param(description="Add Files", default=None)
                        ) -> None:
         """
         Add notes for later reference.
         """
-        await inter.response.send_message("Note Added",
+        await inter.response.defer()
+        await inter.edit_original_message(content="Note Added",
                                           embed=disnake.Embed(title=f"{tag.title()}", description=content, ),
                                           files=[await attachment.to_file()] if attachment else [])
         attach = [attachment] if attachment else []
@@ -72,7 +78,7 @@ class Notes(commands.Cog):
             await ctx.send("You must use this command as a reply.")
             return
         msg = ctx.message.reference.resolved
-        await self._add_note_to_db(tag, msg.content, msg.author.id, ctx.guild.id, msg.attachments)
+        await self._add_note_to_db(tag, msg.clean_content(), msg.author.id, ctx.guild.id, msg.attachments)
         await msg.reply("Note Added")
         self.client.logger.info(f"{ctx.author.display_name} added note {tag}")
 
