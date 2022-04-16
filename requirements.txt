@@ -13,3 +13,6 @@ asyncpraw
 asyncpg
 python-Levenshtein
 thefuzz
+numpy
+torch
+nltk

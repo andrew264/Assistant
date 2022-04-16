@@ -25,3 +25,7 @@ MusicCache.json
 
 # audio clips
 /clips
+
+# ignore chatbot data
+/data/data.pth
+/data/intents.json

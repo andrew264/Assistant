@@ -15,6 +15,7 @@ references = ("andrew",
               "@andrew",
               "@andrew!#1901",
               "<@!493025015445454868>",
+              "<@493025015445454868>",
               493025015445454868,
               "<:datsshaawt:804242984383545344>",
               "<:andrew_damnboii:794247753445802004>",)
@@ -67,11 +68,11 @@ class AndrewWebs(commands.Cog):
                 msg += word + " "
 
         # Fuzzy search for reply
-        match, score = process.extractOne(query=msg, choices=ALL_QN,
-                                          scorer=fuzz.token_sort_ratio, score_cutoff=60)
-        self.client.logger.debug(f"{msg} | {match} | {score}")
-        if match is not None:
-            await self.reply_hook(message.channel, fetch_reply(match))
+        match = process.extractOne(query=msg, choices=ALL_QN, scorer=fuzz.token_sort_ratio)
+        reply, score = match if isinstance(match, tuple) else (None, 0)
+        self.client.logger.debug(f"{msg} | {reply} | {score}")
+        if reply:
+            await self.reply_hook(message.channel, fetch_reply(reply))
             return
 
         # Emoji tings
