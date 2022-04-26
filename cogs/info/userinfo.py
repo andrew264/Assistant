@@ -4,7 +4,7 @@ import aiosqlite
 import disnake
 from disnake.ext import commands
 
-from assistant import Client, available_clients, all_activities, colour_gen, relative_time, long_date
+from assistant import Client, available_clients, all_activities, colour_gen, relative_time, long_date, to_file
 
 
 class UserInfo(commands.Cog):
@@ -18,15 +18,17 @@ class UserInfo(commands.Cog):
     async def slash_whois(self, inter: disnake.ApplicationCommandInteraction,
                           user: disnake.Member = commands.Param(description="Mention a User",
                                                                 default=lambda inter: inter.author), ) -> None:
+        await inter.response.defer()
         embed = await self.WhoIsEmbed(user)
-        await inter.response.send_message(embed=embed)
+        await inter.edit_original_message(embed=embed)
 
     @commands.user_command(name="Who is this Guy?")
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
     async def ContextWhoIs(self, inter: disnake.UserCommandInteraction) -> None:
+        await inter.response.defer(ephemeral=True)
         embed = await self.WhoIsEmbed(inter.target)
-        await inter.response.send_message(embed=embed, ephemeral=True)
+        await inter.edit_original_message(embed=embed)
 
     @commands.command()
     @commands.guild_only()
@@ -48,7 +50,7 @@ class UserInfo(commands.Cog):
             embed.description = user.mention
 
         embed.set_author(name=user, icon_url=user.display_avatar.url)
-        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.set_thumbnail(file=await to_file(user.display_avatar))
         is_owner: bool = user.guild.owner == user and (user.guild.created_at - user.joined_at).total_seconds() < 2
         embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
                         value=f"{long_date(user.joined_at)}\n{relative_time(user.joined_at)}", )
