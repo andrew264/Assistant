@@ -1,7 +1,7 @@
 import disnake
 from disnake.ext import commands
 
-from assistant import Client, colour_gen
+from assistant import Client, colour_gen, to_file
 
 
 class Avatar(commands.Cog):
@@ -12,15 +12,17 @@ class Avatar(commands.Cog):
     async def avatar(self, inter: disnake.ApplicationCommandInteraction,
                      user: disnake.Member = commands.Param(description="Mention a User",
                                                            default=lambda inter: inter.author), ) -> None:
+        await inter.response.defer()
         avatar = disnake.Embed(title=f"{user.display_name}'s Avatar 🖼", color=colour_gen(user.id))
-        avatar.set_image(url=user.display_avatar.url)
-        await inter.response.send_message(embed=avatar)
+        avatar.set_image(file=await to_file(user.display_avatar))
+        await inter.edit_original_message(embed=avatar)
 
     @commands.user_command(name="Avatar")
     async def ContextAvatar(self, inter: disnake.UserCommandInteraction) -> None:
+        await inter.response.defer(ephemeral=True)
         avatar = disnake.Embed(title=f"{inter.target.display_name}'s Avatar 🖼", color=colour_gen(inter.target.id))
-        avatar.set_image(url=inter.target.display_avatar.url)
-        await inter.response.send_message(embed=avatar, ephemeral=True)
+        avatar.set_image(file=await to_file(inter.target.display_avatar))
+        await inter.edit_original_message(embed=avatar)
 
 
 def setup(client):

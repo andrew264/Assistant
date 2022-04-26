@@ -1,3 +1,4 @@
+import io
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -54,3 +55,11 @@ def colour_gen(any_id: int, as_hex: Optional[bool] = False) -> [disnake.Colour |
     g = int(any_id / 69 / 69 % 255)
     b = int(any_id / 420 / 420 % 255)
     return disnake.Color.from_rgb(r, g, b) if not as_hex else int(f"0x{r:02x}{g:02x}{b:02x}", 16)
+
+
+async def to_file(_assert: disnake.Asset) -> disnake.File:
+    """Converts an asset to a file"""
+    return disnake.File(
+        fp=io.BytesIO(await _assert.read()),
+        filename=f"{_assert.key}.{'gif' if _assert.is_animated() else 'png'}"
+    )
