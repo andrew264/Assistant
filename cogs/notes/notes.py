@@ -78,7 +78,7 @@ class Notes(commands.Cog):
             await ctx.send("You must use this command as a reply.")
             return
         msg = ctx.message.reference.resolved
-        await self._add_note_to_db(tag, msg.clean_content(), msg.author.id, ctx.guild.id, msg.attachments)
+        await self._add_note_to_db(tag, msg.content, msg.author.id, ctx.guild.id, msg.attachments)
         await msg.reply("Note Added")
         self.client.logger.info(f"{ctx.author.display_name} added note {tag}")
 
