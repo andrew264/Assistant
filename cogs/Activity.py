@@ -21,7 +21,7 @@ class Activity(commands.Cog):
     @commands.bot_has_permissions(create_instant_invite=True)
     async def activity(self, inter: disnake.ApplicationCommandInteraction,
                        activity=commands.Param(description="Select an activity type", choices=activities,
-                                               default=str(disnake.PartyType.youtube.value))) -> None:
+                                               default=str(disnake.PartyType.watch_together.value))) -> None:
         """Start an Activity in Voice Channel"""
         if inter.author.voice is None:
             await inter.response.send_message("You must be in a voice channel to use this command.")

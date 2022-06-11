@@ -6,13 +6,9 @@ python-youtube
 emoji
 sounddevice
 aiosqlite
-git+https://github.com/Devoxin/Lavalink.py@4.0
+git+https://github.com/Devoxin/Lavalink.py@dev
 psutil
 aiohttp
 asyncpraw
 asyncpg
-python-Levenshtein
-thefuzz
-numpy
-torch
-nltk
+

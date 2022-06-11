@@ -1,4 +1,5 @@
 ﻿import asyncio
+from typing import Optional
 
 import disnake
 import lavalink
@@ -152,7 +153,7 @@ class NP(commands.Cog):
 
             @property
             def embed(self) -> disnake.Embed:
-                current_song: VideoTrack = player.current
+                current_song: Optional[VideoTrack] = VideoTrack(player.current) if player.current else None
                 if current_song is None:
                     return disnake.Embed(title="No Songs in Queue", description="use `/play` to add songs", )
                 percentile = round((player.position / current_song.duration) * 20)
@@ -172,7 +173,7 @@ class NP(commands.Cog):
                     embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
                 elif player.queue and not player.repeat:
                     embed.set_footer(text=f"Next in Queue: {player.queue[0].title}",
-                                     icon_url=player.queue[0].avatar_url)
+                                     icon_url=VideoTrack(player.queue[0]).avatar_url)
                 elif not player.queue and player.repeat:
                     embed.set_footer(text="Looping current Song")
                 else:
@@ -193,8 +194,8 @@ class NP(commands.Cog):
                 break
             try:
                 await view.update_buttons()
-                await msg.edit(embed=view.embed, view=view)
-            except disnake.NotFound | AttributeError:
+                await msg.edit(embed=view.embed, view=view if player.current else None)
+            except disnake.NotFound:
                 logger.warning("Now Playing Message was deleted before it could be edited")
             await asyncio.sleep(5)
 

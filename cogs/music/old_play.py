@@ -60,7 +60,7 @@ class Play(commands.Cog):
             else:
                 await ctx.send(f"Adding `{results['tracks'][0]['info']['title']}` to Queue.", delete_after=20)
                 self.client.logger.info(f"Added {results['tracks'][0]['info']['title']} to Queue by {ctx.author}")
-                yt_time_rx = re.compile(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+(t=|start=)")
+                yt_time_rx = re.compile(r"^(https?://)?(www\.)?(youtube\.com|youtu\.?be)/.+(t=|start=)")
 
         seek_time = int(re.sub(yt_time_rx, "", query)) * 1000 if yt_time_rx.match(query) else 0
 
@@ -83,7 +83,7 @@ class Play(commands.Cog):
             flat_eq = lavalink.Equalizer()
             flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
             await player.set_filter(flat_eq)
-            await player.play()
+            await player.play(start_time=seek_time)
 
     # Play Checks
     @old_play.before_invoke

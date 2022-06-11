@@ -23,9 +23,9 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, commands.MissingPermissions):
-            await ctx.send(error, delete_after=60)
+            await ctx.send(str(error), delete_after=60)
         elif isinstance(error, commands.BotMissingPermissions):
-            await ctx.send(error, delete_after=60)
+            await ctx.send(str(error), delete_after=60)
         elif isinstance(error, commands.NotOwner):
             await ctx.send("🚫 You can't do that.")
         elif isinstance(error, commands.UserInputError):
@@ -48,7 +48,7 @@ class ErrorHandler(commands.Cog):
         if isinstance(error, commands.NotOwner):
             await inter.response.send_message("🚫 You can't do that.", ephemeral=True)
         elif isinstance(error, commands.MissingPermissions) or isinstance(error, commands.BotMissingPermissions):
-            await inter.response.send_message(error, ephemeral=True)
+            await inter.response.send_message(str(error), ephemeral=True)
         elif isinstance(error, commands.NoPrivateMessage):
             await inter.response.send_message("🚫 You can't do that in DMs.")
         elif isinstance(error, commands.MemberNotFound):

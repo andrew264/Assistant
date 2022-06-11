@@ -162,7 +162,7 @@ class Music(commands.Cog):
     @commands.guild_only()
     async def seek(self, ctx: commands.Context, timestamp: str) -> None:
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        current_track: VideoTrack = player.current
+        current_track: VideoTrack = VideoTrack(player.current)
 
         await ctx.message.delete()
         if ctx.voice_client and player.is_playing:

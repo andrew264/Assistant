@@ -13,9 +13,10 @@ api = Api(api_key=YT_TOKEN)
 
 class VideoTrack(AudioTrack):
 
-    def __init__(self, data: dict, author: disnake.Member, **extra):
-        super().__init__(data, author.id, **extra)
-        self.author = author
+    def __init__(self, data: Optional[dict | AudioTrack], author: Optional[disnake.Member] = None, **extra):
+        super().__init__(data, data.requester, **extra)
+        self.author: Optional[disnake.Member] = data.author\
+                if isinstance(data, VideoTrack) and isinstance(data.author, disnake.Member) else author
         self._views: Optional[int] = None
         self._likes: Optional[int] = None
         self._upload_date: Optional[datetime] = None
@@ -35,12 +36,12 @@ class VideoTrack(AudioTrack):
     @property
     def avatar_url(self) -> str:
         """Author's Avatar URL"""
-        return self.author.display_avatar.url
+        return self.author.display_avatar.url if self.author else ""
 
     @property
     def requested_by(self) -> str:
         """The user who requested the track"""
-        return self.author.display_name
+        return self.author.display_name if self.author else ""
 
     @property
     def thumbnail(self) -> str:

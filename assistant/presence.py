@@ -8,11 +8,11 @@ from .converters import relative_time
 def available_clients(member: disnake.Member) -> str:
     """Returns a string of available clients for a Member"""
     clients = []
-    if member.desktop_status.name != "offline":
+    if str(member.desktop_status) != "offline":
         clients.append("Desktop")
-    if member.mobile_status.name != "offline":
+    if str(member.mobile_status) != "offline":
         clients.append("Mobile")
-    if member.web_status.name != "offline":
+    if str(member.web_status) != "offline":
         clients.append("Web")
     value = ', '.join(clients)
     if member.raw_status == "online":
@@ -72,7 +72,7 @@ def all_activities(member: disnake.Member, with_time: bool = False, with_url: bo
 
         elif isinstance(_activity, disnake.Activity):
             if activities["Playing"] is None:
-                activities[_activity.type.name.capitalize()] = \
+                activities[str(_activity.type).capitalize()] = \
                     f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" if with_time else f"{_activity.name}"
             else:
                 activities["Also Playing"] = \

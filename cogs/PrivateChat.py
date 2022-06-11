@@ -41,7 +41,7 @@ class PrivateChat(commands.Cog):
         text = await category.create_text_channel("private-chat", overwrites=overwrites_read)
         voice = await category.create_voice_channel("Private Call Booth", overwrites=overwrites_read)
         await inter.response.send_message(f"Created a new Private Chat ({category.mention}).", ephemeral=True)
-        await voice.edit(rtc_region=disnake.VoiceRegion.india, bitrate=96000)
+        await voice.edit(bitrate=96000)
         embed = disnake.Embed(colour=0x002366, title=f"Welcome, {inter.author.display_name}!",
                               description="""This is a Private Chat.No one else can see this channel other than us.\n:3""",
                               timestamp=disnake.utils.utcnow())

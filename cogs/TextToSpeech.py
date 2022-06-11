@@ -1,5 +1,4 @@
 # Imports
-import asyncio
 import io
 import re
 from typing import Optional
@@ -33,8 +32,8 @@ class TextToSpeech(commands.Cog):
         if message:
             await inter.response.send_message(f"{inter.author.display_name} says: {message}")
             # Clean up the message
-            clean_name = re.sub(r"[^A-Za-z0-9 ]+", "", inter.author.display_name)
-            clean_msg = re.sub(r"[^A-Za-z0-9 ]+", "", message)
+            clean_name = re.sub(r"[^A-Za-z\d ]+", "", inter.author.display_name)
+            clean_msg = re.sub(r"[^A-Za-z\d ]+", "", message)
             # Create audio object
             audio = io.BytesIO()
             gTTS(f"{clean_name} says {clean_msg}").write_to_fp(audio)
