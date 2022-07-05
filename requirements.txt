@@ -4,12 +4,10 @@ gTTS
 lyricsgenius
 python-youtube
 emoji
-sounddevice
 aiosqlite
 git+https://github.com/Devoxin/Lavalink.py@dev
 psutil
 aiohttp
 asyncpraw
-asyncpg
 googletrans==4.0.0rc1
 

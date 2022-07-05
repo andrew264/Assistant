@@ -25,7 +25,6 @@ def start_client():
     client.load_extensions("./cogs/misc")
     client.load_extensions("./cogs/tasks")
     client.load_extensions("./cogs/info")
-    client.load_extensions("./cogs/notes")
 
     client.logger.info("All cogs loaded.")
 
