@@ -77,7 +77,7 @@ class Effects(commands.Cog):
                 self.client.logger.info(f"{interaction.author} enabled Nightcore")
 
             @disnake.ui.button(label="VapourWave", style=ButtonStyle.blurple, row=1)
-            async def vapourwave(self, button: Button, interaction: Interaction):
+            async def vapour_wave(self, button: Button, interaction: Interaction):
                 await self._reset_filters()
                 eq = lavalink.Equalizer()
                 eq.update(bands=[(0, 0.3), (1, 0.3)])
@@ -430,25 +430,25 @@ class Effects(commands.Cog):
         karaoke = lavalink.filters.Karaoke()
         karaoke.update(level=level, monoLevel=monolevel, filterBand=filterband, filterWidth=filterwidth)
         await player.set_filter(karaoke)
-        await ctx.send(
-            f"Karaoke set to {level} level, {monolevel} mono level, {filterband} filter band, {filterwidth} filter width.")
+        await ctx.send(f"Karaoke set to {level} level, {monolevel} mono level, " +
+                       f"{filterband} filter band, {filterwidth} filter width.")
 
     @commands.command()
-    async def distort(self, ctx: commands.Context, sinOffset: Optional[float], sinScale: Optional[float],
-                      cosOffset: Optional[float], cosScale: Optional[float], tanOffset: Optional[float]
-                      , tanScale: Optional[float], offset: Optional[float], scale: Optional[float]):
+    async def distort(self, ctx: commands.Context, sin_offset: Optional[float], sin_scale: Optional[float],
+                      cos_offset: Optional[float], cos_scale: Optional[float], tan_offset: Optional[float],
+                      tan_scale: Optional[float], offset: Optional[float], scale: Optional[float]):
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        if (not sinOffset and not sinScale
-                and not cosOffset and not cosScale
-                and not tanOffset and not tanScale
+        if (not sin_offset and not sin_scale
+                and not cos_offset and not cos_scale
+                and not tan_offset and not tan_scale
                 and not offset and not scale):
             await player.remove_filter(lavalink.filters.Distortion())
             await ctx.send("Distortion disabled.")
             return
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         distort = lavalink.filters.Distortion()
-        distort.update(sinOffset=sinOffset, sinScale=sinScale, cosOffset=cosOffset, cosScale=cosScale,
-                       tanOffset=tanOffset, tanScale=tanScale, offset=offset, scale=scale)
+        distort.update(sinOffset=sin_offset, sinScale=sin_scale, cosOffset=cos_offset, cosScale=cos_scale,
+                       tanOffset=tan_offset, tanScale=tan_scale, offset=offset, scale=scale)
         await player.set_filter(distort)
         await ctx.send(f"Distortion Updated.")
 

@@ -5,9 +5,8 @@ lyricsgenius
 python-youtube
 emoji
 aiosqlite
-git+https://github.com/Devoxin/Lavalink.py@dev
 psutil
 aiohttp
 asyncpraw
-googletrans==4.0.0rc1
-
+googletrans
+lavalink

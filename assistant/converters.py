@@ -63,3 +63,15 @@ async def to_file(_assert: disnake.Asset) -> disnake.File:
         fp=io.BytesIO(await _assert.read()),
         filename=f"{_assert.key}.{'gif' if _assert.is_animated() else 'png'}"
     )
+
+
+def time_in_seconds(timestamp: str) -> int:
+    """
+    Converts a timestamp string to seconds.
+    """
+    seconds = 0
+    for i in timestamp.split(':'):
+        if int(i) > 60 or int(i) < 0:
+            i = 0
+        seconds = seconds * 60 + int(i)
+    return seconds

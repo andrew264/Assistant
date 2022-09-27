@@ -49,7 +49,7 @@ class Reddit(commands.Cog):
     @commands.guild_only()
     async def meme(self, inter: disnake.ApplicationCommandInteraction) -> None:
         await inter.response.send_message("Fetching posts...", ephemeral=True)
-        sub_list = ("memes", "dankmemes", "funny", "terriblefacebookmemes", "teenagers")
+        sub_list = ("memes", "dankmemes", "funny")
         subreddit = random.choice(sub_list)
         posts = await self.get_post(subreddit, "week", limit=1)
         for post in posts:

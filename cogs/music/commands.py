@@ -1,5 +1,6 @@
-﻿# Imports
+# Imports
 import asyncio
+import typing
 
 import disnake
 import lavalink
@@ -7,22 +8,10 @@ from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
 import assistant
-from assistant import VideoTrack
+from assistant import VideoTrack, time_in_seconds
 
 
-def time_in_seconds(timestamp: str) -> int:
-    """
-    Converts a timestamp to seconds.
-    """
-    seconds = 0
-    for i in timestamp.split(':'):
-        if int(i) > 60 or int(i) < 0:
-            i = 0
-        seconds = seconds * 60 + int(i)
-    return seconds
-
-
-class Music(commands.Cog):
+class MusicCommands(commands.Cog):
     def __init__(self, client: assistant.Client):
         self.client = client
         lavalink.add_event_hook(self.track_hook)
@@ -30,25 +19,6 @@ class Music(commands.Cog):
     def cog_unload(self):
         """ Cog unload handler. This removes any event hooks that were registered. """
         self.client.lavalink._event_hooks.clear()
-
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member: disnake.Member,
-                                    before: disnake.VoiceState, after: disnake.VoiceState):
-        if member != self.client.user:
-            return  # We don't care about other people's voice state changes
-        if before.channel and after.channel is None:
-            # remove all applied filters and effects
-            # Clear the queue.
-            # Stop the current track.
-            # Force disconnect to fix reconnecting issues.
-            player: Player = self.client.lavalink.player_manager.get(member.guild.id)
-            if player and player.current:
-                for _filter in list(player.filters):
-                    await player.remove_filter(_filter)
-                player.queue.clear()
-                await player.stop()
-                voice = member.guild.voice_client
-                await voice.disconnect(force=True)
 
     async def track_hook(self, event):
         # Update client's status
@@ -83,29 +53,61 @@ class Music(commands.Cog):
                 await player.remove_filter(_filter)
                 await voice.disconnect(force=True)
 
-    # Skip
-    @commands.command()
-    @commands.guild_only()
-    async def skip(self, ctx: commands.Context, arg: int = 0) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        await ctx.message.delete()
-        if not player.is_playing or arg > len(player.queue):
-            return
-        if 0 < arg <= len(player.queue):
-            await ctx.send(f"{ctx.author.display_name} removed `{player.queue[arg - 1].title}` from Queue.",
-                           delete_after=30)
-            player.queue.pop(arg - 1)
-        elif arg == 0:
-            await ctx.send(f"{ctx.author.display_name} removed `{player.current.title}` from Queue.",
-                           delete_after=30)
-            await player.skip()
-        self.client.logger.info(f"{ctx.author.display_name} skipped a song.")
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: disnake.Member,
+                                    before: disnake.VoiceState, after: disnake.VoiceState):
+        if member != self.client.user:
+            return  # We don't care about other people's voice state changes
+        if before.channel and after.channel is None:
+            # remove all applied filters and effects
+            # Clear the queue.
+            # Stop the current track.
+            # Force disconnect to fix reconnecting issues.
+            player: Player = self.client.lavalink.player_manager.get(member.guild.id)
+            if player and player.current:
+                for _filter in list(player.filters):
+                    await player.remove_filter(_filter)
+                player.queue.clear()
+                await player.stop()
+                voice = member.guild.voice_client
+                await voice.disconnect(force=True)
 
-    # Stop
-    @commands.command(aliases=["dc", "kelambu"])
+    # Group Commands
+    @commands.slash_command(name="music", description="Music related commands.")
     @commands.guild_only()
-    async def stop(self, ctx: commands.Context) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
+    async def music(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        pass
+
+    # Skip Command
+    @music.sub_command(name="skip", description="Remove songs from queue, or skip the current song.")
+    @commands.guild_only()
+    async def skip(self, inter: disnake.ApplicationCommandInteraction,
+                   index: int = commands.Param(description="Enter song index, defaults to current song",
+                                               default=0)) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        if not player.is_playing:
+            await inter.response.send_message("Nothing is playing.", ephemeral=True)
+            return
+        if index == 0:
+            await inter.response.send_message(
+                f"{inter.author.display_name} removed `{player.current.title}` from Queue.")
+            await player.skip()
+        else:
+            try:
+                await inter.response.send_message(
+                    f"{inter.author.display_name} removed `{player.queue[index - 1].title}` from Queue.")
+                player.queue.pop(index - 1)
+            except IndexError:
+                await inter.response.send_message("Invalid index.", ephemeral=True)
+
+    # Stop Command
+    @music.sub_command(name="stop", description="Stops the current song.")
+    @commands.guild_only()
+    async def stop(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        if not player.is_playing:
+            await inter.response.send_message("Nothing is playing.", ephemeral=True)
+            return
         if player.is_connected:
             # remove all applied filters and effects
             for _filter in list(player.filters):
@@ -115,97 +117,90 @@ class Music(commands.Cog):
             player.queue.clear()
             # Stop the current track so Lavalink consumes less resources.
             await player.stop()
-            # Disconnect from the voice channel.
-            await ctx.voice_client.disconnect(force=True)
-        await ctx.message.add_reaction("👋")
-        await ctx.message.delete(delay=30)
-        self.client.logger.info(f"{ctx.author.display_name} stopped the music.")
 
-    # Pause
-    @commands.command()
+        await inter.response.send_message(f"{inter.author.display_name} stopped the music.")
+        if inter.guild.voice_client:
+            await inter.guild.voice_client.disconnect(force=True)
+
+    # Pause Command
+    @music.sub_command(name="pause", description="Pauses the current song.")
     @commands.guild_only()
-    async def pause(self, ctx: commands.Context) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        await ctx.message.delete()
-        if player.paused is False:
-            await player.set_pause(pause=True)
-            await ctx.send(f"{ctx.author.display_name} paused `{player.current.title}`", delete_after=30)
-            self.client.logger.info(f"{ctx.author.display_name} paused the music.")
+    async def pause(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        if player.paused:
+            await player.set_pause(False)
+            await inter.response.send_message(
+                f"{inter.author.display_name} resumed `{player.current.title}`")
         else:
-            await player.set_pause(pause=False)
-            await ctx.send(f"{ctx.author.display_name} resumed `{player.current.title}`", delete_after=30)
-            self.client.logger.info(f"{ctx.author.display_name} resumed the music.")
+            await player.set_pause(True)
+            await inter.response.send_message(
+                f"{inter.author.display_name} paused `{player.current.title}`")
 
-    # Loop
-    @commands.command(aliases=["repeat"])
-    @commands.guild_only()
-    async def loop(self, ctx: commands.Context) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        await ctx.message.delete()
-        await player.set_repeat(repeat=not player.repeat)
-        await ctx.send(content="Loop Enabled" if player.repeat else "Loop Disabled", delete_after=30)
+    # Loop Command
+    @music.sub_command(name="loop", description="Loops the current song.")
+    async def loop(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player.set_repeat(repeat=not player.repeat)
+        await inter.response.send_message("Loop Enabled" if player.repeat else "Loop Disabled")
 
-    # Jump
-    @commands.command(aliases=["skipto"])
-    @commands.guild_only()
-    async def jump(self, ctx: commands.Context, song_index: int = 1) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        await ctx.message.delete()
-        if ctx.voice_client and player.is_playing and song_index >= 1:
-            del player.queue[0:song_index - 1]
-        await ctx.send("Skipped", delete_after=30)
-        await player.play()
-        self.client.logger.info(f"{ctx.author.display_name} skipped to a song.")
+    # Skip to Command
+    @music.sub_command(name="skipto", description="Skips to a specific song in the queue.")
+    async def skipto(self, inter: disnake.ApplicationCommandInteraction,
+                     index: int =
+                     commands.Param(description="Index of the song to skip to, defaults to current song",
+                                    default=1)) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        if index >= 1:
+            try:
+                await inter.response.send_message(
+                    f"{inter.author.display_name} skipped to `{player.queue[index-1].title}`")
+                player.queue = player.queue[index - 1:]
+                await player.play()
+            except IndexError:
+                await inter.response.send_message("Invalid index.", ephemeral=True)
 
-    # Seek
-    @commands.command(aliases=["peek"])
-    @commands.guild_only()
-    async def seek(self, ctx: commands.Context, timestamp: str) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        current_track: VideoTrack = VideoTrack(player.current)
+    # Seek Command
+    @music.sub_command(name="seek", description="Seeks to a specific time in the current song.")
+    async def seek(self, inter: disnake.ApplicationCommandInteraction,
+                   time: str = commands.Param(description="Time to seek to in MM:SS format, defaults to song start",
+                                              default="0")) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
 
-        await ctx.message.delete()
-        if ctx.voice_client and player.is_playing:
-            await player.seek(time_in_seconds(timestamp) * 1000)
+        if player.is_playing:
+            current_track: VideoTrack = VideoTrack(player.current)
+            await player.seek(time_in_seconds(time) * 1000)
             await asyncio.sleep(0.5)
-            await ctx.send(f"Jumped to `{current_track.format_time(player.position)}`", delete_after=30)
-            self.client.logger.info(f"{ctx.author.display_name} seeked to a timestamp.")
+            await inter.response.send_message(f"{inter.author.display_name} seeked `{current_track.title}` to {time}")
 
-    # Volume
-    @commands.command(aliases=["vol", "v"])
-    @commands.guild_only()
-    async def volume(self, ctx: commands.Context, volume_int: int = None) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
+    # Volume Command
+    @music.sub_command(name="volume", description="Sets the volume of the player.")
+    async def volume(self, inter: disnake.ApplicationCommandInteraction,
+                     volume: typing.Optional[int] = commands.Param(description="Volume to set the player to. (0-100)",
+                                                                   default=None, ge=0, le=100)) -> None:
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
         volume_filter = lavalink.Volume()
-        current_volume: int = round((await player.get_filter('Volume')).values * 100)
-        await ctx.message.delete()
-        if volume_int is None:
-            await ctx.send(f"Volume: {current_volume}%", delete_after=15)
-        elif 0 < volume_int <= 100:
-            volume_filter.update(volume=volume_int / 100)
-            await player.set_filter(volume_filter)
-            await ctx.send(f"Volume is set to `{round(volume_int)}%`", delete_after=15)
-            self.client.logger.info(f"{ctx.author.display_name} set the volume to `{volume_int}%`.")
-        else:
-            await ctx.send("Set Volume between `1 and 100`.", delete_after=10)
+        if volume is None:
+            await inter.response.send_message(f"Current volume: `{player.volume}%`.")
+            return
+        if volume > 100 or volume < 0:
+            await inter.response.send_message(f"Volume cannot be set to `{volume}%`.", ephemeral=True)
+            return
+        volume_filter.update(volume=volume / 100)
+        await player.set_filter(volume_filter)
+        await inter.response.send_message(f"***{inter.author.display_name}*** set volume to `{volume}%`.")
 
-    # Check Bot in VC
-    @skip.before_invoke
-    @stop.before_invoke
-    @pause.before_invoke
-    @loop.before_invoke
-    @jump.before_invoke
-    @volume.before_invoke
-    async def check_voice(self, ctx: commands.Context) -> None:
-        player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
-        if ctx.voice_client is None or not player.is_connected:
-            raise commands.CheckFailure("Bot is not connect to VC.")
-        if ctx.author.voice is None:
-            raise commands.CheckFailure("You are not connected to a voice channel.")
-        if ctx.voice_client is not None and ctx.author.voice is not None:
-            if ctx.voice_client.channel != ctx.author.voice.channel:
-                raise commands.CheckFailure("You must be in same VC as Bot.")
+    @music.before_invoke
+    async def ensure_voice(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        if not inter.author.voice or not inter.author.voice.channel:
+            raise commands.CheckFailure("You are not connected to a VC.")
+
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        if player is None or not player.is_connected:
+            raise commands.CheckFailure("Bot is not connected to a VC.")
+
+        if inter.guild.me.voice and inter.guild.me.voice.channel != inter.author.voice.channel:
+            raise commands.CheckFailure("You must be in same VC as Bot.")
 
 
 def setup(client):
-    client.add_cog(Music(client))
+    client.add_cog(MusicCommands(client))

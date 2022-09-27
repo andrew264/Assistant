@@ -18,7 +18,7 @@ class Avatar(commands.Cog):
         await inter.edit_original_message(embed=avatar)
 
     @commands.user_command(name="Avatar")
-    async def ContextAvatar(self, inter: disnake.UserCommandInteraction) -> None:
+    async def context_avatar(self, inter: disnake.UserCommandInteraction) -> None:
         await inter.response.defer(ephemeral=True)
         avatar = disnake.Embed(title=f"{inter.target.display_name}'s Avatar 🖼", color=colour_gen(inter.target.id))
         avatar.set_image(file=await to_file(inter.target.display_avatar))
