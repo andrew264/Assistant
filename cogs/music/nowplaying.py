@@ -19,7 +19,7 @@ class NP(commands.Cog):
     async def nowplaying(self, ctx: commands.Context) -> None:
         player: Player = self.client.lavalink.player_manager.get(ctx.guild.id)
         volume_filter = lavalink.Volume()
-        vol_initial: float = (await player.get_filter('Volume')).values
+        vol_initial: float = (player.get_filter('Volume')).values
         logger = self.client.logger
 
         await ctx.message.delete()
@@ -107,7 +107,7 @@ class NP(commands.Cog):
 
             @disnake.ui.button(emoji="➖", style=disnake.ButtonStyle.green, row=2)
             async def volume_down(self, button: disnake.Button, interaction: disnake.Interaction):
-                vol: float = (await player.get_filter("Volume")).values
+                vol: float = (player.get_filter("Volume")).values
                 if vol > 0.1:
                     volume_filter.update(volume=max(round(vol - 0.1, 1), 0.1))
                     self.volume_up.disabled = False
@@ -126,7 +126,7 @@ class NP(commands.Cog):
 
             @disnake.ui.button(emoji="➕", style=disnake.ButtonStyle.green, row=2)
             async def volume_up(self, button: disnake.Button, interaction: disnake.Interaction):
-                vol: float = (await player.get_filter("Volume")).values
+                vol: float = (player.get_filter("Volume")).values
                 if vol <= 0.9:
                     volume_filter.update(volume=min(round(vol + 0.1, 1), 1.0))
                     self.volume_down.disabled = False
@@ -146,7 +146,7 @@ class NP(commands.Cog):
                 # Loop Button
                 self.loop_button.emoji = "🔁" if player.repeat else "➡"
                 # Volume Buttons
-                current_volume: int = round((await player.get_filter('Volume')).values * 100)
+                current_volume: int = round((player.get_filter('Volume')).values * 100)
                 self.volume.label = f"Volume: {current_volume}%"
                 self.volume_down.disabled = True if current_volume <= 10 else False
                 self.volume_up.disabled = True if current_volume == 100 else False
