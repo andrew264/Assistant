@@ -422,10 +422,6 @@ class MusicCommands(commands.Cog):
                     self.page_no = 1
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(label="Remove Buttons", emoji="❌", style=disnake.ButtonStyle.danger)
-            async def disable_view(self, button: disnake.Button, interaction: disnake.Interaction):
-                await interaction.response.edit_message(view=None)
-
             @property
             def embed(self) -> disnake.Embed:
                 first = (self.page_no * 4) - 4
@@ -465,10 +461,6 @@ class MusicCommands(commands.Cog):
 
         if inter.guild.me.voice and inter.guild.me.voice.channel != inter.author.voice.channel:
             raise commands.CheckFailure("You must be in same VC as Bot.")
-
-        permissions = inter.author.voice.channel.permissions_for(inter.me)
-        if not permissions.connect or not permissions.speak:
-            raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
 
 
 def setup(client):

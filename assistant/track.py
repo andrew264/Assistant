@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 import disnake
 from lavalink import AudioTrack
@@ -13,10 +13,10 @@ api = Api(api_key=YT_TOKEN)
 
 class VideoTrack(AudioTrack):
 
-    def __init__(self, data: Optional[dict | AudioTrack], author: Optional[disnake.Member] = None, **extra):
+    def __init__(self, data: Union[dict, AudioTrack], author: Optional[disnake.Member] = None, **extra):
         super().__init__(data, data.requester, **extra)
-        self.author: Optional[disnake.Member] = data.author\
-                if isinstance(data, VideoTrack) and isinstance(data.author, disnake.Member) else author
+        self.author: Optional[disnake.Member] = data.author \
+            if isinstance(data, AudioTrack) and isinstance(data.author, disnake.Member) else author
         self._views: Optional[int] = None
         self._likes: Optional[int] = None
         self._upload_date: Optional[datetime] = None
