@@ -17,12 +17,18 @@ class Client(commands.Bot):
         Custom Client class for the Assistant.
         This Inherits from disnake's Bot class.
         """
-        super().__init__(**options)
         self._lava_host: str = options.get('lava_host')
         self._lava_port: int = options.get('lava_port')
         self._lava_password: str = options.get('lava_password')
         self._lava_region: str = options.get('lava_region')
         self._lava_node_name: str = options.get('lava_node_name')
+        options.pop('lava_host')
+        options.pop('lava_port')
+        options.pop('lava_password')
+        options.pop('lava_region')
+        options.pop('lava_node_name')
+
+        super().__init__(**options)
         self._lavalink: Optional[lavalink.Client] = None
         self._db: Optional[aiosqlite.Connection] = None
         self.events = {

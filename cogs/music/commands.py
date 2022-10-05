@@ -15,6 +15,8 @@ from assistant import VideoTrack, time_in_seconds
 class MusicCommands(commands.Cog):
     def __init__(self, client: assistant.Client):
         self.client = client
+        self.logger = client.logger
+        self.player_manager = client.lavalink.player_manager
         lavalink.add_event_hook(self.track_hook)
 
     def cog_unload(self):
@@ -64,7 +66,7 @@ class MusicCommands(commands.Cog):
             # Clear the queue.
             # Stop the current track.
             # Force disconnect to fix reconnecting issues.
-            player: Player = self.client.lavalink.player_manager.get(member.guild.id)
+            player: Player = self.player_manager.get(member.guild.id)
             if player and player.current:
                 for _filter in list(player.filters):
                     await player.remove_filter(_filter)
@@ -85,7 +87,7 @@ class MusicCommands(commands.Cog):
     async def skip(self, inter: disnake.ApplicationCommandInteraction,
                    index: int = commands.Param(description="Enter song index, defaults to current song",
                                                default=0)) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         if not player.is_playing:
             await inter.response.send_message("Nothing is playing.", ephemeral=True)
             return
@@ -105,7 +107,7 @@ class MusicCommands(commands.Cog):
     @music.sub_command(name="stop", description="Stops the current song.")
     @commands.guild_only()
     async def stop(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         if not player.is_playing:
             await inter.response.send_message("Nothing is playing.", ephemeral=True)
             return
@@ -127,7 +129,7 @@ class MusicCommands(commands.Cog):
     @music.sub_command(name="pause", description="Pauses the current song.")
     @commands.guild_only()
     async def pause(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         if player.paused:
             await player.set_pause(False)
             await inter.response.send_message(
@@ -140,7 +142,7 @@ class MusicCommands(commands.Cog):
     # Loop Command
     @music.sub_command(name="loop", description="Loops the current song.")
     async def loop(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         player.set_repeat(repeat=not player.repeat)
         await inter.response.send_message("Loop Enabled" if player.repeat else "Loop Disabled")
 
@@ -150,7 +152,7 @@ class MusicCommands(commands.Cog):
                       index: int =
                       commands.Param(description="Index of the song to skip to, defaults to current song",
                                      default=1)) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         if index >= 1:
             try:
                 await inter.response.send_message(
@@ -165,7 +167,7 @@ class MusicCommands(commands.Cog):
     async def seek(self, inter: disnake.ApplicationCommandInteraction,
                    time: str = commands.Param(description="Time to seek to in MM:SS format, defaults to song start",
                                               default="0")) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
 
         if player.is_playing:
             current_track: VideoTrack = VideoTrack(player.current)
@@ -178,7 +180,7 @@ class MusicCommands(commands.Cog):
     async def volume(self, inter: disnake.ApplicationCommandInteraction,
                      volume: typing.Optional[int] = commands.Param(description="Volume to set the player to. (0-100)",
                                                                    default=None, ge=0, le=100)) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         volume_filter = lavalink.Volume()
         if volume is None:
             await inter.response.send_message(f"Current volume: `{player.volume}%`.")
@@ -194,9 +196,9 @@ class MusicCommands(commands.Cog):
     @music.sub_command(name="nowplaying", description="Shows the current song.")
     async def nowplaying(self, inter: disnake.ApplicationCommandInteraction) -> None:
         await inter.response.defer()
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
         if not player.is_playing:
-            await inter.response.edis_message("Nothing is playing.")
+            await inter.response.edit_message("Nothing is playing.")
             return
         logger = self.client.logger
         volume_filter = lavalink.Volume()
@@ -394,7 +396,7 @@ class MusicCommands(commands.Cog):
     # Queue command
     @music.sub_command(name="queue", description="View the songs in Queue")
     async def queue(self, inter: disnake.ApplicationCommandInteraction):
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id)
 
         class QueuePages(disnake.ui.View):
             def __init__(self):
@@ -463,6 +465,10 @@ class MusicCommands(commands.Cog):
 
         if inter.guild.me.voice and inter.guild.me.voice.channel != inter.author.voice.channel:
             raise commands.CheckFailure("You must be in same VC as Bot.")
+
+        permissions = inter.author.voice.channel.permissions_for(inter.me)
+        if not permissions.connect or not permissions.speak:
+            raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
 
 
 def setup(client):
