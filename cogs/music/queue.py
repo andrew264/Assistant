@@ -33,7 +33,7 @@ class Queue(commands.Cog):
                     self.page_no -= 1
                 else:
                     self.page_no = math.ceil(len(player.queue) / 4)
-                await interaction.response.edit_message(embed=self.QueueEmbed, view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
 
             @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
             async def next_page(self, button: disnake.Button, interaction: disnake.Interaction):
@@ -41,10 +41,10 @@ class Queue(commands.Cog):
                     self.page_no += 1
                 else:
                     self.page_no = 1
-                await interaction.response.edit_message(embed=self.QueueEmbed, view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
 
             @property
-            def QueueEmbed(self) -> disnake.Embed:
+            def embed(self) -> disnake.Embed:
                 first = (self.page_no * 4) - 4
                 if (self.page_no * 4) + 1 <= len(player.queue):
                     last = (self.page_no * 4)
@@ -70,7 +70,7 @@ class Queue(commands.Cog):
 
         await ctx.message.delete()
         view = QueuePages()
-        view.message = await ctx.send(embed=view.QueueEmbed, view=view)
+        view.message = await ctx.send(embed=view.embed, view=view)
 
     @queue.before_invoke
     async def check_voice(self, ctx: commands.Context) -> None:

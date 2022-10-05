@@ -1,5 +1,6 @@
 # Imports
 import asyncio
+import math
 import typing
 
 import disnake
@@ -389,6 +390,67 @@ class MusicCommands(commands.Cog):
             if not player.is_playing or not inter.guild.me.voice:
                 break
             await asyncio.sleep(5)
+
+    # Queue command
+    @music.sub_command(name="queue", description="View the songs in Queue")
+    async def queue(self, inter: disnake.ApplicationCommandInteraction):
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+
+        class QueuePages(disnake.ui.View):
+            def __init__(self):
+                super(QueuePages, self).__init__(timeout=180)
+                self.page_no = 1
+
+            async def on_timeout(self) -> None:
+                self.stop()
+
+            @disnake.ui.button(emoji="◀", style=disnake.ButtonStyle.secondary)
+            async def prev_page(self, button: disnake.Button, interaction: disnake.Interaction):
+                if self.page_no > 1:
+                    self.page_no -= 1
+                else:
+                    self.page_no = math.ceil(len(player.queue) / 4)
+                await interaction.response.edit_message(embed=self.embed, view=self)
+
+            @disnake.ui.button(emoji="▶", style=disnake.ButtonStyle.secondary)
+            async def next_page(self, button: disnake.Button, interaction: disnake.Interaction):
+                if self.page_no < math.ceil(len(player.queue) / 4):
+                    self.page_no += 1
+                else:
+                    self.page_no = 1
+                await interaction.response.edit_message(embed=self.embed, view=self)
+
+            @disnake.ui.button(label="Remove Buttons", emoji="❌", style=disnake.ButtonStyle.danger)
+            async def disable_view(self, button: disnake.Button, interaction: disnake.Interaction):
+                await interaction.response.edit_message(view=None)
+
+            @property
+            def embed(self) -> disnake.Embed:
+                first = (self.page_no * 4) - 4
+                if (self.page_no * 4) + 1 <= len(player.queue):
+                    last = (self.page_no * 4)
+                else:
+                    last = len(player.queue)
+                song_index = [i for i in range(first, last)]
+                if not player.current:
+                    return disnake.Embed(title="Queue is Empty", colour=0xFFA31A)
+                embed = disnake.Embed(
+                    title="Now Playing", colour=0xFFA31A,
+                    description=f"{str(player.current)}", )
+                if len(player.queue) >= 1:
+                    next_songs = "\u200b"
+                    max_page = math.ceil(len(player.queue) / 4)
+                    for i in song_index:
+                        next_songs += f"{i + 1}. {str(player.queue[i])}\n"
+                    embed.add_field(name=f"Next Up ({self.page_no}/{max_page})", value=next_songs, inline=False)
+                if player.repeat:
+                    embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
+                else:
+                    embed.set_footer(text=f"{len(player.queue) + 1} Songs in Queue")
+                return embed
+
+        view = QueuePages()
+        await inter.response.send_message(embed=view.embed, view=view)
 
     @music.before_invoke
     async def ensure_voice(self, inter: disnake.ApplicationCommandInteraction) -> None:
