@@ -1,4 +1,5 @@
 import re
+from typing import List, Tuple
 
 import disnake
 
@@ -28,7 +29,7 @@ def available_clients(member: disnake.Member) -> str:
 
 def remove_brackets(string: str) -> str:
     """Removes brackets from a string"""
-    return re.sub("[\(\[].*?[\)\]]", "", string)
+    return re.sub("[\(\[].*?[\)\]]", "", string).strip()
 
 
 def custom_activity(activity: disnake.CustomActivity, with_time: bool = False, with_url: bool = False) -> str:
@@ -46,36 +47,35 @@ def custom_activity(activity: disnake.CustomActivity, with_time: bool = False, w
     return value
 
 
-def all_activities(member: disnake.Member, with_time: bool = False, with_url: bool = False) -> dict[str, str | None]:
+def all_activities(member: disnake.Member, with_time: bool = False, with_url: bool = False) -> List[Tuple[str, str]]:
     """
     Returns a dictionary of all activities for a Member
     with the key being the activity type and the value being the activity
     set with_time to True to include the time the activity was created
     """
-    activities = {"Status": None, "Playing": None,
-                  "Streaming": None, "Spotify": None, }
+    activities = []
     for _activity in member.activities:
         if isinstance(_activity, disnake.CustomActivity):
-            activities["Status"] = custom_activity(_activity, with_time, with_url)
+            activities.append(("Status", custom_activity(_activity, with_time, with_url)))
 
         elif isinstance(_activity, disnake.Game):
-            activities["Playing"] = \
-                f"{_activity.name}\n**{relative_time(_activity.created_at)}**" if with_time else f"{_activity.name}"
+            _value = f"{_activity.name}\n**{relative_time(_activity.created_at)}**" \
+                if with_time else f"{_activity.name}"
+            activities.append(("Playing", _value))
 
         elif isinstance(_activity, disnake.Streaming):
-            activities["Streaming"] = f"[{_activity.name}]({_activity.url})" if with_url else f"{_activity.name}"
+            activities.append(("Streaming", f"{_activity.name}]({_activity.url})" if with_url else f"{_activity.name}"))
 
         elif isinstance(_activity, disnake.Spotify):
-            activities["Spotify"] = \
-                f"Listening to [{remove_brackets(_activity.title)}]({_activity.track_url} \"by {', '.join(_activity.artists)}\")" \
-                    if with_url else f"Listening to {remove_brackets(_activity.title)} by {', '.join(_activity.artists)}"
+            _value = f"Listening to [{remove_brackets(_activity.title)}]({_activity.track_url} \"" \
+                     + f"by {', '.join(_activity.artists)}\")" \
+                if with_url else f"Listening to {remove_brackets(_activity.title)}" \
+                                 + f" by {', '.join(_activity.artists)}"
+            activities.append(("Spotify", _value))
 
         elif isinstance(_activity, disnake.Activity):
-            if activities["Playing"] is None:
-                activities[str(_activity.type).capitalize()] = \
-                    f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" if with_time else f"{_activity.name}"
-            else:
-                activities["Also Playing"] = \
-                    f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" if with_time else f"{_activity.name}"
+            _value = f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" \
+                if with_time else f"{_activity.name}"
+            activities.append((str(_activity.type.name).capitalize(), _value))
 
     return activities

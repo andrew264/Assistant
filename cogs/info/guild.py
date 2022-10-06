@@ -8,16 +8,16 @@ class Guild(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(name="guildinfo", description="Guild info")
+    @commands.slash_command(name="guild-info", description="Server info")
     @commands.guild_only()
     async def guild_info(self, inter: disnake.ApplicationCommandInteraction):
         guild = inter.guild
         embed = disnake.Embed(title=guild.name, color=colour_gen(guild.id))
         embed.description = guild.description if guild.description else ""
         embed.add_field(name="Guild Owner", value=guild.owner.mention)
-        embed.add_field(name="Created At",
+        embed.add_field(name="Created On",
                         value=f"{long_date(guild.created_at)}\n{relative_time(guild.created_at)}")
-        embed.add_field(name="Guild ID", value=guild.id)
+        embed.add_field(name="Guild ID", value=f"`{guild.id}`")
         members = [member for member in guild.members if not member.bot]
         embed.add_field(name="No. of Members", value=len(members))
         online_members = [member for member in guild.members if member.raw_status != "offline" and not member.bot]

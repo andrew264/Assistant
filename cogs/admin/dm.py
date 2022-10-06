@@ -36,8 +36,7 @@ class OnDM(commands.Cog):
             await ctx.send("Please provide a message or an attachment")
             return
         try:
-            channel = await user.create_dm()
-            await channel.send(content=msg if msg else None, files=files)
+            await user.send(content=msg if msg else None, files=files)
         except (disnake.Forbidden | disnake.HTTPException):
             await ctx.send(f"Failed to DM {user}.")
             self.logger.warning(f"Failed to DM {user}.")

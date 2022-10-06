@@ -6,7 +6,7 @@ from EnvVariables import TOKEN, Owner_ID, LL_Host, LL_Port, LL_Password
 
 
 # Client
-def start_client():
+def start_client() -> None:
     client = assistant.Client(
         command_prefix=('.', '+'), case_insensitive=True,
         intents=disnake.Intents.all(), help_command=None,
@@ -20,13 +20,12 @@ def start_client():
     client.logger.info("Starting client...")
 
     # load all cogs
+    client.logger.info("Loading cogs...")
     client.load_extensions("./cogs")
     client.load_extensions("./cogs/admin")
     client.load_extensions("./cogs/misc")
     client.load_extensions("./cogs/tasks")
     client.load_extensions("./cogs/info")
-
-    client.logger.info("All cogs loaded.")
 
     client.run(TOKEN)
 

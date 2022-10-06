@@ -13,7 +13,7 @@ from assistant import colour_gen, getch_hook
 FEMALE_ROLES = (789081456110075936, 838868317779394560, 956593551943278612)
 
 
-def DeathMsgGen(victim: str, killer: str) -> str:
+def death_msg_gen(victim: str, killer: str) -> str:
     death_msgs: tuple = (
         " was shot by ",
         " drowned whilst trying to escape ",
@@ -37,10 +37,11 @@ def DeathMsgGen(victim: str, killer: str) -> str:
         return killer + choice(death_msgs) + victim
 
 
-def PPgen(user_id: int) -> str:
+def pp_generator(user_id: int) -> str:
     special_characters = (Owner_ID,)
     if user_id in special_characters:
-        return f'[8{"=" * randint(7, 12)}D](https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
+        return f'[8{"=" * randint(7, 12)}D]' + \
+               '(https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
     else:
         return f"8{'=' * randint(0, 9)}D"
 
@@ -69,7 +70,7 @@ class Fun(commands.Cog):
         elif user.bot:
             pp_embed.add_field(name="There is no sign of life in here.", value="\u200b")
         else:
-            pp_embed.add_field(name=f"{user.display_name}'s PP:", value=PPgen(user.id), )
+            pp_embed.add_field(name=f"{user.display_name}'s PP:", value=pp_generator(user.id), )
         pp_embed.set_footer(text=f"Inspected by: {inter.author.display_name}")
         await inter.response.send_message(embed=pp_embed)
 
@@ -85,7 +86,7 @@ class Fun(commands.Cog):
         if user.bot:
             kill_embed.add_field(name="You cannot attack my kind.", value="\u200b")
         else:
-            kill_embed.add_field(name=DeathMsgGen(user.display_name, inter.author.display_name), value="\u200b", )
+            kill_embed.add_field(name=death_msg_gen(user.display_name, inter.author.display_name), value="\u200b", )
         await inter.response.send_message(embed=kill_embed)
 
     @commands.slash_command(description="Bam a User from this server.")

@@ -10,6 +10,7 @@ class Ready(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         self.client.load_extensions("./cogs/music")
+        self.client.logger.info("All cogs loaded.")
         self.client.logger.info(f"{self.client.user} is ready!")
 
     @commands.Cog.listener()

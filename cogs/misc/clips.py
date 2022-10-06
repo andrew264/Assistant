@@ -12,7 +12,9 @@ class Clips(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(name="clips", guild_ids=[PROB])
+    @commands.slash_command(name="clips",
+                            guild_ids=[int(name) for name in os.listdir("./clips") if
+                                       os.path.isdir(os.path.join("./clips", name))])
     @commands.guild_only()
     async def clips(self, inter: disnake.ApplicationCommandInteraction) -> None:
         """Play mp3 in Voice Channel """
@@ -25,7 +27,8 @@ class Clips(commands.Cog):
                 class ClipDropdown(disnake.ui.Select):
                     def __init__(self):
                         super().__init__(placeholder="Select a clip", custom_id="clips", min_values=1, max_values=1,
-                                         options=[disnake.SelectOption(label=clip) for clip in os.listdir('clips/') if
+                                         options=[disnake.SelectOption(label=clip)
+                                                  for clip in os.listdir(f'clips/{inter.guild.id}') if
                                                   clip.endswith('.mp3')], )
 
                     async def callback(self, interaction: disnake.MessageInteraction):
@@ -57,7 +60,7 @@ class Clips(commands.Cog):
                     return
                 if voice.is_playing:
                     voice.stop()
-                voice.play(disnake.FFmpegPCMAudio(f"clips/{clip}"))
+                voice.play(disnake.FFmpegPCMAudio(f"clips/{inter.guild.id}/{clip}"))
                 await interaction.response.edit_message(content=f"Playing {clip}...")
 
             @disnake.ui.button(emoji="⏹️", style=disnake.ButtonStyle.danger)

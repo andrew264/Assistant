@@ -7,13 +7,11 @@ from disnake.ext import commands
 from lavalink.client import DefaultPlayer as Player
 from lyricsgenius import Genius
 from lyricsgenius.song import Song
-from yt_dlp import YoutubeDL
 
 from EnvVariables import GENIUS_TOKEN
 from assistant import Client, VideoTrack, remove_brackets, colour_gen
 
 genius = Genius(GENIUS_TOKEN, verbose=False, skip_non_songs=True, )
-ydl_opts = {'quiet': True, 'no_warnings': True, }
 
 
 class GLyrics:
@@ -28,6 +26,8 @@ class GLyrics:
 
     @staticmethod
     def _get_lyrics(title, artist) -> Optional[Song]:
+        if not title:
+            return None
         song: Song = genius.search_song(title, artist)
         return song if (song and song.lyrics) else None
 
@@ -36,17 +36,6 @@ class GLyrics:
         lyrics = re.sub(r"[0-9]*Embed*", "", lyrics)
         lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
         return list(lyrics.split("\n\n"))
-
-    @staticmethod
-    def _get_from_yt(identifier):
-        with YoutubeDL(ydl_opts) as ydl:
-            video = ydl.extract_info(identifier, download=False)
-        try:
-            title: str = re.sub(r"\([^()]*\)", "", video["track"])
-            artist: str = list((video["artist"]).split(","))[0]
-        except KeyError:
-            return None
-        return title, artist
 
     def _embeds_list(self) -> list[disnake.Embed]:
         embeds = []
@@ -71,7 +60,8 @@ class GLyrics:
             self.album_art = spotify.album_cover_url
             self.colour = spotify.color
         elif yt:
-            title, artist = await loop.run_in_executor(None, self._get_from_yt, yt.identifier)
+            title = remove_brackets(yt.title.split('-')[-1])
+            artist = yt.title.split('-')[0].split(',')[0].strip()
             self.url = yt.uri
             self.icon = "https://www.gstatic.com/images/branding/product/1x/youtube_64dp.png"
             self.album_art = yt.thumbnail
@@ -145,6 +135,10 @@ class Lyrics(commands.Cog):
                     await interaction.response.edit_message(embed=embeds[self.page_no], view=self, )
 
             await inter.edit_original_message(embed=embeds[0], view=Pages())
+
+    @lyrics.error
+    async def lyrics_error(self, inter: disnake.ApplicationCommandInteraction, error: Exception) -> None:
+        await inter.edit_original_message(content="Unknown Error Occurred. Please try again later.")
 
 
 def setup(client):

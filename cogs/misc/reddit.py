@@ -55,7 +55,7 @@ class Reddit(commands.Cog):
         for post in posts:
             embed = disnake.Embed(title=post.title, colour=0xFF5700)
             embed.set_author(name=f"Uploaded by u/{post.author.name} on {post.subreddit_name_prefixed}",
-                             url=f"http://reddit.com{post.permalink}")
+                             url=f"https://reddit.com{post.permalink}")
             embed.set_footer(text=f"Requested by: {inter.author.display_name}")
             if any(vid in post.url for vid in gif_sites):
                 await inter.channel.send(embed=embed)
@@ -86,7 +86,7 @@ class Reddit(commands.Cog):
         for post in posts:
             embed = disnake.Embed(title=post.title, colour=0xFF5700)
             embed.set_author(name=f"Uploaded by u/{post.author} on {post.subreddit_name_prefixed}",
-                             url=f"http://reddit.com{post.permalink}")
+                             url=f"https://reddit.com{post.permalink}")
             embed.set_footer(text=f"Requested by: {inter.author.display_name}")
             if any(vid in post.url for vid in gif_sites):
                 await inter.channel.send(embed=embed)

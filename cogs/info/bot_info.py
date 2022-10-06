@@ -14,8 +14,12 @@ class BotInfo(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(description="Shows Bot's Info")
-    async def botinfo(self, inter: disnake.ApplicationCommandInteraction) -> None:
+    @commands.slash_command(description="Information about the bot")
+    async def bot(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        pass
+
+    @bot.sub_command(name="info", description=f"Shows Bot's Info")
+    async def _bot_info(self, inter: disnake.ApplicationCommandInteraction) -> None:
         user = self.client.user
         embed = disnake.Embed(color=0xFF0060, description=user.mention)
         embed.set_author(name=user, icon_url=user.avatar.url)
@@ -28,8 +32,8 @@ class BotInfo(commands.Cog):
         embed.set_footer(text=f"User ID: {user.id}")
         await inter.response.send_message(embed=embed)
 
-    @commands.slash_command(description="Shows Bot's Stats")
-    async def stats(self, inter: disnake.ApplicationCommandInteraction) -> None:
+    @bot.sub_command(name="stats", description="Shows Bot's Stats")
+    async def _bot_stats(self, inter: disnake.ApplicationCommandInteraction) -> None:
         user = self.client.user
         embed = disnake.Embed(color=0xFF0060, description=user.mention)
         embed.add_field(name="Python Version", value=f"v. {python_version()}")
@@ -44,7 +48,8 @@ class BotInfo(commands.Cog):
                         value=f"{human_bytes(lava_stats.memory_used)}/{human_bytes(lava_stats.memory_allocated)}")
         embed.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%", inline=False)
         embed.add_field(name="System Memory Usage",
-                        value=f"{human_bytes(psutil.virtual_memory().used)}/{human_bytes(psutil.virtual_memory().total)}")
+                        value=f"{human_bytes(psutil.virtual_memory().used)}/" +
+                              f"{human_bytes(psutil.virtual_memory().total)}")
         embed.set_footer(text=f"User ID: {user.id}")
         await inter.response.send_message(embed=embed)
 

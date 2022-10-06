@@ -123,10 +123,10 @@ class Surveillance(commands.Cog):
                 return
 
         # Activities
-        for b_key, b_value in all_activities(before, with_url=True).items():
+        for b_key, b_value in all_activities(before, with_url=True):
             if b_key == "Spotify":
                 continue
-            for a_key, a_value in all_activities(after, with_url=True).items():
+            for a_key, a_value in all_activities(after, with_url=True):
                 if b_key != a_key or b_value == a_value:
                     continue
                 if b_value and not a_value:

@@ -61,7 +61,7 @@ class MusicCommands(commands.Cog):
                                     before: disnake.VoiceState, after: disnake.VoiceState):
         if member != self.client.user:
             return  # We don't care about other people's voice state changes
-        if before.channel and after.channel is None:
+        if before.channel and not after.channel:
             # remove all applied filters and effects
             # Clear the queue.
             # Stop the current track.
@@ -73,7 +73,8 @@ class MusicCommands(commands.Cog):
                 player.queue.clear()
                 await player.stop()
                 voice = member.guild.voice_client
-                await voice.disconnect(force=True)
+                if voice:
+                    await voice.disconnect(force=True)
 
     # Group Commands
     @commands.slash_command(name="music", description="Music related commands.")
