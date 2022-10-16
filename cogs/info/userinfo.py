@@ -100,9 +100,9 @@ class UserInfo(commands.Cog):
             elif isinstance(activity, disnake.Spotify):
                 _url.append(activity.album_cover_url)
             else:
-                if activity.large_image_url:
+                if hasattr(activity, 'large_image_url'):
                     _url.append(activity.large_image_url)
-                elif activity.small_image_url:
+                elif hasattr(activity, 'small_image_url'):
                     _url.append(activity.small_image_url)
         if not _url:
             _url.append(user.display_avatar.url)

@@ -25,6 +25,9 @@ class Surveillance(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: disnake.Message, after: disnake.Message) -> None:
+        """
+        Logs edited messages
+        """
         if before.guild is None or before.guild.id != HOMIES:
             return
         if before.author.bot:
@@ -45,6 +48,9 @@ class Surveillance(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: disnake.Message) -> None:
+        """
+        Logs deleted messages
+        """
         if message.guild is None or message.guild.id != HOMIES:
             return
         if message.author.bot or message.author.id == Owner_ID:
@@ -57,12 +63,14 @@ class Surveillance(commands.Cog):
         hook = await getch_hook(self.homies_log)
         await hook.send(embed=embed,
                         username=author.display_name, avatar_url=author.display_avatar.url, delete_after=600)
-        self.logger.info(f"{author.display_name} deleted a message in #{message.channel.name}")
+        self.logger.info(f"{author.display_name} deleted a message in #{message.channel.name}\n" +
+                         f"\tMessage: {message.clean_content}")
 
     @commands.Cog.listener()
     async def on_member_update(self, before: disnake.Member, after: disnake.Member) -> None:
-        if before.guild.id not in (HOMIES, PROB):
-            return
+        """
+        Logs when a member updates their Nickname.
+        """
         if before.bot:
             return
         if before.id == Owner_ID:
@@ -81,34 +89,43 @@ class Surveillance(commands.Cog):
         if hook:
             await hook.send(embed=embed,
                             username=after.display_name, avatar_url=after.display_avatar.url, delete_after=600)
-        self.logger.info(f"Nickname update: {before.display_name} -> {after.display_name}")
+        self.logger.info(f"Nickname update in {before.guild.name}: {before.display_name} -> {after.display_name}")
 
     @commands.Cog.listener()
     async def on_user_update(self, before: disnake.User, after: disnake.User) -> None:
-        member = self.client.get_guild(HOMIES).get_member(before.id)
+        """
+        Logs when a user updates their username.
+        """
+        member: disnake.Member = disnake.utils.get(self.client.get_all_members(), id=before.id)
         if member is None:
             return
         if before.bot or before.id == Owner_ID:
             return
         if str(before) == str(after):
             return
-        embed = Embed(colour=colour_gen(before.id))
-        embed.set_author(name=f"Username Change", icon_url=before.display_avatar.url)
-        embed.add_field(name="Old Username", value=str(before), inline=False, )
-        embed.add_field(name="New Username", value=str(after), inline=False, )
-        embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        hook = await getch_hook(self.homies_log)
-        await hook.send(embed=embed,
-                        username=member.display_name, avatar_url=member.display_avatar.url, delete_after=1200)
-        self.logger.info(f"Username change: {before} -> {after}")
+        if member.guild.id == HOMIES:
+            embed = Embed(colour=colour_gen(before.id))
+            embed.set_author(name=f"Username Change", icon_url=before.display_avatar.url)
+            embed.add_field(name="Old Username", value=str(before), inline=False, )
+            embed.add_field(name="New Username", value=str(after), inline=False, )
+            embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
+            hook = await getch_hook(self.homies_log)
+            await hook.send(embed=embed,
+                            username=member.display_name, avatar_url=member.display_avatar.url, delete_after=1200)
+        self.logger.info(f"Username change in {member.guild.name}: {before} -> {after}")
 
     @commands.Cog.listener()
     async def on_presence_update(self, before: disnake.Member, after: disnake.Member) -> None:
-        if before.guild is None or before.guild.id != HOMIES:
+        """
+        Logs when a member changes their status/activity.
+        """
+        if before.guild is None:
             return
         if before.bot:
             return
         if before.id == Owner_ID:
+            return
+        if before.guild.id != HOMIES:
             return
         hook = await getch_hook(self.homies_log)
         logger = self.logger
@@ -116,7 +133,8 @@ class Surveillance(commands.Cog):
         if available_clients(before) != available_clients(after):
             embed.add_field(name=f"Client/Status", value=f"{available_clients(before)} ──> {available_clients(after)}",
                             inline=False, )
-            logger.info(f"{before}'s client update {available_clients(before)} -> {available_clients(after)}")
+            logger.info(f"[{before.guild.name}] {before}'s client update" +
+                        f" {available_clients(before)} -> {available_clients(after)}")
             if before.raw_status == "offline" or after.raw_status == "offline":
                 await hook.send(embed=embed,
                                 username=after.display_name, avatar_url=after.display_avatar.url, delete_after=1200)
@@ -131,13 +149,13 @@ class Surveillance(commands.Cog):
                     continue
                 if b_value and not a_value:
                     embed.add_field(name=f"Stopped {b_key}:", value=f"{b_value}", inline=False, )
-                    logger.info(f"{before} stopped {b_key}: {b_value}")
+                    logger.info(f"[{before.guild.name}] {before} stopped {b_key}: {b_value}")
                 elif a_value and not b_value:
                     embed.add_field(name=f"Started {b_key}:", value=f"{a_value}", inline=False, )
-                    logger.info(f"{before} started {b_key}: {a_value}")
+                    logger.info(f"[{before.guild.name}] {before} started {b_key}: {a_value}")
                 else:
                     embed.add_field(name=f"Changed {b_key}:", value=f"{b_value} ──> {a_value}", inline=False, )
-                    logger.info(f"{before} changed {b_key}: {b_value} -> {a_value}")
+                    logger.info(f"[{before.guild.name}] {before} changed {b_key}: {b_value} -> {a_value}")
 
         if len(embed.fields):
             await hook.send(embed=embed,
@@ -146,21 +164,22 @@ class Surveillance(commands.Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member, before: disnake.VoiceState,
                                     after: disnake.VoiceState) -> None:
-        if member.guild.id not in (HOMIES, PROB):
-            return
+        """
+        Logs when a member joins/leaves a voice channel.
+        """
         if member.bot or member.id == Owner_ID:
             return
         if after.channel == before.channel or (before is None and after is None):
             return
         if after.channel and not before.channel:
             msg = f"Joined {after.channel.mention}"
-            log_msg = f"Joined {after.channel.name}"
+            log_msg = f"Joined #{after.channel.name}"
         elif before.channel and not after.channel:
             msg = f"Left {before.channel.mention}"
-            log_msg = f"Left {before.channel.name}"
+            log_msg = f"Left #{before.channel.name}"
         else:
             msg = f"Moved from {before.channel.mention} to {after.channel.mention}"
-            log_msg = f"Moved from {before.channel.name} to {after.channel.name}"
+            log_msg = f"Moved from #{before.channel.name} to #{after.channel.name}"
         hook = None
         if member.guild.id == PROB:
             hook = await getch_hook(self.prob_log)
@@ -168,10 +187,11 @@ class Surveillance(commands.Cog):
             hook = await getch_hook(self.homies_log)
         if hook:
             await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url, delete_after=300)
-        self.logger.info(f"{member.display_name}: {log_msg}")
+        self.logger.info(f"[{member.guild.name}] {member.display_name}: {log_msg}")
 
     @commands.Cog.listener()
     async def on_typing(self, channel: disnake.TextChannel, user: disnake.Member, when: datetime) -> None:
+        """Logs when a user starts typing in a channel."""
         if isinstance(channel, disnake.DMChannel):
             return
         if channel.guild.id != HOMIES:
@@ -180,6 +200,42 @@ class Surveillance(commands.Cog):
             return
         await self.homies_log.send(f"{user.display_name} started typing in {channel.mention}", delete_after=120)
         self.logger.info(f"{user.display_name} started typing in {channel.name}")
+
+    @commands.Cog.listener()
+    async def on_raw_member_remove(self, payload: disnake.RawGuildMemberRemoveEvent) -> None:
+        """Logs when a member leaves a server."""
+        if payload.user.bot:
+            return
+        if payload.guild_id == HOMIES:
+            await self.homies_log.send(f"{payload.user.display_name} left the server")
+        self.logger.info(f"{payload.user.display_name} left {self.client.get_guild(payload.guild_id).name}")
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: disnake.Member) -> None:
+        """Logs when a member joins a server."""
+        if member.bot:
+            return
+        if member.guild.id == HOMIES:
+            await self.homies_log.send(f"{member.display_name} joined the server")
+        self.logger.info(f"{member.display_name} joined {member.guild.name}")
+
+    @commands.Cog.listener()
+    async def on_member_ban(self, guild: disnake.Guild, user: disnake.User) -> None:
+        """Logs when a member is banned from a server."""
+        if user.bot:
+            return
+        if guild.id == HOMIES:
+            await self.homies_log.send(f"{user.display_name} was banned from the server")
+        self.logger.info(f"{user.display_name} was banned from {guild.name}")
+
+    @commands.Cog.listener()
+    async def on_member_unban(self, guild: disnake.Guild, user: disnake.User) -> None:
+        """Logs when a member is unbanned from a server."""
+        if user.bot:
+            return
+        if guild.id == HOMIES:
+            await self.homies_log.send(f"{user.display_name} was unbanned from the server")
+        self.logger.info(f"{user.display_name} was unbanned from {guild.name}")
 
 
 def setup(client):

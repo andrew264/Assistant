@@ -27,9 +27,9 @@ class HelpMe(commands.Cog):
             general_embed = Embed(color=Colour.blurple())
             general_embed.set_author(name="General Commands")
             general_embed.add_field(name="`/userinfo`", value="User's Info")
-            general_embed.add_field(name="`/botinfo`", value="Bot's Info")
-            general_embed.add_field(name="`/stats`", value="Bot's Stats")
-            general_embed.add_field(name="`/guildinfo`", value="Guild's Stats")
+            general_embed.add_field(name="`/bot info`", value="Bot's Info")
+            general_embed.add_field(name="`/bot stats`", value="Bot's Stats")
+            general_embed.add_field(name="`/guild-info`", value="Guild's Stats")
             # general_embed.add_field(name="`/chat create`", value="Create a new Private Chat", inline=False)
             general_embed.add_field(name="`/introduce`", value="Introduce Yourself", inline=False)
             general_embed.add_field(name="`/help`", value="Get this help message", inline=False)
@@ -44,17 +44,8 @@ class HelpMe(commands.Cog):
             # Music Commands
             music_embed = Embed(color=Colour.green())
             music_embed.set_author(name="Play Music from YouTube in VC")
-            music_embed.add_field(name="`.play`   <query>", value="Search or Enter URL")
-            music_embed.add_field(name="`/play`", value="Same as `.play` but BETTER")
-            music_embed.add_field(name="`.pause`", value="Pause Music")
-            music_embed.add_field(name="`.stop`", value="Disconnect Bot from VC")
-            music_embed.add_field(name="`.np`", value="Display Now Playing")
-            music_embed.add_field(name="`.queue`", value="Songs in Queue")
-            music_embed.add_field(name="`.seek`   <01:23>", value="Seek to a specific time")
-            music_embed.add_field(name="`.skip`\t<song_index>", value="Skip Songs")
-            music_embed.add_field(name="`.loop`", value="Toggle Loop")
-            music_embed.add_field(name="`.jump`\t<song_index>", value="Skip to a Song")
-            music_embed.add_field(name="`.filter`", value="Apply Filters to Song")
+            music_embed.add_field(name="`/play`", value="Play a song from YouTube", inline=False)
+            music_embed.add_field(name="`/music ____`", value="Self Explanatory", inline=False)
             for child in self.children:
                 child.disabled = False
             _button.disabled = True
