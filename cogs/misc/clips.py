@@ -33,6 +33,9 @@ class Clips(commands.Cog):
 
                     async def callback(self, interaction: disnake.MessageInteraction):
                         await interaction.response.edit_message(content=f"Selected: {self.values[0]}")
+                        if voice.is_playing:
+                            voice.stop()
+                        voice.play(disnake.FFmpegPCMAudio(f"clips/{inter.guild.id}/{self.values[0]}"))
 
                 self.add_item(ClipDropdown())
 
@@ -43,7 +46,7 @@ class Clips(commands.Cog):
                 except disnake.HTTPException:
                     pass
 
-            @disnake.ui.button(emoji="▶️", style=disnake.ButtonStyle.primary)
+            @disnake.ui.button(emoji="🔄", style=disnake.ButtonStyle.primary)
             async def play(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
                 if interaction.guild.voice_client is None:
                     await interaction.response.edit_message(
