@@ -182,13 +182,13 @@ class MusicCommands(commands.Cog):
                      volume: typing.Optional[int] = commands.Param(description="Volume to set the player to. (0-100)",
                                                                    default=None, ge=0, le=100)) -> None:
         player: Player = self.player_manager.get(inter.guild.id)
-        volume_filter = lavalink.Volume()
         if volume is None:
             await inter.response.send_message(f"Current volume: `{player.volume}%`.")
             return
         if volume > 100 or volume < 0:
             await inter.response.send_message(f"Volume cannot be set to `{volume}%`.", ephemeral=True)
             return
+        volume_filter = lavalink.Volume()
         volume_filter.update(volume=volume / 100)
         await player.set_filter(volume_filter)
         await inter.response.send_message(f"***{inter.author.display_name}*** set volume to `{volume}%`.")
