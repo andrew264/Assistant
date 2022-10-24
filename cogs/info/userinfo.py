@@ -95,7 +95,7 @@ class UserInfo(commands.Cog):
         _url = []
         for activity in user.activities:
             if isinstance(activity, disnake.CustomActivity):
-                if activity.emoji.is_custom_emoji():
+                if activity.emoji and activity.emoji.is_custom_emoji():
                     _url.append(activity.emoji.url)
             elif isinstance(activity, disnake.Spotify):
                 _url.append(activity.album_cover_url)
