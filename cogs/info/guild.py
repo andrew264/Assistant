@@ -24,15 +24,15 @@ class Guild(commands.Cog):
         embed.add_field(name="Members Online", value=len(online_members))
         bot_members = [member for member in guild.members if member.bot]
         embed.add_field(name="No. of Bots",
-                        value=f'[{len(bot_members)}](https://discordapp.com/channels/{guild.id}/{inter.channel.id}\
+                        value=f'[{len(bot_members)}](https://discord.com/channels/{guild.id}/{inter.channel.id}\
                         \" {", ".join([member.display_name for member in bot_members])} \")')
         administrators = [m for m in guild.members if m.guild_permissions.administrator]
         embed.add_field(name="No of Administrators",
-                        value=f'[{len(administrators)}](https://discordapp.com/channels/{guild.id}/{inter.channel.id}\
+                        value=f'[{len(administrators)}](https://discord.com/channels/{guild.id}/{inter.channel.id}\
                         \" {", ".join([a.display_name for a in administrators])} \")')
         in_vc = [m for m in guild.members if m.voice]
         embed.add_field(name="No. of Members in VC",
-                        value=f'[{len(in_vc)}](https://discordapp.com/channels/{guild.id}/{inter.channel.id}\
+                        value=f'[{len(in_vc)}](https://discord.com/channels/{guild.id}/{inter.channel.id}\
                         \" {", ".join([m.display_name for m in in_vc])} \")')
         await inter.response.send_message(embed=embed)
 

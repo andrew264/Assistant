@@ -4,7 +4,6 @@ from typing import Optional
 import disnake
 from disnake.ext import commands
 
-from EnvVariables import PROB
 from assistant import Client
 
 
@@ -47,7 +46,7 @@ class Clips(commands.Cog):
                     pass
 
             @disnake.ui.button(emoji="🔄", style=disnake.ButtonStyle.primary)
-            async def play(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
+            async def repeat_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
                 if interaction.guild.voice_client is None:
                     await interaction.response.edit_message(
                         content="Disconnected for Voice. Use `/clip` to play clips.", view=None)
@@ -61,7 +60,7 @@ class Clips(commands.Cog):
                 else:
                     await interaction.response.edit_message(content="No clip selected", view=self)
                     return
-                if voice.is_playing:
+                if voice and voice.is_playing:
                     voice.stop()
                 voice.play(disnake.FFmpegPCMAudio(f"clips/{inter.guild.id}/{clip}"))
                 await interaction.response.edit_message(content=f"Playing {clip}...")

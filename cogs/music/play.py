@@ -26,12 +26,11 @@ class SlashPlay(commands.Cog):
         result = {"Search: " + query: query}
 
         for identifier, title in self._cache.items():
-            if identifier in query.split('/') \
-                    or identifier in query.split('='):
+            if identifier in query.split('/') or identifier in query.split('='):
                 result[title] = "https://www.youtube.com/watch?v=" + identifier
 
         # search in Titles
-        fuzzy_search = process.extractBests(query, self._cache, score_cutoff=75, limit=7)
+        fuzzy_search = process.extractBests(query, self._cache, score_cutoff=85, limit=7)
         keys = [k[-1] for k in fuzzy_search]
         for key in keys:
             result[self._cache[key]] = "https://www.youtube.com/watch?v=" + key

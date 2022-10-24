@@ -39,6 +39,8 @@ class EvalCommand(commands.Cog):
     @commands.is_owner()
     async def _eval(self, ctx: commands.Context, *, code: str):
         silent = "-s" in code
+        self.client.logger.info(f"Eval command executed by {ctx.author} in {ctx.guild} ({ctx.guild.id})")
+        self.client.logger.info(f"Eval code: {code}")
 
         code = self.prepare(code.replace("-s", ""))
         args = {

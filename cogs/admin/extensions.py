@@ -50,6 +50,25 @@ class Extensions(commands.Cog):
             await ctx.message.add_reaction("✅")
             self.logger.info(f"Reloaded extension: cogs.{extension}")
 
+    @commands.command(name="reloadall", hidden=True)
+    @commands.is_owner()
+    async def reload_all(self, ctx: commands.Context) -> None:
+        try:
+            for extension in self.client.extensions:
+                self.client.reload_extension(extension)
+        except Exception as e:
+            await ctx.message.add_reaction("☠️")
+            await ctx.send(f"{type(e).__name__}: {e}")
+            self.logger.warning(f"Failed to reload all extensions")
+        else:
+            await ctx.message.add_reaction("✅")
+            self.logger.info(f"Reloaded all extensions")
+
+    @commands.command(name="listext", hidden=True)
+    @commands.is_owner()
+    async def list_extensions(self, ctx: commands.Context) -> None:
+        await ctx.send(f"```{', '.join(self.client.extensions.keys())}```")
+
 
 def setup(client):
     client.add_cog(Extensions(client))

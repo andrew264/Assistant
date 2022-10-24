@@ -49,7 +49,9 @@ class BotInfo(commands.Cog):
         embed.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%", inline=False)
         embed.add_field(name="System Memory Usage",
                         value=f"{human_bytes(psutil.virtual_memory().used)}/" +
-                              f"{human_bytes(psutil.virtual_memory().total)}")
+                              f"{human_bytes(psutil.virtual_memory().total)}", inline=False)
+        embed.add_field(name="Message Events", value=f"{self.client.events['messages']}")
+        embed.add_field(name="Presence Update Events", value=f"{self.client.events['presence_update']}")
         embed.set_footer(text=f"User ID: {user.id}")
         await inter.response.send_message(embed=embed)
 

@@ -3,6 +3,7 @@ import io
 import disnake
 from disnake.ext import commands
 
+from EnvVariables import HOMIES
 from assistant import Client, colour_gen
 
 
@@ -10,7 +11,7 @@ class UpdateAvatar(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
 
-    @commands.slash_command(name="change_avatar", description="Change Bot's avatar", guild_ids=[821758346054467584])
+    @commands.slash_command(name="change_avatar", description="Change Bot's avatar", guild_ids=[HOMIES])
     @commands.is_owner()
     async def client_avatar_update(self, inter: disnake.ApplicationCommandInteraction,
                                    avatar: disnake.Attachment = commands.Param(description="Avatar to change to")):

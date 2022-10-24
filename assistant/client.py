@@ -33,8 +33,6 @@ class Client(commands.Bot):
         self._db: Optional[aiosqlite.Connection] = None
         self.events = {
             'messages': 0,
-            'socket_send': 0,
-            'socket_receive': 0,
             'presence_update': 0,
         }
         self._start_time = datetime.now(timezone.utc)

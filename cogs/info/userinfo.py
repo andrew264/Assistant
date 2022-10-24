@@ -52,7 +52,7 @@ class UserInfo(commands.Cog):
 
         embed.set_author(name=user, icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=self._get_thumbnail(user))
-        is_owner: bool = user.guild.owner == user and (user.guild.created_at - user.joined_at).total_seconds() < 2
+        is_owner: bool = (user.guild.owner == user) and ((user.joined_at - user.guild.created_at).total_seconds() < 2)
         embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
                         value=f"{long_date(user.joined_at)}\n{relative_time(user.joined_at)}", )
         embed.add_field(name="Account created on",

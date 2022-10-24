@@ -9,17 +9,10 @@ class Ready(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.client.load_extensions("./cogs/music")
-        self.client.logger.info("All cogs loaded.")
-        self.client.logger.info(f"{self.client.user} is ready!")
-
-    @commands.Cog.listener()
-    async def on_socket_raw_send(self, payload):
-        self.client.events['socket_send'] += 1
-
-    @commands.Cog.listener()
-    async def on_socket_raw_receive(self, msg):
-        self.client.events['socket_receive'] += 1
+        if 'cogs.music.play' not in self.client.extensions:
+            self.client.load_extensions("./cogs/music")
+            self.client.logger.info("All cogs loaded.")
+            self.client.logger.info(f"{self.client.user} is ready!")
 
     @commands.Cog.listener()
     async def on_message(self, message):

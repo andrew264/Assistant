@@ -49,7 +49,7 @@ class VoiceClient(disnake.VoiceClient):
         """
         # ensure there is a player_manager when creating a new voice_client
         self.lavalink.player_manager.create(guild_id=self.channel.guild.id)
-        await self.channel.guild.change_voice_state(channel=self.channel)
+        await self.channel.guild.change_voice_state(channel=self.channel, self_mute=False, self_deaf=True)
 
     async def disconnect(self, *, force: bool = True) -> None:
         """
