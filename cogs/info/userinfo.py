@@ -77,14 +77,14 @@ class UserInfo(commands.Cog):
         embed.set_footer(text=f"User ID: {user.id}")
         return embed
 
-    async def _fetch_db(self, user_id: int) -> (str, int):
+    async def _fetch_db(self, user_id: int) -> (Optional[str], Optional[int]):
         """
         Fetch the user's info from the database
         :param user_id: The user's ID
-        :return: The user's description and the timestamp of the last time the user was online
+        :return: The user's description and the timestamp of the last time the user was online can be None
         """
         self.db = await self.client.db_connect()
-        async with self.db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
+        async with self.db.execute("SELECT * FROM Members WHERE USERID = ?", (user_id,)) as cursor:
             value = await cursor.fetchone()
             about: Optional[str] = value[1] if value else None
             timestamp: Optional[int] = value[2] if value else None

@@ -35,16 +35,18 @@ class Introduction(commands.Cog):
         self.client.logger.info(f"{inter.author}: Added introduction {modal_inter.text_values['introduction']}")
 
     async def add_description(self, user_id: int, message: str) -> None:
-        await self.client.log(f"Adding introduction for {user_id}: {message}")
         self.db = await self.client.db_connect()
-        async with self.db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
+        async with self.db.execute("SELECT * FROM Members WHERE USERID = ?", (user_id,)) as cursor:
             value = await cursor.fetchone()
             if value:
-                await self.db.execute(f"UPDATE Members SET ABOUT = '{message}' WHERE USERID = {user_id}")
+                await self.db.execute("UPDATE Members SET ABOUT = ? WHERE USERID = ?", (message, user_id))
+                await self.client.log(f"Updated introduction for {user_id}: {message}")
             else:
                 await self.db.execute("INSERT INTO Members (USERID, ABOUT) VALUES (?,?)", (user_id, message))
+                await self.client.log(f"Adding introduction for {user_id}: {message}")
             if self.db.total_changes:
                 await self.db.commit()
+            return
 
 
 def setup(bot):
