@@ -109,5 +109,5 @@ class UserInfo(commands.Cog):
         return random.choice(_url)
 
 
-def setup(client):
+def setup(client) -> None:
     client.add_cog(UserInfo(client))
