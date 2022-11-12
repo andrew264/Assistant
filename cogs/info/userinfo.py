@@ -106,7 +106,7 @@ class UserInfo(commands.Cog):
         """
         self.db = await self.client.db_connect()
         async with self.db.execute("SELECT COUNT(*) FROM MEMBER_REPORTS WHERE accused_id = ? AND guild_id = ?",
-                                   (user.id, user.guild.id, )) as cursor:
+                                   (user.id, user.guild.id,)) as cursor:
             value = await cursor.fetchone()
             return value[0]
 

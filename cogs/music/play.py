@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 from itertools import islice
 
@@ -9,7 +10,7 @@ from disnake.ext import commands
 from fuzzywuzzy import process
 from lavalink import DefaultPlayer as Player
 
-from assistant import Client, VideoTrack, VoiceClient
+from assistant import Client, VideoTrack, VoiceClient, remove_brackets
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
@@ -21,6 +22,8 @@ class SlashPlay(commands.Cog):
         self._cache = {}
         with open("data/search_cache.json", "r") as f:
             self._cache = json.load(f)
+            f.close()
+        del f
 
     def _search_cache(self, query: str) -> dict:
         result = {"Search: " + query: query}
@@ -40,6 +43,8 @@ class SlashPlay(commands.Cog):
     def _update_cache(self) -> None:
         with open("data/search_cache.json", "w") as f:
             json.dump(self._cache, f, indent=4)
+            f.close()
+        del f
         return
 
     @commands.slash_command(description="Play Music in VC 🎶")
@@ -56,7 +61,7 @@ class SlashPlay(commands.Cog):
         for track in results["tracks"]:
             track = VideoTrack(track, author=inter.author)
             player.add(track)
-            self._cache[track.identifier] = track.title
+            self._cache[track.identifier] = remove_brackets(track.title)
 
             if is_search:  # if is_search, only add the first track
                 break
@@ -118,4 +123,11 @@ class SlashPlay(commands.Cog):
 
 
 def setup(client: Client):
+    # check if cache exists
+    if not os.path.exists("data/search_cache.json"):
+        client.logger.info("Music Search Cache not found, creating one...")
+        with open("data/search_cache.json", "w") as f:
+            json.dump({}, f)
+            f.close()
+        del f
     client.add_cog(SlashPlay(client))

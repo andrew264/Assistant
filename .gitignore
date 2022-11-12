@@ -1,8 +1,7 @@
 # Environment Variables
-config.json
+/config/config.json
 
-# Visual Studio 
-/.vs
+# Environment and Cache
 /env
 *.pyc
 
