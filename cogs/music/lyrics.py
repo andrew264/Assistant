@@ -11,7 +11,7 @@ from lyricsgenius.song import Song
 from EnvVariables import GENIUS_TOKEN
 from assistant import Client, VideoTrack, remove_brackets, colour_gen
 
-genius = Genius(GENIUS_TOKEN, verbose=False, skip_non_songs=True, )
+genius = Genius(GENIUS_TOKEN, verbose=False, skip_non_songs=True, timeout=10)
 
 
 class GLyrics:
@@ -56,12 +56,13 @@ class GLyrics:
         if spotify:
             title, artist = remove_brackets(spotify.title), spotify.artists[0]
             self.url = spotify.track_url
-            self.icon = "https://open.scdn.co/cdn/images/favicon32.8e66b099.png"
+            self.icon = "https://open.spotifycdn.com/cdn/images/favicon32.8e66b099.png"
             self.album_art = spotify.album_cover_url
             self.colour = spotify.color
         elif yt:
-            title = remove_brackets(yt.title.split('-')[-1])
-            artist = yt.title.split('-')[0].split(',')[0].strip()
+            _title = remove_brackets(yt.title).split("-")
+            title = _title[-1].strip()
+            artist = _title[0].split(',')[0].strip() if len(_title) > 1 else ""
             self.url = yt.uri
             self.icon = "https://www.gstatic.com/images/branding/product/1x/youtube_64dp.png"
             self.album_art = yt.thumbnail
@@ -133,6 +134,11 @@ class Lyrics(commands.Cog):
                     else:
                         self.page_no = 0
                     await interaction.response.edit_message(embed=embeds[self.page_no], view=self, )
+
+                @disnake.ui.button(emoji="❌", style=disnake.ButtonStyle.gray)
+                async def remove_buttons(self, button: disnake.Button, interaction: disnake.Interaction) -> None:
+                    await interaction.response.edit_message(view=None)
+                    self.stop()
 
             await inter.edit_original_message(embed=embeds[0], view=Pages())
 

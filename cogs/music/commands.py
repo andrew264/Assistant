@@ -433,9 +433,7 @@ class MusicCommands(commands.Cog):
                 song_index = [i for i in range(first, last)]
                 if not player.current:
                     return disnake.Embed(title="Queue is Empty", colour=0xFFA31A)
-                embed = disnake.Embed(
-                    title="Now Playing", colour=0xFFA31A,
-                    description=f"{str(player.current)}", )
+                embed = disnake.Embed(title="Now Playing", colour=0xFFA31A, description=f"{str(player.current)}", )
                 if len(player.queue) >= 1:
                     next_songs = "\u200b"
                     max_page = math.ceil(len(player.queue) / 4)
