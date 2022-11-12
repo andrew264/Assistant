@@ -20,7 +20,8 @@ class UserInfo(commands.Cog):
                              user: disnake.Member = commands.Param(description="Mention a User",
                                                                    default=lambda inter: inter.author), ) -> None:
         await inter.response.defer()
-        embed = await self.userinfo_embed(user)
+        is_admin: bool = inter.channel.permissions_for(inter.author).administrator
+        embed = await self.userinfo_embed(user, is_admin)
         await inter.edit_original_message(embed=embed)
 
     @commands.user_command(name="Who is this Guy?")
@@ -28,7 +29,8 @@ class UserInfo(commands.Cog):
     @commands.bot_has_permissions(embed_links=True)
     async def userinfo_context(self, inter: disnake.UserCommandInteraction) -> None:
         await inter.response.defer(ephemeral=True)
-        embed = await self.userinfo_embed(inter.target)
+        is_admin: bool = inter.channel.permissions_for(inter.author).administrator
+        embed = await self.userinfo_embed(inter.target, is_admin)
         await inter.edit_original_message(embed=embed)
 
     @commands.command()
@@ -40,7 +42,7 @@ class UserInfo(commands.Cog):
         embed = await self.userinfo_embed(user)
         await ctx.send(embed=embed)
 
-    async def userinfo_embed(self, user: disnake.Member) -> disnake.Embed:
+    async def userinfo_embed(self, user: disnake.Member, is_admin: bool = False) -> disnake.Embed:
 
         embed = disnake.Embed(color=colour_gen(user.id))
         # Description
@@ -59,11 +61,17 @@ class UserInfo(commands.Cog):
                         value=f"{long_date(user.created_at)}\n{relative_time(user.created_at)}", )
         if user.nick is not None:
             embed.add_field(name="Nickname", value=user.nick)
+
+        # No. of Reports
+        report_count: int = await self._fetch_report_count(user) if is_admin else 0
+        if report_count:
+            embed.add_field(name="Total Reports", value=str(report_count))
+
         # Clients
         if user.raw_status != "offline":
             embed.add_field(name="Available Clients", value=available_clients(user))
         # Last Seen
-        if timestamp:
+        if is_admin and timestamp:
             embed.add_field(name="Last Seen" if user.raw_status == 'offline' else "Online for",
                             value=f"{relative_time(timestamp)}")
         # Activities
@@ -77,7 +85,7 @@ class UserInfo(commands.Cog):
         embed.set_footer(text=f"User ID: {user.id}")
         return embed
 
-    async def _fetch_db(self, user_id: int) -> (Optional[str], Optional[int]):
+    async def _fetch_db(self, user_id: int) -> tuple[Optional[str], Optional[int]]:
         """
         Fetch the user's info from the database
         :param user_id: The user's ID
@@ -89,6 +97,18 @@ class UserInfo(commands.Cog):
             about: Optional[str] = value[1] if value else None
             timestamp: Optional[int] = value[2] if value else None
             return about, timestamp
+
+    async def _fetch_report_count(self, user: disnake.Member) -> int:
+        """
+        Fetch the user's total report count from the database
+        :param user: The user
+        :return: The user's report count
+        """
+        self.db = await self.client.db_connect()
+        async with self.db.execute("SELECT COUNT(*) FROM MEMBER_REPORTS WHERE accused_id = ? AND guild_id = ?",
+                                   (user.id, user.guild.id, )) as cursor:
+            value = await cursor.fetchone()
+            return value[0]
 
     @staticmethod
     def _get_thumbnail(user: disnake.Member) -> str:
@@ -105,7 +125,7 @@ class UserInfo(commands.Cog):
                 elif hasattr(activity, 'small_image_url'):
                     _url.append(activity.small_image_url)
         if not _url:
-            _url.append(user.display_avatar.url)
+            return user.display_avatar.url
         return random.choice(_url)
 
 

@@ -43,8 +43,7 @@ class Report(commands.Cog):
         await modal_inter.response.send_message("Report Filed.", ephemeral=True)
 
     async def _add_to_db(self, user: disnake.Member, reason: str, report_by: disnake.Member) -> None:
-        if self._db is None:
-            self._db = await self.client.db_connect()
+        self._db = await self.client.db_connect()
         await self._db.execute(
             f"""INSERT INTO MEMBER_REPORTS (accused_id, accused_name, guild_id, reporter_id, reporter_name, reason)
             VALUES (?, ?, ?, ?, ?, ?)""",

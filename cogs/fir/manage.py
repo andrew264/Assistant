@@ -124,8 +124,7 @@ class Manage(commands.Cog):
 
     async def _fetch_reports(self, user: Optional[disnake.Member] = None,
                              guild_id: Optional[int] = None) -> list[Report]:
-        if self._db is None:
-            self._db = await self.client.db_connect()
+        self._db = await self.client.db_connect()
         if user is None and guild_id is None:
             raise ValueError("Must pass either user or guild_id")
         elif guild_id and user is None:
@@ -143,8 +142,7 @@ class Manage(commands.Cog):
         """
         Deletes a report from the database.
         """
-        if self._db is None:
-            self._db = await self.client.db_connect()
+        self._db = await self.client.db_connect()
         await self._db.execute("DELETE FROM MEMBER_REPORTS WHERE report_id = ?", (report_id,))
         self.client.logger.info(f"Deleted report #{report_id}")
         await self._db.commit()

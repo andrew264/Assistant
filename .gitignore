@@ -18,6 +18,7 @@ MusicCache.json
 
 # PyCharm
 /.idea
+/.run
 
 # theme
 /theme
