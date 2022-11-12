@@ -11,22 +11,13 @@ config.json
 
 # ignore database
 *.sqlite3
-*.sql
 
 # ignore Music Cache
-MusicCache.json
+/data/search_cache.json
 
 # PyCharm
 /.idea
 /.run
 
-# theme
-/theme
-*.tcl
-
 # audio clips
 /clips
-
-# ignore chatbot data
-/data/data.pth
-/data/intents.json
