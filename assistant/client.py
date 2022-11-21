@@ -1,13 +1,15 @@
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional, Any
+import subprocess
 
 import aiosqlite
 import disnake
 import lavalink
 from disnake.ext import commands
 
-from EnvVariables import DM_Channel
+from EnvVariables import DM_Channel, LavalinkConfig
 from assistant import log
 
 
@@ -17,17 +19,6 @@ class Client(commands.Bot):
         Custom Client class for the Assistant.
         This Inherits from disnake's Bot class.
         """
-        self._lava_host: str = options.get('lava_host')
-        self._lava_port: int = options.get('lava_port')
-        self._lava_password: str = options.get('lava_password')
-        self._lava_region: str = options.get('lava_region')
-        self._lava_node_name: str = options.get('lava_node_name')
-        options.pop('lava_host')
-        options.pop('lava_port')
-        options.pop('lava_password')
-        options.pop('lava_region')
-        options.pop('lava_node_name')
-
         super().__init__(**options)
         self._lavalink: Optional[lavalink.Client] = None
         self._db: Optional[aiosqlite.Connection] = None
@@ -38,16 +29,34 @@ class Client(commands.Bot):
         self._start_time = datetime.now(timezone.utc)
         self._log_handler: Optional[logging.Logger] = None
 
+        # Start Lavalink Server
+        self.start_lavalink()
+
     @property
     def lavalink(self):
         """
         Returns the Lavalink Client
         """
         if self._lavalink is None:
+            config = LavalinkConfig()
             self._lavalink = lavalink.Client(self.user.id)
-            self._lavalink.add_node(self._lava_host, self._lava_port,
-                                    self._lava_password, self._lava_region, self._lava_node_name)
+            self._lavalink.add_node(host=config.host, port=config.port, password=config.password,
+                                    region=config.region, name=config.node_name)
+            del config
         return self._lavalink
+
+    def start_lavalink(self) -> None:
+        """
+        Starts the Lavalink Server
+        """
+        self.logger.info("Starting Lavalink Server...")
+        env = os.environ.copy()
+        env['PATH'] = LavalinkConfig.JAVA_PATH + os.pathsep + env['PATH']
+        subprocess.Popen(["java", "-Xmx256M", "-Xms256M", "-jar", "Lavalink.jar"],
+                         cwd=LavalinkConfig.LAVALINK_PATH,
+                         env=env, shell=True,
+                         creationflags=subprocess.CREATE_NEW_CONSOLE)
+        self.logger.info("Lavalink Server Started.")
 
     @property
     def start_time(self) -> datetime:

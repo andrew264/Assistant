@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from os.path import exists
 
@@ -18,10 +19,18 @@ GENIUS_TOKEN = config["GENIUS_API_KEY"]
 # Youtube Data API
 YT_TOKEN = config["YOUTUBE_API_KEY"]
 
+
 # Lavalink Node
-LL_Host = config["LAVALINK_HOST"]
-LL_Port = config["LAVALINK_PORT"]
-LL_Password = config["LAVALINK_PASSWORD"]
+@dataclasses.dataclass
+class LavalinkConfig:
+    JAVA_PATH: str = config["LAVALINK"]["JAVA_PATH"]
+    LAVALINK_PATH: str = config["LAVALINK"]["LAVALINK_PATH"]
+    host: str = config["LAVALINK"]["HOST"]
+    port: int = config["LAVALINK"]["PORT"]
+    password: str = config["LAVALINK"]["PASSWORD"]
+    region: str = "in"
+    node_name: str = "assistant-node"
+
 
 # Guilds that are Important
 HOMIES = 821758346054467584
