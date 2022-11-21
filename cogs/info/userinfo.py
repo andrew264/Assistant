@@ -20,9 +20,31 @@ class UserInfo(commands.Cog):
                              user: disnake.Member = commands.Param(description="Mention a User",
                                                                    default=lambda inter: inter.author), ) -> None:
         await inter.response.defer()
+        userinfo_embed = self.userinfo_embed
+
         is_admin: bool = inter.channel.permissions_for(inter.author).administrator
-        embed = await self.userinfo_embed(user, is_admin)
-        await inter.edit_original_message(embed=embed)
+
+        class View(disnake.ui.View):
+            def __init__(self):
+                super().__init__(timeout=60)
+
+            async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
+                return True if interaction.user == inter.author else False
+
+            async def on_timeout(self):
+                try:
+                    await inter.edit_original_message(view=None)
+                except disnake.NotFound:
+                    pass
+
+            @disnake.ui.user_select(placeholder="Select a User", min_values=1, max_values=1)
+            async def select_user(self, select: disnake.ui.Select, interaction: disnake.Interaction) -> None:
+                selected_user: disnake.Member = select.values[0]
+                await interaction.response.edit_message(embed=await userinfo_embed(selected_user, is_admin),
+                                                        view=self)
+
+        await inter.edit_original_message(embed=await self.userinfo_embed(user, is_admin),
+                                          view=View())
 
     @commands.user_command(name="Who is this Guy?")
     @commands.guild_only()

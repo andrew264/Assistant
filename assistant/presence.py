@@ -42,7 +42,7 @@ def custom_activity(activity: disnake.CustomActivity, with_time: bool = False, w
             value += f"{activity.emoji} " if not activity.emoji.is_custom_emoji() else f" "
     if activity.name is not None:
         value += f"{activity.name}"
-    if with_time:
+    if with_time and activity.created_at:
         value += f"\n**<t:{int(activity.created_at.timestamp())}:R>**"
     return value
 
@@ -60,7 +60,7 @@ def all_activities(member: disnake.Member, with_time: bool = False, with_url: bo
 
         elif isinstance(_activity, disnake.Game):
             _value = f"{_activity.name}\n**{relative_time(_activity.created_at)}**" \
-                if with_time else f"{_activity.name}"
+                if with_time and _activity.created_at else f"{_activity.name}"
             activities.append(("Playing", _value))
 
         elif isinstance(_activity, disnake.Streaming):
@@ -74,8 +74,8 @@ def all_activities(member: disnake.Member, with_time: bool = False, with_url: bo
             activities.append(("Spotify", _value))
 
         elif isinstance(_activity, disnake.Activity):
-            _value = f"{_activity.name}\n**<t:{int(_activity.created_at.timestamp())}:R>**" \
-                if with_time else f"{_activity.name}"
+            _value = f"{_activity.name}\n" + f"**<t:{int(_activity.created_at.timestamp())}:R>**" \
+                if with_time and _activity.created_at else f"{_activity.name}"
             activities.append((str(_activity.type.name).capitalize(), _value))
 
     return activities
