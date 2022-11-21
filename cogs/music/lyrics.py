@@ -32,10 +32,11 @@ class GLyrics:
         return song if (song and song.lyrics) else None
 
     @staticmethod
-    def _lyrics_list(lyrics) -> list[str]:
+    def _lyrics_list(lyrics: str) -> list[str]:
+        lyrics = lyrics.replace("[", "\n\n[")
         lyrics = re.sub(r"[0-9]*Embed*", "", lyrics)
         lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
-        return list(lyrics.split("\n\n"))
+        return [lyric for lyric in lyrics.split("\n\n") if lyric.strip() != ""]
 
     def _embeds_list(self) -> list[disnake.Embed]:
         embeds = []
