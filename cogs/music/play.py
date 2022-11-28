@@ -83,8 +83,8 @@ class SlashPlay(commands.Cog):
             await inter.author.voice.channel.connect(cls=VoiceClient)
             self.client.logger.info(f"Connected to #{inter.author.voice.channel}")
             if isinstance(inter.author.voice.channel, disnake.StageChannel):
-                if inter.author.voice.channel.permissions_for(inter.guild.me).stage_moderator:
-                    await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
+                if inter.guild.me.voice:
                     await inter.guild.me.request_to_speak()
                     self.client.logger.info(f"Requesting to speak in #{inter.guild.me.voice.channel}.")
 
