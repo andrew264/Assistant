@@ -1,12 +1,14 @@
 import logging
 import os
+import signal
+import subprocess
 from datetime import datetime, timezone
 from typing import Optional, Any
-import subprocess
 
 import aiosqlite
 import disnake
 import lavalink
+import psutil
 from disnake.ext import commands
 
 from EnvVariables import DM_Channel, LavalinkConfig
@@ -29,8 +31,12 @@ class Client(commands.Bot):
         self._start_time = datetime.now(timezone.utc)
         self._log_handler: Optional[logging.Logger] = None
 
+        self._lavalink_pid: Optional[int] = None
+
         # Start Lavalink Server
         self.start_lavalink()
+        loop = self.loop
+        signal.signal(signal.SIGINT, lambda s, f: loop.create_task(self.close()))
 
     @property
     def lavalink(self):
@@ -52,10 +58,12 @@ class Client(commands.Bot):
         self.logger.info("Starting Lavalink Server...")
         env = os.environ.copy()
         env['PATH'] = LavalinkConfig.JAVA_PATH + os.pathsep + env['PATH']
-        subprocess.Popen(["java", "-Xmx256M", "-Xms256M", "-jar", "Lavalink.jar"],
-                         cwd=LavalinkConfig.LAVALINK_PATH,
-                         env=env, shell=True,
-                         creationflags=subprocess.CREATE_NEW_CONSOLE)
+        proc = subprocess.Popen(["java", "-Xmx256M", "-Xms256M", "-jar", "Lavalink.jar"],
+                                cwd=LavalinkConfig.LAVALINK_PATH,
+                                env=env, shell=True,
+                                creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                )
+        self._lavalink_pid = proc.pid
         self.logger.info("Lavalink Server Started.")
 
     @property
@@ -93,3 +101,24 @@ class Client(commands.Bot):
         channel = self.get_channel(DM_Channel)
         if channel is not None:
             await channel.send(content=content, embed=embed)
+
+    async def close(self) -> None:
+        """
+        Kills the Lavalink Server and closes the Database Connection
+        """
+        if self._db:
+            self.logger.info("Closing Database Connection...")
+            await self._db.close()
+            self._db = None
+            self.logger.info("Database Connection Closed.")
+        if self._lavalink_pid:
+            self.logger.info("Killing Lavalink Server...")
+            process = psutil.Process(self._lavalink_pid)
+            for proc in process.children(recursive=True):
+                proc.kill()
+            process.kill()
+            self.logger.info("Lavalink Server Killed.")
+            self._lavalink_pid = None
+        else:
+            self.logger.info("Lavalink Server not running.")
+        await super().close()
