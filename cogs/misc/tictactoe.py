@@ -16,65 +16,92 @@ class TicTacToeButton(disnake.ui.Button["TicTacToe"]):
         self.y = y
 
     async def callback(self, interaction: disnake.MessageInteraction):
+        await interaction.response.defer()
         assert self.view is not None
         view: TicTacToe = self.view
-        host = view.host
-        opponent = view.opponent
+        player_1 = view.player_1
+        player_2 = view.player_2
         if view.board[self.y][self.x] in (view.X, view.O):  # if the cell is occupied already
             return
 
-        if view.current_player == view.X and interaction.author == host:
-            view.update_board(self.y, self.x, view.X)
-            view.current_player = view.O
-            if opponent.bot:
-                await interaction.response.edit_message(view=view)  # update the message quickly to show the move
-                # make move in executor because it's blocking
+        if interaction.user == view.current_player:
+            view.update_board(self.y, self.x)
+            if view.current_player.bot:
                 loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, self.make_a_move)
-                content = f"It is now {host.mention}'s turn"
-                view.current_player = view.X
-            else:
-                await interaction.response.defer()
-                content = f"It is now {opponent.mention}'s turn"
-        elif view.current_player == view.O and interaction.author == opponent:
-            await interaction.response.defer()
-            view.update_board(self.y, self.x, view.O)
-            view.current_player = view.X
-            content = f"It is now {host.mention}'s turn"
+                await loop.run_in_executor(None, view.make_a_move)
         else:
-            await interaction.response.send_message(content="Wait for your turn!", ephemeral=True)
-            return  # Don't do anything else
+            await interaction.response.send_message("Wait for your turn!", ephemeral=True)
+            return
 
         match view.check_board_winner():
             case view.X:
-                content = f"{host.mention} won!"
+                content = f"{player_1.mention} won! against {player_2.mention}"
+                view.stop()
             case view.O:
-                content = f"{opponent.mention} won!"
-            case 2:
-                content = f"{host.mention} and {opponent.mention} tied!"
-            case None:
-                pass
-
-        if view.check_board_winner() is not None:
-            for child in view.children:
-                child.disabled = True
-
-            view.stop()
+                content = f"{player_2.mention} won! against {player_1.mention}"
+                view.stop()
+            case view.Tie:
+                content = f"{player_1.mention} and {player_2.mention} tied!"
+                view.stop()
+            case _:
+                content = f"It is now {view.current_player.mention}'s turn"
 
         await interaction.edit_original_message(content=content, view=view)
 
-    def make_a_move(self):
-        view = self.view
-        depth = len(self.empty_cells())
-        if depth == 0 or view.check_board_winner() is not None:
-            return
-        if depth == 9:
-            x = random.randint(0, 2)
-            y = random.randint(0, 2)
+
+# This is our actual board View
+class TicTacToe(disnake.ui.View):
+    children: List[TicTacToeButton]
+    X: int = -1
+    O: int = 1
+    Tie: int = 2
+
+    def __init__(self, player_1: disnake.Member, player_2: disnake.Member):
+        super().__init__()
+        self.current_player: disnake.Member = player_1
+        self.board: List[List[int]] = [[0, 0, 0],
+                                       [0, 0, 0],
+                                       [0, 0, 0]]
+        self.player_1 = player_1
+        self.player_2 = player_2
+
+        # Our board is made up of 3 by 3 TicTacToeButtons
+        for x in range(3):
+            for y in range(3):
+                self.add_item(TicTacToeButton(x, y))
+
+    async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
+        if interaction.author == self.player_1 or interaction.author == self.player_2:
+            return True
+        await interaction.response.send_message("Start your OWN Game with `/tictactoe`", ephemeral=True)
+        return False
+
+    def stop(self) -> None:
+        for child in self.children:
+            child.disabled = True
+        super().stop()
+
+    def switch_current_player(self):
+        if self.current_player == self.player_1:
+            self.current_player = self.player_2
         else:
-            move = self.minimax(depth, view.O)
-            x, y = move[0], move[1]
-        view.update_board(x, y, view.O)
+            self.current_player = self.player_1
+
+    def update_board(self, x: int, y: int):
+        value = self.X if self.current_player == self.player_1 else self.O
+        self.board[x][y] = value
+        for child in self.children:
+            if child.x == y and child.y == x:
+                child.disabled = True
+                child.value = value
+                if value == self.X:
+                    child.emoji = "❌"
+                    child.style = disnake.ButtonStyle.blurple
+                elif value == self.O:
+                    child.emoji = "⭕"
+                    child.style = disnake.ButtonStyle.green
+                break
+        self.switch_current_player()
 
     def empty_cells(self):
         """
@@ -83,7 +110,7 @@ class TicTacToeButton(disnake.ui.Button["TicTacToe"]):
         """
         cells = []
 
-        for x, row in enumerate(self.view.board):
+        for x, row in enumerate(self.board):
             for y, cell in enumerate(row):
                 if cell == 0:
                     cells.append([x, y])
@@ -96,21 +123,20 @@ class TicTacToeButton(disnake.ui.Button["TicTacToe"]):
         :param player: a human or a computer
         :return: a list with [the best row, the best col, best score]
         """
-        view: TicTacToe = self.view
-        best = [-1, -1, -inf] if player == view.O else [-1, -1, +inf]
+        best = [-1, -1, -inf] if player == self.O else [-1, -1, +inf]
 
-        if depth == 0 or view.check_board_winner() is not None:
-            score = view.check_board_winner()
+        if depth == 0 or self.check_board_winner() is not None:
+            score = self.check_board_winner()
             return [-1, -1, score]
 
         for cell in self.empty_cells():
             x, y = cell[0], cell[1]
-            view.board[x][y] = player
+            self.board[x][y] = player
             score = self.minimax(depth - 1, -player)
-            view.board[x][y] = 0
+            self.board[x][y] = 0
             score[0], score[1] = x, y
 
-            if player == view.O:
+            if player == self.O:
                 if score[2] > best[2]:
                     best = score  # max value
             else:
@@ -119,70 +145,20 @@ class TicTacToeButton(disnake.ui.Button["TicTacToe"]):
 
         return best
 
-    def print_board(self):
-        print("-------------")
-        for row in self.view.board:
-            print("|", end=" ")
-            for cell in row:
-                if cell == self.view.X:
-                    print("X", end=" | ")
-                elif cell == self.view.O:
-                    print("O", end=" | ")
-                else:
-                    print(" ", end=" | ")
-            print("\n-------------")
-
-
-# This is our actual board View
-class TicTacToe(disnake.ui.View):
-    children: List[TicTacToeButton]
-    X: int = -1
-    O: int = 1
-    Tie: int = 2
-
-    def __init__(self, host: disnake.Member, opponent: disnake.Member):
-        super().__init__()
-        self.current_player = self.X
-        self._board = [
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ]
-        self.host = host
-        self.opponent = opponent
-
-        # Our board is made up of 3 by 3 TicTacToeButtons
-        for x in range(3):
-            for y in range(3):
-                self.add_item(TicTacToeButton(x, y))
-
-    async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
-        if interaction.author == self.host or interaction.author == self.opponent:
-            return True
-        await interaction.response.send_message("Start your OWN Game with `/tictactoe`", ephemeral=True)
-        return False
-
-    @property
-    def board(self) -> List[List[int]]:
-        return self._board
-
-    @board.setter
-    def board(self, value: List[List[int]]):
-        self._board = value
-
-    def update_board(self, x: int, y: int, value: int):
-        self._board[x][y] = value
-        for child in self.children:
-            if child.x == y and child.y == x:
-                child.disabled = True
-                child.value = value
-                if value == self.X:
-                    child.emoji = "❌"
-                    child.style = disnake.ButtonStyle.blurple
-                elif value == self.O:
-                    child.emoji = "⭕"
-                    child.style = disnake.ButtonStyle.green
-                break
+    def make_a_move(self):
+        depth = len(self.empty_cells())
+        if depth == 0 or self.check_board_winner() is not None:
+            return
+        if depth == 9:
+            x = random.randint(0, 2)
+            y = random.randint(0, 2)
+        else:
+            if self.current_player == self.player_1:
+                move = self.minimax(depth, self.X)
+            else:
+                move = self.minimax(depth, self.O)
+            x, y = move[0], move[1]
+        self.update_board(x, y)
 
     # This method checks for the board winner
     def check_board_winner(self):
@@ -224,6 +200,19 @@ class TicTacToe(disnake.ui.View):
 
         return None
 
+    def print_board(self):
+        print("-------------")
+        for row in self.board:
+            print("|", end=" ")
+            for cell in row:
+                if cell == self.X:
+                    print("X", end=" | ")
+                elif cell == self.O:
+                    print("O", end=" | ")
+                else:
+                    print(" ", end=" | ")
+            print("\n-------------")
+
 
 class TTT(commands.Cog):
     def __init__(self, client: Client):
@@ -232,16 +221,28 @@ class TTT(commands.Cog):
     @commands.slash_command(name="tictactoe", description="Play a game of Tic Tac Toe")
     @commands.guild_only()
     async def ttt(self, inter: disnake.ApplicationCommandInteraction,
-                  opponent: disnake.Member = commands.Param(description="An opponent to play against")):
-        host = inter.author
+                  player_2: disnake.Member = commands.Param(name="opponent",
+                                                            description="The player you want to play against",
+                                                            default=lambda inter: inter.me)):
+        player_1 = inter.author
 
-        if host == opponent:
+        if player_1 == player_2:
             await inter.response.send_message("You can't play against yourself! duh")
             return
 
+        # randomly swap players
+        if random.randint(0, 1) == 1:
+            player_1, player_2 = player_2, player_1
+
         # Create a new TicTacToe board
-        view = TicTacToe(host, opponent)
-        await inter.response.send_message(content=f"It is now {host.mention}'s turn", view=view)
+        view = TicTacToe(player_1, player_2)
+        await inter.response.send_message(content=f"It is now {view.current_player.mention}'s turn",
+                                          view=view)
+        if view.current_player.bot:  # if player_1 is a bot, make the first move
+            loop = self.client.loop
+            await loop.run_in_executor(None, view.make_a_move)
+            await inter.edit_original_message(content=f"It is now {view.current_player.mention}'s turn",
+                                              view=view)
 
 
 def setup(client: Client):
