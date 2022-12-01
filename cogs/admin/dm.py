@@ -31,6 +31,8 @@ class OnDM(commands.Cog):
 
     @commands.Cog.listener('on_message')
     async def send_message(self, message: disnake.Message) -> None:
+        if message.author.bot:
+            return
         if message.author.id != Owner_ID and not message.guild:
             return
         if not message.reference:
