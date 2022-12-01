@@ -38,6 +38,8 @@ class LastSeen(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: disnake.Message) -> None:
         author = message.author
+        if isinstance(author, disnake.User):
+            return
         if author.bot:
             return
         if author.raw_status != 'offline':
