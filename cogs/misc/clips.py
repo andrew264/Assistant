@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Optional
 
 import disnake
@@ -21,6 +22,23 @@ class Clips(commands.Cog):
         await inter.response.defer()
         """Play mp3 in Voice Channel """
         voice: Optional[disnake.VoiceClient] = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
+        last_clip: list[str] = [clip]
+
+        def play(_clip: Optional[str]) -> None:
+            if not voice:
+                return
+            if voice.is_playing():
+                voice.stop()
+            if _clip:
+                last_clip[0] = _clip
+            if not last_clip:
+                return
+            while len(last_clip) > 1:
+                last_clip.pop(-1)
+            try:
+                voice.play(disnake.FFmpegPCMAudio(f"./clips/{inter.guild.id}/{last_clip[0]}.mp3"))
+            except disnake.ClientException:
+                pass
 
         class ClipView(disnake.ui.View):
             def __init__(self):
@@ -29,17 +47,17 @@ class Clips(commands.Cog):
                 class ClipDropdown(disnake.ui.Select):
                     def __init__(self):
                         super().__init__(placeholder="Select a clip", custom_id="clips", min_values=1, max_values=1,
-                                         options=[disnake.SelectOption(label=c)
+                                         options=[disnake.SelectOption(label=c[:-4])
                                                   for c in os.listdir(f'clips/{inter.guild.id}') if
                                                   c.endswith('.mp3')], )
 
                     async def callback(self, interaction: disnake.MessageInteraction):
-                        await interaction.response.edit_message(content=f"Playing {self.values[0]}...")
-                        if voice.is_playing:
-                            voice.stop()
-                        voice.play(disnake.FFmpegPCMAudio(f"clips/{inter.guild.id}/{self.values[0]}"))
+                        play(self.values[0])
+                        await interaction.response.edit_message(content=f"Playing `{last_clip[0]}`...")
 
-                self.add_item(ClipDropdown())
+                self.dropdown = ClipDropdown()
+                self.values = self.dropdown.values
+                self.add_item(self.dropdown)
 
             async def on_timeout(self) -> None:
                 if voice:
@@ -56,18 +74,12 @@ class Clips(commands.Cog):
                         content="Disconnected for Voice. Use `/clip` to play clips.", view=None)
                     self.stop()
                     return
-                for child in self.children:
-                    if isinstance(child, disnake.ui.Select):
-                        if child.values:
-                            c = child.values[0]
-                            break
-                else:
+                _clip = self.values[0] if self.values else None
+                if not _clip and not last_clip:
                     await interaction.response.edit_message(content="No clip selected", view=self)
                     return
-                if voice and voice.is_playing:
-                    voice.stop()
-                voice.play(disnake.FFmpegPCMAudio(f"clips/{inter.guild.id}/{c}"))
-                await interaction.response.edit_message(content=f"Playing {c}...")
+                play(_clip)
+                await interaction.response.edit_message(content=f"Playing `{last_clip[0]}`...")
 
             @disnake.ui.button(emoji="⏹️", style=disnake.ButtonStyle.danger)
             async def stop_button(self, button: disnake.ui.Button, interaction: disnake.MessageInteraction):
@@ -80,10 +92,8 @@ class Clips(commands.Cog):
             voice: disnake.VoiceClient = await voice_channel.connect()
 
         if clip and os.path.exists(f"clips/{inter.guild.id}/{clip}.mp3"):
-            await inter.edit_original_message(f"Playing {clip}...", view=ClipView())
-            if voice.is_playing:
-                voice.stop()
-            voice.play(disnake.FFmpegPCMAudio(f"clips/{inter.guild.id}/{clip}.mp3"))
+            await inter.edit_original_message(f"Playing `{clip}`...", view=ClipView())
+            play(clip)
         else:
             await inter.edit_original_message("Select a clip", view=ClipView())
 
@@ -101,7 +111,9 @@ class Clips(commands.Cog):
 
     @clips.autocomplete('clip')
     async def clip_autocomplete(self, inter: disnake.ApplicationCommandInteraction, clip: str) -> list[str]:
-        all_clips = [c.rstrip('.mp3') for c in os.listdir(f'clips/{inter.guild.id}') if c.endswith('.mp3')]
+        all_clips = [c[:-4] for c in os.listdir(f'clips/{inter.guild.id}') if c.endswith('.mp3')]
+        if clip == '':
+            return random.sample(all_clips, 5)
         return [m[0] for m in process.extract(clip, all_clips, limit=5)]
 
 
