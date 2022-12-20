@@ -36,6 +36,8 @@ class GLyrics:
         lyrics = lyrics.replace("[", "\n\n[")
         lyrics = re.sub(r"[0-9]*Embed*", "", lyrics)
         lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
+        if len(lyrics.splitlines()) > 1 and "lyrics" in lyrics.splitlines()[0].lower():
+            lyrics = lyrics.split("\n", 1)[1]
         return [lyric for lyric in lyrics.split("\n\n") if lyric.strip() != ""]
 
     def _embeds_list(self) -> list[disnake.Embed]:
