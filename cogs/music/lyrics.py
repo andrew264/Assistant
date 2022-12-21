@@ -102,7 +102,7 @@ class Lyrics(commands.Cog):
             embeds = await GLyrics().get_lyrics(inter.author, spotify=spotify[0])
         else:
             if inter.me.voice is not None and inter.author.voice is not None:
-                if inter.me.voice.channel == inter.author.voice.channel:
+                if self.client.lavalink and inter.me.voice.channel == inter.author.voice.channel:
                     player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
                     if player and player.current:
                         embeds = await GLyrics().get_lyrics(inter.author, yt=player.current)

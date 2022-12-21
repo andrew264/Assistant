@@ -22,7 +22,7 @@ class Client(commands.Bot):
         This Inherits from disnake's Bot class.
         """
         super().__init__(**options)
-        self._lavalink: Optional[lavalink.Client] = None
+        self.lavalink: Optional[lavalink.Client] = None
         self._db: Optional[aiosqlite.Connection] = None
         self.events = {
             'messages': 0,
@@ -37,19 +37,6 @@ class Client(commands.Bot):
         self.start_lavalink()
         loop = self.loop
         signal.signal(signal.SIGINT, lambda s, f: loop.create_task(self.close()))
-
-    @property
-    def lavalink(self):
-        """
-        Returns the Lavalink Client
-        """
-        if self._lavalink is None:
-            config = LavalinkConfig()
-            self._lavalink = lavalink.Client(self.user.id)
-            self._lavalink.add_node(host=config.host, port=config.port, password=config.password,
-                                    region=config.region, name=config.node_name)
-            del config
-        return self._lavalink
 
     def start_lavalink(self) -> None:
         """

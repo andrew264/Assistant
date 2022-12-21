@@ -7,8 +7,10 @@ import disnake
 import lavalink
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
+from lavalink.events import TrackEndEvent, TrackExceptionEvent, TrackStuckEvent, TrackStartEvent
 
 import assistant
+from EnvVariables import HOMIES
 from assistant import VideoTrack, time_in_seconds
 
 
@@ -16,32 +18,36 @@ class MusicCommands(commands.Cog):
     def __init__(self, client: assistant.Client):
         self.client = client
         self.logger = client.logger
-        self.player_manager = client.lavalink.player_manager
+        self.lavalink = None
+        self.player_manager = None
         lavalink.add_event_hook(self.track_hook)
 
     def cog_unload(self):
         """ Cog unload handler. This removes any event hooks that were registered. """
-        self.client.lavalink._event_hooks.clear()
+        if self.lavalink:
+            self.lavalink._event_hooks.clear()
 
-    async def track_hook(self, event):
+    async def track_hook(self,
+                         event: typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
         # Update client's status
         # Cuz why not ?
+        if not isinstance(event, typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
+            return
+        player: Player = event.player
+        guild_name = self.client.get_guild(player.guild_id).name
         if isinstance(event, lavalink.events.TrackStartEvent):
-            song = event.player.current
-            if song:
+            self.client.logger.info(f"Track started: {event.track.title} in {guild_name}")
+            if player.guild_id == HOMIES and player.current:
                 await self.client.change_presence(activity=disnake.Activity(type=disnake.ActivityType.listening,
-                                                                            name=song.title, ))
-        if isinstance(event, lavalink.events.TrackEndEvent):
-            player: Player = event.player
-            if not player.is_playing:
+                                                                            name=player.current.title, ))
+                return
+        if isinstance(event, lavalink.events.TrackEndEvent) or isinstance(event, lavalink.events.QueueEndEvent):
+            if not player.is_playing and player.guild_id == HOMIES:
                 await self.client.change_presence(status=disnake.Status.online,
                                                   activity=disnake.Activity(type=disnake.ActivityType.watching,
                                                                             name="yall Homies."), )
         if isinstance(event, lavalink.events.QueueEndEvent):
-            player: Player = event.player
-            await self.client.change_presence(status=disnake.Status.online,
-                                              activity=disnake.Activity(type=disnake.ActivityType.watching,
-                                                                        name="yall Homies."), )
+            self.client.logger.info(f"Queue ended in {guild_name}")
             await player.stop()
             await self._dc_from_voice(player)
 
@@ -55,6 +61,7 @@ class MusicCommands(commands.Cog):
             for _filter in list(player.filters):
                 await player.remove_filter(_filter)
                 await voice.disconnect(force=True)
+                self.client.logger.info(f"Disconnected from {voice.channel.guild.name}")
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member,
@@ -80,7 +87,11 @@ class MusicCommands(commands.Cog):
     @commands.slash_command(name="music", description="Music related commands.")
     @commands.guild_only()
     async def music(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        pass
+        self.lavalink = self.client.lavalink
+        if self.lavalink is None:
+            await inter.response.send_message("Music Player is not connected.", ephemeral=True)
+            return
+        self.player_manager = self.client.lavalink.player_manager
 
     # Skip Command
     @music.sub_command(name="skip", description="Remove songs from queue, or skip the current song.")
@@ -460,6 +471,8 @@ class MusicCommands(commands.Cog):
 
         if inter.guild.me.voice and inter.guild.me.voice.channel != inter.author.voice.channel:
             raise commands.CheckFailure("You must be in same VC as Bot.")
+
+        self.lavalink = self.client.lavalink
 
 
 def setup(client):

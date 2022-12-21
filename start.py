@@ -25,6 +25,7 @@ def start_client() -> None:
     client.load_extensions("./cogs/tasks")
     client.load_extensions("./cogs/info")
     client.load_extensions("./cogs/fir")
+    client.load_extensions("./cogs/music")
 
     client.run(TOKEN)
 
