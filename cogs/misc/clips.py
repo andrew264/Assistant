@@ -48,7 +48,7 @@ class Clips(commands.Cog):
                     def __init__(self):
                         super().__init__(placeholder="Select a clip", custom_id="clips", min_values=1, max_values=1,
                                          options=[disnake.SelectOption(label=c[:-4])
-                                                  for c in os.listdir(f'clips/{inter.guild.id}') if
+                                                  for c in os.listdir(f'clips/{inter.guild.id}')[:25] if
                                                   c.endswith('.mp3')], )
 
                     async def callback(self, interaction: disnake.MessageInteraction):

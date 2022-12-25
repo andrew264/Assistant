@@ -73,15 +73,16 @@ class MusicCommands(commands.Cog):
             # Clear the queue.
             # Stop the current track.
             # Force disconnect to fix reconnecting issues.
-            player: Player = self.player_manager.get(member.guild.id)
-            if player and player.current:
-                for _filter in list(player.filters):
-                    await player.remove_filter(_filter)
-                player.queue.clear()
-                await player.stop()
-                voice = member.guild.voice_client
-                if voice:
-                    await voice.disconnect(force=True)
+            if self.player_manager:
+                player: Player = self.player_manager.get(member.guild.id)
+                if player and player.current:
+                    for _filter in list(player.filters):
+                        await player.remove_filter(_filter)
+                    player.queue.clear()
+                    await player.stop()
+            voice = member.guild.voice_client
+            if voice:
+                await voice.disconnect(force=True)
 
     # Group Commands
     @commands.slash_command(name="music", description="Music related commands.")
