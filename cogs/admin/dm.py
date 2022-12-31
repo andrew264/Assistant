@@ -1,4 +1,5 @@
 ﻿# Imports
+import re
 from typing import List, Optional
 
 import disnake
@@ -6,6 +7,8 @@ from disnake.ext import commands
 
 from assistant import Client, getch_hook
 from config import dm_receive_category, owner_id, home_guild
+
+rx_url = re.compile(r"(?P<url>https?://[^\s]+)")
 
 
 class OnDM(commands.Cog):
@@ -48,6 +51,10 @@ class OnDM(commands.Cog):
             msg_content += f"; Replying to: `{message.reference.resolved.content[:100]}`"
         if message.content:
             msg_content += f"\nContent: ```{message.content}```\n"
+        # check if content match url pattern regex
+        if message.content and rx_url.match(message.content):
+            url = rx_url.match(message.content).group("url")
+            msg_content += f"URL: {url}\n"
         files: List[disnake.File] = [await attachment.to_file() for attachment in message.attachments]
         await hook.send(content=msg_content, files=files,
                         username=message.author.name, avatar_url=message.author.display_avatar.url)
@@ -116,6 +123,10 @@ class OnDM(commands.Cog):
         hook = await self.get_webhook(user)
         content = f"Message ID: `{msg.id}`\n"
         content += f"\nContent: ```{msg.content}```\n"
+        # check if content match url pattern regex
+        if msg and rx_url.match(msg):
+            url = rx_url.match(msg).group("url")
+            content += f"URL: {url}\n"
         await hook.send(content=content, files=files,
                         username=ctx.author.name, avatar_url=ctx.author.display_avatar.url)
         await ctx.message.delete()
