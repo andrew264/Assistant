@@ -10,6 +10,7 @@ from assistant import Client
 class Extensions(commands.Cog):
     def __init__(self, client: Client):
         self.bot = client
+        self.logger = client.logger
 
     @commands.slash_command(name="extensions", description="Manage extensions.", guild_ids=[home_guild])
     async def extensions(self, inter: disnake.ApplicationCommandInteraction) -> None:
@@ -24,10 +25,10 @@ class Extensions(commands.Cog):
             self.bot.load_extension(f"cogs.{extension}")
         except Exception as e:
             await inter.response.send_message(f"{type(e).__name__}: {e}")
-            print(f"Failed to load extension: cogs.{extension}")
+            self.logger.error(f"Failed to load extension: cogs.{extension}")
         else:
             await inter.response.send_message(f"Loaded extension: `cogs.{extension}`")
-            print(f"Loaded extension: cogs.{extension}")
+            self.logger.info(f"Loaded extension: cogs.{extension}")
 
     # Unload Extension
     @extensions.sub_command(name="unload", description="Unload an extension.")
@@ -37,10 +38,10 @@ class Extensions(commands.Cog):
             self.bot.unload_extension(extension)
         except Exception as e:
             await inter.response.send_message(f"{type(e).__name__}: {e}")
-            print(f"Failed to unload extension: {extension}")
+            self.logger.error(f"Failed to unload extension: {extension}")
         else:
             await inter.response.send_message(f"Unloaded extension: `{extension}`")
-            print(f"Unloaded extension: {extension}")
+            self.logger.info(f"Unloaded extension: {extension}")
 
     # Reload Extension
     @extensions.sub_command(name="reload", description="Reload an extension.")
@@ -54,10 +55,10 @@ class Extensions(commands.Cog):
                 self.bot.reload_extension(extension)
         except Exception as e:
             await inter.response.send_message(f"{type(e).__name__}: {e}")
-            print(f"Failed to reload extension: {extension}")
+            self.logger.error(f"Failed to reload extension: {extension}")
         else:
             await inter.response.send_message(f"Reloaded extension: `{extension}`")
-            print(f"Reloaded extension: {extension}")
+            self.logger.info(f"Reloaded extension: {extension}")
 
     @extensions.sub_command(name="list", description="List all extensions.")
     async def list_extensions(self, inter: disnake.ApplicationCommandInteraction) -> None:
