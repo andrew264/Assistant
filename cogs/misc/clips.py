@@ -7,6 +7,7 @@ from disnake.ext import commands
 from fuzzywuzzy import process
 
 from assistant import Client
+from config import guilds_with_clips
 
 
 class Clips(commands.Cog):
@@ -14,8 +15,7 @@ class Clips(commands.Cog):
         self.client = client
 
     @commands.slash_command(name="clips", description="Play Audio Clips in VC",
-                            guild_ids=[int(name) for name in os.listdir("./clips") if
-                                       os.path.isdir(os.path.join("./clips", name))])
+                            guild_ids=guilds_with_clips)
     @commands.guild_only()
     async def clips(self, inter: disnake.ApplicationCommandInteraction,
                     clip: str = commands.Param(description="Select a Voice Clip.", default=None)) -> None:
@@ -118,4 +118,7 @@ class Clips(commands.Cog):
 
 
 def setup(client: Client):
-    client.add_cog(Clips(client))
+    if guilds_with_clips:
+        client.add_cog(Clips(client))
+    else:
+        client.logger.warning("No guilds with clips found. Skipping loading of clips cog.")

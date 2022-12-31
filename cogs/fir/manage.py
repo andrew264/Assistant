@@ -5,6 +5,7 @@ import disnake
 from disnake.ext import commands
 
 from assistant import Client, Report
+from config import database_path
 
 
 class Manage(commands.Cog):
@@ -125,6 +126,9 @@ class Manage(commands.Cog):
     async def _fetch_reports(self, user: Optional[disnake.Member] = None,
                              guild_id: Optional[int] = None) -> list[Report]:
         self._db = await self.client.db_connect()
+        if not self._db:
+            self.client.logger.warning("Failed to connect to database, `database_path` may be not set")
+            return []
         if user is None and guild_id is None:
             raise ValueError("Must pass either user or guild_id")
         elif guild_id and user is None:
@@ -143,10 +147,16 @@ class Manage(commands.Cog):
         Deletes a report from the database.
         """
         self._db = await self.client.db_connect()
+        if not self._db:
+            self.client.logger.warning("Failed to connect to database, `database_path` may be not set")
+            return
         await self._db.execute("DELETE FROM MEMBER_REPORTS WHERE report_id = ?", (report_id,))
         self.client.logger.info(f"Deleted report #{report_id}")
         await self._db.commit()
 
 
 def setup(client: Client) -> None:
-    client.add_cog(Manage(client))
+    if database_path:
+        client.add_cog(Manage(client))
+    else:
+        client.logger.warning("Database not configured, Manage cog will not be loaded")

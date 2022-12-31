@@ -114,6 +114,8 @@ class UserInfo(commands.Cog):
         :return: The user's description and the timestamp of the last time the user was online can be None
         """
         self.db = await self.client.db_connect()
+        if not self.db:
+            return None, None
         async with self.db.execute("SELECT * FROM Members WHERE USERID = ?", (user_id,)) as cursor:
             value = await cursor.fetchone()
             about: Optional[str] = value[1] if value else None
@@ -127,6 +129,8 @@ class UserInfo(commands.Cog):
         :return: The user's report count
         """
         self.db = await self.client.db_connect()
+        if not self.db:
+            return 0
         async with self.db.execute("SELECT COUNT(*) FROM MEMBER_REPORTS WHERE accused_id = ? AND guild_id = ?",
                                    (user.id, user.guild.id,)) as cursor:
             value = await cursor.fetchone()

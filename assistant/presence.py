@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 import disnake
 
-from .converters import relative_time
+from . import relative_time
 
 
 def available_clients(member: disnake.Member) -> str:

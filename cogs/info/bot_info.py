@@ -6,8 +6,8 @@ import lavalink
 import psutil
 from disnake.ext import commands
 
-from EnvVariables import Owner_ID
 from assistant import Client, human_bytes, relative_time, long_date
+from config import owner_id
 
 
 class BotInfo(commands.Cog):
@@ -24,7 +24,7 @@ class BotInfo(commands.Cog):
         embed = disnake.Embed(color=0xFF0060, description=user.mention)
         embed.set_author(name=user, icon_url=user.avatar.url)
         embed.set_thumbnail(url=user.avatar.url)
-        embed.add_field(name="Created by", value=f"<@{Owner_ID}>")
+        embed.add_field(name="Created by", value=f"<@{owner_id}>" if owner_id else "Unknown")
         embed.add_field(name="Created on", value=f"{long_date(user.created_at)}\n{relative_time(user.created_at)}")
         embed.add_field(name="No. of Guilds", value=f"{len(self.client.guilds)}", inline=False)
         embed.add_field(name="No. of Users", value=f"{len(self.client.users)}", inline=False)

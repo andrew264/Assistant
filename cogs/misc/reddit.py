@@ -1,35 +1,28 @@
 # Imports
 import random
-from typing import Optional, Any
+from typing import Optional
 
 import asyncpraw as praw
-from asyncpraw.models import Submission
 import disnake
+from asyncpraw.models import Submission
 from disnake.ext import commands
 from disnake.ext.commands import Param
 
-from EnvVariables import R_CLI, R_PAS, R_SEC, R_USR, Owner_ID
 from assistant import Client
-
-reddit_ins = praw.Reddit(
-    client_id=R_CLI,
-    client_secret=R_SEC,
-    username=R_USR,
-    password=R_PAS,
-    user_agent="discord:prob_bot:v1.0.0 (by u/andrew264)",
-)
+from config import RedditConfig, owner_id
 
 gif_sites = ("redgifs.com", "v.redd.it", "imgur.com")
 
 
 class Reddit(commands.Cog):
-    def __init__(self, client: Client):
+    def __init__(self, client: Client, reddit: praw.Reddit):
         self.client = client
         self._r_cache: dict[str, [Submission]] = {}
+        self.reddit = reddit
 
     async def get_random_posts(self, subreddit: str, uploaded: str,
-                              limit: Optional[int] = 1, over_18:bool = False) -> list[Submission]:
-        subreddit = await reddit_ins.subreddit(subreddit)
+                               limit: Optional[int] = 1, over_18: bool = False) -> list[Submission]:
+        subreddit = await self.reddit.subreddit(subreddit)
         if subreddit.display_name not in self._r_cache:
             self._r_cache[subreddit.display_name] = []
             async for submission in subreddit.top(uploaded, limit=100):
@@ -79,7 +72,7 @@ class Reddit(commands.Cog):
             await inter.response.send_message("This command is only available in NSFW channels.", ephemeral=True)
             return
         if posts > 16 or posts < 1:
-            if inter.author.id != Owner_ID:
+            if inter.author.id != owner_id:
                 await inter.response.send_message("Maximum of 15 posts at a time.", ephemeral=True)
                 return
         await inter.response.send_message("Fetching posts...", ephemeral=True)
@@ -105,4 +98,15 @@ class Reddit(commands.Cog):
 
 
 def setup(client):
-    client.add_cog(Reddit(client))
+    r_conf = RedditConfig()
+    reddit_ins = praw.Reddit(
+        client_id=r_conf.client_id,
+        client_secret=r_conf.client_secret,
+        username=r_conf.username,
+        password=r_conf.password,
+        user_agent="discord:assistant:v1.0.0 (by u/andrew264)",
+    ) if r_conf else None
+    if reddit_ins is None:
+        client.logger.warning("Reddit API not configured, Reddit commands will not be loaded.")
+    else:
+        client.add_cog(Reddit(client, reddit_ins))

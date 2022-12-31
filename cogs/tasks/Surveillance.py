@@ -6,42 +6,44 @@ from disnake import Embed
 from disnake.ext import commands
 
 import assistant
-from EnvVariables import *
 from assistant import available_clients, all_activities, colour_gen, getch_hook
+from config import owner_id, home_guild, logging_guilds
 
 
 class Surveillance(commands.Cog):
     def __init__(self, client: assistant.Client):
         self.client = client
         self.logger = client.logger
+        self.logging_guilds = logging_guilds
 
-    @property
-    def homies_log(self):
-        return self.client.get_channel(HOMIES_LOG)
-
-    @property
-    def prob_log(self):
-        return self.client.get_channel(PROB_LOG)
+    async def get_webhook(self, _id: int) -> disnake.Webhook | None:
+        channel = self.client.get_channel(_id)
+        return await getch_hook(channel)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: disnake.Message, after: disnake.Message) -> None:
         """
         Logs edited messages
         """
-        if before.guild is None or before.guild.id != HOMIES:
+        if before.guild is None:
             return
         if before.author.bot:
             return
-        if before.author.id == Owner_ID:
+        if before.author.id == owner_id:
             return
         if before.clean_content == after.clean_content:
+            return
+        for name, guild in self.logging_guilds.items():
+            if guild["id"] == before.guild.id:
+                hook = await self.get_webhook(guild["channel_id"])
+                break
+        else:
             return
         author = before.author
         embed = Embed(title="Message Edit", description=f"in {before.channel.mention}", colour=colour_gen(author.id))
         embed.add_field(name="Original Message", value=before.clean_content, inline=False)
         embed.add_field(name="Altered Message", value=after.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        hook = await getch_hook(self.homies_log)
         await hook.send(embed=embed,
                         username=author.display_name, avatar_url=author.display_avatar.url, delete_after=600)
         self.logger.info(f"{author.display_name} edited a message in #{before.channel.name}")
@@ -51,16 +53,16 @@ class Surveillance(commands.Cog):
         """
         Logs deleted messages
         """
-        if message.guild is None or message.guild.id != HOMIES:
+        if message.guild is None or message.guild.id != home_guild:
             return
-        if message.author.bot or message.author.id == Owner_ID:
+        if message.author.bot or message.author.id == owner_id:
             return
         author = message.author
         embed = Embed(title="Deleted Message", description=f"{message.channel.mention}",
                       colour=colour_gen(author.id))
         embed.add_field(name="Message Content", value=message.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        hook = await getch_hook(self.homies_log)
+        hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
         await hook.send(embed=embed,
                         username=author.display_name, avatar_url=author.display_avatar.url, delete_after=600)
         self.logger.info(f"{author.display_name} deleted a message in #{message.channel.name}\n" +
@@ -73,7 +75,7 @@ class Surveillance(commands.Cog):
         """
         if before.bot:
             return
-        if before.id == Owner_ID:
+        if before.id == owner_id:
             return
         if before.display_name == after.display_name:
             return
@@ -81,11 +83,12 @@ class Surveillance(commands.Cog):
         embed.add_field(name="Old Name", value=before.display_name, inline=False)
         embed.add_field(name="New Name", value=after.display_name, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        hook = None
-        if before.guild.id == PROB:
-            hook = await getch_hook(self.prob_log)
-        elif before.guild.id == HOMIES:
-            hook = await getch_hook(self.homies_log)
+        for name, guild in self.logging_guilds.items():
+            if guild["id"] == before.guild.id:
+                hook = await self.get_webhook(guild["channel_id"])
+                break
+        else:
+            return
         if hook:
             await hook.send(embed=embed,
                             username=after.display_name, avatar_url=after.display_avatar.url, delete_after=600)
@@ -99,19 +102,23 @@ class Surveillance(commands.Cog):
         member: disnake.Member = disnake.utils.get(self.client.get_all_members(), id=before.id)
         if member is None:
             return
-        if before.bot or before.id == Owner_ID:
+        if before.bot or before.id == owner_id:
             return
         if str(before) == str(after):
             return
-        if member.guild.id == HOMIES:
-            embed = Embed(colour=colour_gen(before.id))
-            embed.set_author(name=f"Username Change", icon_url=before.display_avatar.url)
-            embed.add_field(name="Old Username", value=str(before), inline=False, )
-            embed.add_field(name="New Username", value=str(after), inline=False, )
-            embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-            hook = await getch_hook(self.homies_log)
-            await hook.send(embed=embed,
-                            username=member.display_name, avatar_url=member.display_avatar.url, delete_after=1200)
+        for name, guild in self.logging_guilds.items():
+            if guild["id"] == member.guild.id:
+                hook = await self.get_webhook(guild["channel_id"])
+                break
+        else:
+            return
+        embed = Embed(colour=colour_gen(before.id))
+        embed.set_author(name=f"Username Change", icon_url=before.display_avatar.url)
+        embed.add_field(name="Old Username", value=str(before), inline=False, )
+        embed.add_field(name="New Username", value=str(after), inline=False, )
+        embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
+        await hook.send(embed=embed,
+                        username=member.display_name, avatar_url=member.display_avatar.url, delete_after=1200)
         self.logger.info(f"Username change in {member.guild.name}: {before} -> {after}")
 
     @commands.Cog.listener()
@@ -123,11 +130,11 @@ class Surveillance(commands.Cog):
             return
         if before.bot:
             return
-        if before.id == Owner_ID:
+        if before.id == owner_id:
             return
-        if before.guild.id != HOMIES:
+        if before.guild.id != home_guild:
             return
-        hook = await getch_hook(self.homies_log)
+        hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
         logger = self.logger
         embed = Embed(title="Presence Update", colour=colour_gen(before.id))
         if available_clients(before) != available_clients(after):
@@ -167,7 +174,7 @@ class Surveillance(commands.Cog):
         """
         Logs when a member joins/leaves a voice channel.
         """
-        if member.bot or member.id == Owner_ID:
+        if member.bot or member.id == owner_id:
             return
         if after.channel == before.channel or (before is None and after is None):
             return
@@ -180,13 +187,14 @@ class Surveillance(commands.Cog):
         else:
             msg = f"Moved from {before.channel.mention} to {after.channel.mention}"
             log_msg = f"Moved from #{before.channel.name} to #{after.channel.name}"
-        hook = None
-        if member.guild.id == PROB:
-            hook = await getch_hook(self.prob_log)
-        elif member.guild.id == HOMIES:
-            hook = await getch_hook(self.homies_log)
-        if hook:
-            await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url, delete_after=300)
+
+        for name, guild in self.logging_guilds.items():
+            if guild["id"] == member.guild.id:
+                hook = await self.get_webhook(guild["channel_id"])
+                break
+        else:
+            return
+        await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url, delete_after=300)
         self.logger.info(f"[{member.guild.name}] {member.display_name}: {log_msg}")
 
     @commands.Cog.listener()
@@ -194,29 +202,36 @@ class Surveillance(commands.Cog):
         """Logs when a user starts typing in a channel."""
         if isinstance(channel, disnake.DMChannel):
             return
-        if channel.guild.id != HOMIES:
+        if channel.guild.id != home_guild:
             return
-        if user.bot or user.id == Owner_ID:
+        if user.bot or user.id == owner_id:
             return
-        await self.homies_log.send(f"{user.display_name} started typing in {channel.mention}", delete_after=120)
-        self.logger.info(f"{user.display_name} started typing in {channel.name}")
+        hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
+        await hook.send(f"Started typing in {channel.mention}",
+                        username=user.display_name, avatar_url=user.display_avatar.url, delete_after=120)
+        self.logger.info(f"{user.display_name} started typing in {channel.name} on {when}")
 
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: disnake.RawGuildMemberRemoveEvent) -> None:
         """Logs when a member leaves a server."""
         if payload.user.bot:
             return
-        if payload.guild_id == HOMIES:
-            await self.homies_log.send(f"{payload.user.display_name} left the server")
-        self.logger.info(f"{payload.user.display_name} left {self.client.get_guild(payload.guild_id).name}")
+        if payload.guild_id == home_guild:
+            hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
+            await hook.send(f"{payload.user.display_name} left the server.",
+                            username=payload.user.display_name,
+                            avatar_url=payload.user.display_avatar.url)
+        self.logger.info(f"{payload.user} left {self.client.get_guild(payload.guild_id).name}")
 
     @commands.Cog.listener()
     async def on_member_join(self, member: disnake.Member) -> None:
         """Logs when a member joins a server."""
         if member.bot:
             return
-        if member.guild.id == HOMIES:
-            await self.homies_log.send(f"{member.display_name} joined the server")
+        if member.guild.id == home_guild:
+            hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
+            await hook.send(f"{member.display_name} joined the server",
+                            username=member.display_name, avatar_url=member.display_avatar.url)
         self.logger.info(f"{member.display_name} joined {member.guild.name}")
 
     @commands.Cog.listener()
@@ -224,8 +239,10 @@ class Surveillance(commands.Cog):
         """Logs when a member is banned from a server."""
         if user.bot:
             return
-        if guild.id == HOMIES:
-            await self.homies_log.send(f"{user.display_name} was banned from the server")
+        if guild.id == home_guild:
+            hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
+            await hook.send(f"{user.display_name} was banned from the server",
+                            username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"{user.display_name} was banned from {guild.name}")
 
     @commands.Cog.listener()
@@ -233,10 +250,15 @@ class Surveillance(commands.Cog):
         """Logs when a member is unbanned from a server."""
         if user.bot:
             return
-        if guild.id == HOMIES:
-            await self.homies_log.send(f"{user.display_name} was unbanned from the server")
+        if guild.id == home_guild:
+            hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
+            await hook.send(f"{user.display_name} was unbanned from the server",
+                            username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"{user.display_name} was unbanned from {guild.name}")
 
 
 def setup(client):
-    client.add_cog(Surveillance(client))
+    if all([home_guild, logging_guilds, owner_id]):
+        client.add_cog(Surveillance(client))
+    else:
+        client.logger.warning("Logging is disabled due to missing config values.")

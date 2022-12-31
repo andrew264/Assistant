@@ -8,6 +8,7 @@ from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 
 from assistant import Client
+from config import LavalinkConfig
 
 
 class MusicFilters(commands.Cog):
@@ -360,4 +361,8 @@ class MusicFilters(commands.Cog):
 
 
 def setup(client):
+    config = LavalinkConfig()
+    if not config:
+        client.logger.warning("Lavalink Config not found. Music Filters will not be loaded.")
+        return
     client.add_cog(MusicFilters(client))

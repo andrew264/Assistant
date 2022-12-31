@@ -2,7 +2,7 @@
 import disnake
 
 import assistant
-from EnvVariables import TOKEN, Owner_ID
+from config import bot_token, owner_id
 
 
 # Client
@@ -10,7 +10,7 @@ def start_client() -> None:
     client = assistant.Client(
         command_prefix='.', case_insensitive=True,
         intents=disnake.Intents.all(), help_command=None,
-        owner_id=Owner_ID, description="Andrew's Assistant",
+        owner_id=owner_id, description="Andrew's Assistant",
         status=disnake.Status.online,
         activity=disnake.Activity(type=disnake.ActivityType.watching, name="yall Homies."),
         allowed_mentions=disnake.AllowedMentions.all(),
@@ -27,7 +27,7 @@ def start_client() -> None:
     client.load_extensions("./cogs/fir")
     client.load_extensions("./cogs/music")
 
-    client.run(TOKEN)
+    client.run(bot_token)
 
 
 if __name__ == "__main__":

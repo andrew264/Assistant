@@ -8,10 +8,10 @@ from lavalink.client import DefaultPlayer as Player
 from lyricsgenius import Genius
 from lyricsgenius.song import Song
 
-from EnvVariables import GENIUS_TOKEN
 from assistant import Client, VideoTrack, remove_brackets, colour_gen
+from config import genius_token
 
-genius = Genius(GENIUS_TOKEN, verbose=False, skip_non_songs=True, timeout=10)
+genius = Genius(genius_token, verbose=False, skip_non_songs=True, timeout=10) if genius_token else None
 
 
 class GLyrics:
@@ -151,4 +151,7 @@ class Lyrics(commands.Cog):
 
 
 def setup(client):
+    if not genius_token:
+        client.logger.warning("Genius Token not found. Lyrics command will not be loaded.")
+        return
     client.add_cog(Lyrics(client))

@@ -5,10 +5,10 @@ import disnake
 from lavalink import AudioTrack
 from pyyoutube import Api, Video
 
-from EnvVariables import YT_TOKEN
 from assistant import human_int
+from config import yt_token
 
-api = Api(api_key=YT_TOKEN)
+api = Api(api_key=yt_token) if yt_token else None
 
 
 class VideoTrack(AudioTrack):
@@ -73,6 +73,8 @@ class VideoTrack(AudioTrack):
 
     def fetch_info(self) -> None:
         """Fetch the video info from YouTube"""
+        if not api:
+            return
         video_data: Video = api.get_video_by_id(video_id=self.identifier).items[0]
         self._views = video_data.statistics.viewCount
         self._likes = video_data.statistics.likeCount

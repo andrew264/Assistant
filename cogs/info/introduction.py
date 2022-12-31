@@ -6,6 +6,7 @@ import disnake
 from disnake.ext import commands
 
 from assistant import Client
+from config import database_path
 
 
 class Introduction(commands.Cog):
@@ -50,4 +51,7 @@ class Introduction(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Introduction(bot))
+    if database_path:
+        bot.add_cog(Introduction(bot))
+    else:
+        bot.logger.warning("Database not configured, Introduction cog will not be loaded.")

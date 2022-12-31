@@ -10,8 +10,8 @@ from disnake.ext import commands
 from fuzzywuzzy import process
 from lavalink import DefaultPlayer as Player
 
-from EnvVariables import LavalinkConfig
 from assistant import Client, VideoTrack, VoiceClient, remove_brackets
+from config import LavalinkConfig
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
@@ -50,11 +50,11 @@ class SlashPlay(commands.Cog):
 
     @commands.Cog.listener('on_ready')
     async def _connect_to_lavalink(self) -> None:
-        if self.client.lavalink is None:
+        config = LavalinkConfig()
+        if config and self.client.lavalink is None:
             self.client.lavalink = lavalink.Client(self.client.user.id)
             self.client.logger.info("Connecting to Lavalink...")
             self.player_manager = self.client.lavalink.player_manager
-            config = LavalinkConfig()
             self.client.lavalink.add_node(host=config.host, port=config.port, password=config.password,
                                           region=config.region, name=config.node_name)
             self.client.logger.info("Connected to Lavalink")
@@ -105,7 +105,8 @@ class SlashPlay(commands.Cog):
                 await asyncio.sleep(1)
                 if inter.guild.me.voice:
                     await inter.guild.me.request_to_speak()
-                    self.client.logger.info(f"Requesting to speak in #{inter.guild.me.voice.channel} {inter.guild.name}.")
+                    self.client.logger.info(
+                        f"Requesting to speak in #{inter.guild.me.voice.channel} {inter.guild.name}.")
 
         # Start playing
         self._update_cache()
@@ -142,6 +143,10 @@ class SlashPlay(commands.Cog):
 
 
 def setup(client: Client):
+    config = LavalinkConfig()
+    if not config:
+        client.logger.warning("Lavalink Config not found. Music Player will not be loaded.")
+        return
     # check if cache exists
     if not os.path.exists("data/search_cache.json"):
         client.logger.info("Music Search Cache not found, creating one...")

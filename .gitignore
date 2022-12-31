@@ -1,5 +1,5 @@
 # Environment Variables
-/config/config.json
+/config/config.toml
 
 # Environment and Cache
 /env

@@ -6,6 +6,7 @@ import disnake
 from disnake.ext import commands
 
 from assistant import Client
+from config import database_path
 
 
 class LastSeen(commands.Cog):
@@ -73,4 +74,7 @@ class LastSeen(commands.Cog):
 
 
 def setup(client: Client):
-    client.add_cog(LastSeen(client))
+    if database_path:
+        client.add_cog(LastSeen(client))
+    else:
+        client.logger.warning("Database not configured, LastSeen cog will not be loaded.")

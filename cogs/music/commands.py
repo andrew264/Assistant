@@ -10,8 +10,8 @@ from lavalink import DefaultPlayer as Player
 from lavalink.events import TrackEndEvent, TrackExceptionEvent, TrackStuckEvent, TrackStartEvent
 
 import assistant
-from EnvVariables import HOMIES
 from assistant import VideoTrack, time_in_seconds
+from config import home_guild, LavalinkConfig
 
 
 class MusicCommands(commands.Cog):
@@ -37,12 +37,12 @@ class MusicCommands(commands.Cog):
         guild_name = self.client.get_guild(player.guild_id).name
         if isinstance(event, lavalink.events.TrackStartEvent):
             self.client.logger.info(f"Track started: {event.track.title} in {guild_name}")
-            if player.guild_id == HOMIES and player.current:
+            if player.guild_id == home_guild and player.current:
                 await self.client.change_presence(activity=disnake.Activity(type=disnake.ActivityType.listening,
                                                                             name=player.current.title, ))
                 return
         if isinstance(event, lavalink.events.TrackEndEvent) or isinstance(event, lavalink.events.QueueEndEvent):
-            if not player.is_playing and player.guild_id == HOMIES:
+            if not player.is_playing and player.guild_id == home_guild:
                 await self.client.change_presence(status=disnake.Status.online,
                                                   activity=disnake.Activity(type=disnake.ActivityType.watching,
                                                                             name="yall Homies."), )
@@ -477,4 +477,8 @@ class MusicCommands(commands.Cog):
 
 
 def setup(client):
+    config = LavalinkConfig()
+    if not config:
+        client.logger.warning("Lavalink Config not found. Music Commands will not be loaded.")
+        return
     client.add_cog(MusicCommands(client))

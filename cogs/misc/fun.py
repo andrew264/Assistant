@@ -7,10 +7,8 @@ from disnake.ext import commands
 from disnake.ext.commands import Param
 
 import assistant
-from EnvVariables import Owner_ID
 from assistant import colour_gen, getch_hook
-
-FEMALE_ROLES = (789081456110075936, 838868317779394560, 956593551943278612)
+from config import owner_id, female_roles
 
 
 def death_msg_gen(victim: str, killer: str) -> str:
@@ -38,10 +36,10 @@ def death_msg_gen(victim: str, killer: str) -> str:
 
 
 def pp_generator(user_id: int) -> str:
-    special_characters = (Owner_ID,)
+    special_characters: tuple[int | None] = (owner_id,)
     if user_id in special_characters:
         return f'[8{"=" * randint(7, 12)}D]' + \
-               '(https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
+            '(https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
     else:
         return f"8{'=' * randint(0, 9)}D"
 
@@ -62,7 +60,7 @@ class Fun(commands.Cog):
     async def pp(self, inter: disnake.ApplicationCommandInteraction,
                  user: disnake.Member = Param(description="Mention a User",
                                               default=lambda inter: inter.author), ) -> None:
-        is_female = any(role.id in FEMALE_ROLES for role in user.roles)
+        is_female = any(role.id in female_roles for role in user.roles)
         pp_embed = disnake.Embed(colour=colour_gen(user.id))
         pp_embed.set_author(name=user, icon_url=user.display_avatar.url)
         if is_female:
@@ -106,7 +104,7 @@ class Fun(commands.Cog):
             user = inter.author
 
         # Fetch Webhook
-        webhook = await getch_hook(inter.channel)
+        webhook = await getch_hook(inter.channel())
 
         # Reply Msg
         match types:

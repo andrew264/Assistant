@@ -11,8 +11,8 @@ import lavalink
 import psutil
 from disnake.ext import commands
 
-from EnvVariables import DM_Channel, LavalinkConfig
 from assistant import log
+from config import LavalinkConfig, database_path, error_channel
 
 
 class Client(commands.Bot):
@@ -42,16 +42,24 @@ class Client(commands.Bot):
         """
         Starts the Lavalink Server
         """
-        self.logger.info("Starting Lavalink Server...")
-        env = os.environ.copy()
-        env['PATH'] = LavalinkConfig.JAVA_PATH + os.pathsep + env['PATH']
-        proc = subprocess.Popen(["java", "-Xmx256M", "-Xms256M", "-jar", "Lavalink.jar"],
-                                cwd=LavalinkConfig.LAVALINK_PATH,
-                                env=env, shell=True,
-                                creationflags=subprocess.CREATE_NEW_CONSOLE,
-                                )
-        self._lavalink_pid = proc.pid
-        self.logger.info("Lavalink Server Started.")
+        lava_config = LavalinkConfig()
+        if lava_config:
+            self.logger.info("Starting Lavalink Server...")
+            if lava_config.JAVA_PATH:
+                env = os.environ.copy()
+                env['PATH'] = lava_config.JAVA_PATH + os.pathsep + env['PATH']
+            else:
+                env = None
+            proc = subprocess.Popen(["java", "-Xmx256M", "-Xms256M", "-jar", "Lavalink.jar"],
+                                    cwd=lava_config.LAVALINK_PATH,
+                                    env=env, shell=True,
+                                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                    )
+            self._lavalink_pid = proc.pid
+            self.logger.info("Lavalink Server Started.")
+            del lava_config
+        else:
+            self.logger.warning("Lavalink Config not found.")
 
     @property
     def start_time(self) -> datetime:
@@ -77,15 +85,15 @@ class Client(commands.Bot):
         """
         Returns the Database Connection
         """
-        if self._db is None:
-            self._db = await aiosqlite.connect("./data/database.sqlite3")
+        if self._db is None and database_path:
+            self._db = await aiosqlite.connect(database_path)
         return self._db
 
     async def log(self, content: Optional[str] = None, embed: Optional[disnake.Embed] = None) -> None:
         """
         Logs messages to a Text Channel
         """
-        channel = self.get_channel(DM_Channel)
+        channel = self.get_channel(error_channel)
         if channel is not None:
             await channel.send(content=content, embed=embed)
 
@@ -106,6 +114,4 @@ class Client(commands.Bot):
             process.kill()
             self.logger.info("Lavalink Server Killed.")
             self._lavalink_pid = None
-        else:
-            self.logger.info("Lavalink Server not running.")
         await super().close()

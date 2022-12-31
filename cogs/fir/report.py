@@ -6,6 +6,7 @@ import disnake
 from disnake.ext import commands
 
 from assistant import Client
+from config import database_path
 
 
 class Report(commands.Cog):
@@ -58,4 +59,7 @@ class Report(commands.Cog):
 
 
 def setup(client: Client) -> None:
-    client.add_cog(Report(client))
+    if database_path:
+        client.add_cog(Report(client))
+    else:
+        client.logger.warning("Database not configured, Report cog not loaded.")

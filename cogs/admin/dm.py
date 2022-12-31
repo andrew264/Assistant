@@ -4,8 +4,8 @@ from typing import List, Optional
 import disnake
 from disnake.ext import commands
 
-from EnvVariables import DM_Channel, Owner_ID
 from assistant import Client, getch_hook
+from config import dm_receive_category, owner_id, home_guild
 
 
 class OnDM(commands.Cog):
@@ -13,50 +13,81 @@ class OnDM(commands.Cog):
         self.client = client
         self.logger = client.logger
 
-    # Replies
+    async def get_webhook(self, user: disnake.User) -> Optional[disnake.Webhook]:
+        guild = self.client.get_guild(home_guild)
+        if guild is None:
+            return None
+        category = guild.get_channel(dm_receive_category)
+        if category is None:
+            return None
+        for channel in category.channels:
+            if channel.topic and str(user.id) in channel.topic:
+                webhook = await getch_hook(channel)
+                break
+        else:
+            channel = await category.create_text_channel(
+                name=f"{user.name}-{user.discriminator}",
+                topic=f"UserID: {user.id}")
+            webhook = await getch_hook(channel)
+        return webhook
+
+    # Receive DMs
     @commands.Cog.listener('on_message')
     async def receive_messages(self, message: disnake.Message) -> None:
         if message.guild or message.author.bot:
             return
-        msg_content = f"UserID: `{message.author.id}`; Message ID: `{message.id}`"
+        self.client.logger.info(f"{message.author}: {message.content}")
+        if not dm_receive_category:
+            return
+        hook = await self.get_webhook(message.author)
+        if hook is None:
+            return
+
+        msg_content = f"Message ID: `{message.id}`"
         if message.reference:
-            msg_content += f"; Replying to: `{message.reference.message_id}`"
+            msg_content += f"; Replying to: `{message.reference.resolved.content[:100]}`"
         if message.content:
             msg_content += f"\nContent: ```{message.content}```\n"
         files: List[disnake.File] = [await attachment.to_file() for attachment in message.attachments]
-        webhook = await getch_hook(self.client.get_channel(DM_Channel))
-        await webhook.send(content=msg_content, files=files,
-                           username=str(message.author), avatar_url=message.author.display_avatar.url)
-        self.logger.info(f"Received a message from {message.author}")
+        await hook.send(content=msg_content, files=files,
+                        username=message.author.name, avatar_url=message.author.display_avatar.url)
 
+    # Send DMs
     @commands.Cog.listener('on_message')
     async def send_message(self, message: disnake.Message) -> None:
         if message.author.bot:
             return
-        if message.author.id != Owner_ID and not message.guild:
+        if message.author.id != owner_id and not message.guild:
             return
-        if not message.reference:
+        if isinstance(message.channel, disnake.DMChannel):
             return
-        if message.reference.resolved.author.id != self.client.user.id and not message.reference.resolved.webhook_id:
+        if not message.channel.category_id == dm_receive_category:
             return
-        if not message.reference.resolved.content.startswith("UserID:"):
+        if message.channel.topic is None:
             return
+        reply_msg_id = None
         try:
-            msg = message.reference.resolved.content.splitlines()[0].split(';')
-            user_id: int = int(msg[0].split(':')[1].replace("`", ""))
-            msg_id: Optional[int] = int(msg[1].split(':')[1].replace("`", "")) if len(msg) > 1 else None
+            user_id = int(message.channel.topic.split("UserID: ")[1])
+            if message.reference and message.reference.resolved:
+                resolved = message.reference.resolved
+                if resolved.content and "Message ID: " in resolved.content and resolved.author.bot:
+                    reply_msg_id = int(resolved.content
+                                       .split("\n", 1)[0]
+                                       .split("Message ID: ")[1]
+                                       .split(";")[0]
+                                       .replace("`", ""))
         except (IndexError, ValueError):
-            self.logger.warning(f"Invalid message reference: {message.reference.resolved.content}")
+            self.logger.error(
+                f"Invalid 'user_id' or 'reply_msg_id' in `{message.channel.topic}` or `{message.content}`")
             return
-        content = message.content
         user = self.client.get_user(user_id)
         if not user:
             return
         try:
             channel = await user.create_dm()
-            await user.send(content=content,
-                            reference=disnake.MessageReference(message_id=msg_id,
-                                                               channel_id=channel.id) if msg_id else None,
+            await user.send(content=message.content,
+                            reference=disnake.MessageReference(message_id=reply_msg_id,
+                                                               channel_id=channel.id) if reply_msg_id else None,
                             files=[await attachment.to_file() for attachment in message.attachments],
                             embeds=[embed for embed in message.embeds])
             self.logger.info(f"Sent a message to {user}")
@@ -64,7 +95,7 @@ class OnDM(commands.Cog):
             await message.channel.send(f"Failed to DM {user}.")
             self.logger.warning(f"Failed to DM {user}.")
 
-    # slide to dms
+    # Send DMs but with a command
     @commands.command()
     @commands.is_owner()
     async def dm(self, ctx: commands.Context, user: disnake.User, *, msg: str = "") -> None:
@@ -82,13 +113,16 @@ class OnDM(commands.Cog):
             self.logger.info(f"DM'd {user}.")
 
         # log Sent Direct Messages
-        dm_log = self.client.get_channel(DM_Channel)
-        content = f"UserID: `{user.id}`; Message ID: `{msg.id}`\n"
-        content += f"To: `{user}`; From: `{ctx.author}`\n"
+        hook = await self.get_webhook(user)
+        content = f"Message ID: `{msg.id}`\n"
         content += f"\nContent: ```{msg.content}```\n"
-        await dm_log.send(content=content, files=files, )
+        await hook.send(content=content, files=files,
+                        username=ctx.author.name, avatar_url=ctx.author.display_avatar.url)
         await ctx.message.delete()
 
 
 def setup(client):
-    client.add_cog(OnDM(client))
+    if all([dm_receive_category, owner_id, home_guild]):
+        client.add_cog(OnDM(client))
+    else:
+        client.logger.warning("DMs cog is disabled due to missing config values.")
