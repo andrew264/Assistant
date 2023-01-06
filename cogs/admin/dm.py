@@ -124,8 +124,8 @@ class OnDM(commands.Cog):
         content = f"Message ID: `{msg.id}`\n"
         content += f"\nContent: ```{msg.content}```\n"
         # check if content match url pattern regex
-        if msg and rx_url.match(msg):
-            url = rx_url.match(msg).group("url")
+        if msg and rx_url.match(msg.content):
+            url = rx_url.match(msg.content).group("url")
             content += f"URL: {url}\n"
         await hook.send(content=content, files=files,
                         username=ctx.author.name, avatar_url=ctx.author.display_avatar.url)
