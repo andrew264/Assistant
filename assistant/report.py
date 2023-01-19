@@ -3,14 +3,14 @@ import sqlite3
 
 class Report:
     def __init__(self, values: sqlite3.Row):
-        self.id: int = values[0]
-        self.accused_id: int = values[1]
-        self.accused_name: str = values[2]
-        self.reporter_id: int = values[3]
-        self.reporter_name: str = values[4]
-        self.reason: str = values[5]
-        self.time: int = values[6]
-        self.guild_id: int = values[7]
+        self.id: int = values["report_id"]
+        self.accused_id: int = values["accused_id"]
+        self.accused_name: str = values["accused_name"]
+        self.reporter_id: int = values["reporter_id"]
+        self.reporter_name: str = values["reporter_name"]
+        self.reason: str = values["reason"]
+        self.time: int = values["time"]
+        self.guild_id: int = values["guild_id"]
 
     def __str__(self) -> str:
         return f"ID: {self.id}\t{self.reporter_name} accused {self.accused_name}"

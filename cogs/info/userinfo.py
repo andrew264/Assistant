@@ -118,15 +118,17 @@ class UserInfo(commands.Cog):
             return None, None
         async with self.db.execute("SELECT * FROM Members WHERE USERID = ?", (user_id,)) as cursor:
             value = await cursor.fetchone()
-            about: Optional[str] = value[1] if value else None
-            timestamp: Optional[int] = value[2] if value else None
-            return about, timestamp
+            if value:
+                about: Optional[str] = value["ABOUT"]
+                timestamp: Optional[int] = value["last_seen"]
+                return about, timestamp
+            return None, None
 
     async def _fetch_report_count(self, user: disnake.Member) -> int:
         """
         Fetch the user's total report count from the database
         :param user: The user
-        :return: The user's report count
+        :return: report count
         """
         self.db = await self.client.db_connect()
         if not self.db:

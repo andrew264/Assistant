@@ -87,6 +87,7 @@ class Client(commands.Bot):
         """
         if self._db is None and database_path:
             self._db = await aiosqlite.connect(database_path)
+            self._db.row_factory = aiosqlite.Row
         return self._db
 
     async def log(self, content: Optional[str] = None, embed: Optional[disnake.Embed] = None) -> None:
