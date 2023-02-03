@@ -31,8 +31,12 @@ class HandCricket(commands.Cog):
         class SelectEvenOdd(disnake.ui.View):
             def __init__(self):
                 super().__init__(timeout=60)
+                self.is_selected = False
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
+                if self.is_selected:
+                    await interaction.response.send_message("Only one can Select.", ephemeral=True)
+                    return False
                 if interaction.user == user1 or interaction.user == user2:
                     return True
                 else:
@@ -46,6 +50,7 @@ class HandCricket(commands.Cog):
 
             @disnake.ui.button(label="Even", style=disnake.ButtonStyle.green)
             async def even(self, button: disnake.ui.Button, interaction: disnake.Interaction):
+                self.is_selected = True
                 num_view = TossNumberView()
                 if interaction.user == user1:
                     num_view.choices = {user1: EvenOdd.even, user2: EvenOdd.odd}
@@ -57,6 +62,7 @@ class HandCricket(commands.Cog):
 
             @disnake.ui.button(label="Odd", style=disnake.ButtonStyle.red)
             async def odd(self, button: disnake.ui.Button, interaction: disnake.Interaction):
+                self.is_selected = True
                 num_view = TossNumberView()
                 if interaction.user == user1:
                     num_view.choices = {user1: EvenOdd.odd, user2: EvenOdd.even}
@@ -119,11 +125,11 @@ class HandCricket(commands.Cog):
 
                     if (num_view.user1_choice + num_view.user2_choice) % 2 == num_view.choices[user1].value:
                         msg += f"\n{user1.mention} won the toss."
-                        await interaction.edit_original_message(msg, view=num_view)
+                        await interaction.edit_original_message(msg, view=None)
                         await interaction.followup.send("Select Bat or Bowl", view=ChoseToBatOrBowl(user1))
                     else:
                         msg += f"\n{user2.mention} won the toss."
-                        await interaction.edit_original_message(msg, view=num_view)
+                        await interaction.edit_original_message(msg, view=None)
                         await interaction.followup.send("Select Bat or Bowl", view=ChoseToBatOrBowl(user2))
 
         class ChoseToBatOrBowl(disnake.ui.View):
@@ -223,31 +229,59 @@ class HandCricket(commands.Cog):
 
             def get_other_player(self, player: disnake.Member) -> disnake.Member:
                 game_view: Game = self.view
-                logger.debug(f"get_other_player({player})")
-                return game_view.player1 if player == game_view.player2 else game_view.player1
+                logger.debug(f"Called: get_other_player({player})")
+                logger.debug(f"Players: {game_view.player1} - {game_view.player2}")
+                if player.id == game_view.player1.id:
+                    logger.debug(f"Returning: {game_view.player2}")
+                    return game_view.player2
+                else:
+                    logger.debug(f"Returning: {game_view.player1}")
+                    return game_view.player1
 
             def is_inning_over(self) -> bool:
                 game_view: Game = self.view
-                return (game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2]
-                        and game_view.last_score[game_view.player1] is not None
-                        and game_view.last_score[game_view.player2] is not None)
+                logger.debug(
+                    f"Called: is_inning_over(): "
+                    f"Last: - {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
+                return (game_view.innings == 0 and
+                        game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2]
+                        and self.both_selected())
 
             def is_game_over(self) -> bool:
                 game_view: Game = self.view
-                return (game_view.innings == 1
-                        and game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2]
-                        and game_view.last_score[game_view.player1] is not None
+                logger.debug(f"Called: is_game_over() - {game_view.innings} innings, ")
+                logger.debug(f"Scores: {game_view.scores[game_view.player1]} - {game_view.scores[game_view.player2]}")
+                logger.debug(
+                    f"Last: {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
+                if game_view.innings == 1:
+                    logger.debug(f"Game Over: {game_view.scores[game_view.batting]} > {game_view.scores[self.get_other_player(game_view.batting)]}")
+                    if game_view.scores[game_view.batting] > game_view.scores[self.get_other_player(game_view.batting)]:
+                        return True
+                    elif (game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2]
+                          and self.both_selected()):
+                        return True
+                return False
+
+            def reset_last_score(self):
+                game_view: Game = self.view
+                if self.both_selected():
+                    logger.debug(f"Resetting last score: {game_view.last_score.values()}")
+                    game_view.last_score = {game_view.player1: None, game_view.player2: None}
+                else:
+                    logger.debug("Not resetting last score", game_view.last_score)
+
+            def both_selected(self):
+                game_view: Game = self.view
+                return (game_view.last_score[game_view.player1] is not None
                         and game_view.last_score[game_view.player2] is not None)
 
             async def update_score(self, interaction: disnake.Interaction):
                 logger.debug("Updating score")
                 game_view: Game = self.view
-                if (game_view.last_score[game_view.player1] is not None and
-                        game_view.last_score[game_view.player2] is not None):
-                    score = game_view.last_score[game_view.player1] + game_view.last_score[game_view.player2]
-                    game_view.scores[game_view.batting] += score
+                if self.both_selected():
+                    if game_view.last_score[game_view.player1] != game_view.last_score[game_view.player2]:
+                        game_view.scores[game_view.batting] += game_view.last_score[game_view.batting]
                     await interaction.edit_original_message(embed=game_view.embed, view=game_view)
-                    game_view.last_score = {game_view.player1: None, game_view.player2: None}
 
             async def callback(self, interaction: disnake.Interaction):
                 assert self.view is not None
@@ -255,6 +289,7 @@ class HandCricket(commands.Cog):
                 if self.is_player_turn_valid(interaction.user):
                     game_view.last_score[interaction.user] = self.number
                     await interaction.response.edit_message(embed=game_view.embed, view=game_view)
+                    await self.update_score(interaction)
                 else:
                     await interaction.response.send_message(
                         f"Let {self.get_other_player(interaction.user).mention} Choose.",
@@ -262,25 +297,26 @@ class HandCricket(commands.Cog):
                     return
                 if self.is_inning_over():
                     logger.debug("Inning Over")
-                    if game_view.innings == 0:
-                        game_view.innings += 1
-                        game_view.batting = self.get_other_player(game_view.batting)
-                        game_view.last_score = {game_view.player1: None, game_view.player2: None}
-                        await interaction.edit_original_message(content=f"{game_view.batting.mention} is Batting",
-                                                                embed=game_view.embed,
-                                                                view=game_view)
-                    elif self.is_game_over():
-                        logger.debug("Game Over")
-                        game_view.disable()
-                        if game_view.scores[game_view.player1] > game_view.scores[game_view.player2]:
-                            msg = f"{game_view.player1.mention} won! against {game_view.player2.mention}"
-                        elif game_view.scores[game_view.player2] > game_view.scores[game_view.player1]:
-                            msg = f"{game_view.player2.mention} won! against {game_view.player1.mention}"
-                        else:
-                            msg = f"{game_view.player1.mention} and {game_view.player2.mention} tied!"
-                        await interaction.edit_original_message(content=msg, embed=game_view.embed, view=None)
+                    game_view.innings += 1
+                    logger.debug(f"Switching batting player from {game_view.batting} to {self.get_other_player(game_view.batting)}")
+                    game_view.batting = self.get_other_player(game_view.batting)
+                    self.reset_last_score()
+                    await interaction.edit_original_message(content=f"{game_view.batting.mention} is Batting",
+                                                            embed=game_view.embed,
+                                                            view=game_view)
                     return
-                await self.update_score(interaction)
+                if self.is_game_over():
+                    logger.debug("Game Over")
+                    game_view.disable()
+                    if game_view.scores[game_view.player1] > game_view.scores[game_view.player2]:
+                        msg = f"{game_view.player1.mention} won! against {game_view.player2.mention}"
+                    elif game_view.scores[game_view.player2] > game_view.scores[game_view.player1]:
+                        msg = f"{game_view.player2.mention} won! against {game_view.player1.mention}"
+                    else:
+                        msg = f"{game_view.player1.mention} and {game_view.player2.mention} tied!"
+                    await interaction.edit_original_message(content=msg, embed=game_view.embed, view=None)
+                    return
+                self.reset_last_score()
 
         view = SelectEvenOdd()
         await inter.response.send_message(f"{user1.mention}/{user2.mention}, select Even or Odd.", view=view)
