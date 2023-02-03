@@ -78,6 +78,7 @@ class HandCricket(commands.Cog):
                 self.choices: dict[disnake.Member, Optional[EvenOdd]] = {user1: None, user2: None}
                 self.user1_choice: Optional[int] = None
                 self.user2_choice: Optional[int] = None
+                self.is_selected = False
                 num = 1
                 for i in range(0, 2):
                     for j in range(0, 3):
@@ -85,9 +86,14 @@ class HandCricket(commands.Cog):
                         num += 1
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
+                if self.is_selected:
+                    await interaction.response.send_message("Only one can Select.", ephemeral=True)
+                    return False
                 if interaction.user == user1 and self.user1_choice is None:
+                    self.is_selected = True
                     return True
                 elif interaction.user == user2 and self.user2_choice is None:
+                    self.is_selected = True
                     return True
                 else:
                     await interaction.response.send_message("Start your own game with `/handcricket`", ephemeral=True)
