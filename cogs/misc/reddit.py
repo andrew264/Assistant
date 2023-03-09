@@ -17,7 +17,7 @@ gif_sites = ("redgifs.com", "v.redd.it", "imgur.com")
 class Reddit(commands.Cog):
     def __init__(self, client: Client, reddit: praw.Reddit):
         self.client = client
-        self._r_cache: dict[str, [Submission]] = {}
+        self._r_cache: dict[str, list[Submission]] = {}
         self.reddit = reddit
 
     async def get_random_posts(self, subreddit: str, uploaded: str,
@@ -64,13 +64,10 @@ class Reddit(commands.Cog):
             embed.set_image(url=self.process_link(post.url))
             await inter.edit_original_message(content="", embed=embed)
 
-    @commands.slash_command(description="Fetch a NSFW Post from Reddit")
+    @commands.slash_command(description="Fetch a NSFW Post from Reddit", nsfw=True)
     async def nsfw(self, inter: disnake.ApplicationCommandInteraction,
                    posts: int = Param(description="Number of posts to fetch", default=1),
                    subreddit: str = Param(description="Enter a subreddit (Optional)", default=None), ) -> None:
-        if isinstance(inter.channel, disnake.TextChannel) and inter.channel.is_nsfw() is False:
-            await inter.response.send_message("This command is only available in NSFW channels.", ephemeral=True)
-            return
         if posts > 16 or posts < 1:
             if inter.author.id != owner_id:
                 await inter.response.send_message("Maximum of 15 posts at a time.", ephemeral=True)

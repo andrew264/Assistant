@@ -288,7 +288,7 @@ class MusicFilters(commands.Cog):
 
         view = TimeScaleButtons()
         await inter.response.send_message(embed=view.embed, view=view)
-        self.logger.info(f"Timescale Filters started by {inter.author} in {inter.guild}")
+        self.logger.info(f"Timescale Filters applied by {inter.author} in {inter.guild}")
 
     @filters.sub_command(name="nightcore", description="Apply Nightcore Filter")
     async def nightcore(self, inter: disnake.ApplicationCommandInteraction):

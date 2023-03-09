@@ -31,8 +31,6 @@ class MusicCommands(commands.Cog):
                          event: typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
         # Update client's status
         # Cuz why not ?
-        if not isinstance(event, typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
-            return
         player: Player = event.player
         guild_name = self.client.get_guild(player.guild_id).name
         if isinstance(event, lavalink.events.TrackStartEvent):
@@ -47,42 +45,48 @@ class MusicCommands(commands.Cog):
                                                   activity=disnake.Activity(type=disnake.ActivityType.watching,
                                                                             name="yall Homies."), )
         if isinstance(event, lavalink.events.QueueEndEvent):
-            self.client.logger.info(f"Queue ended in {guild_name}")
-            await player.stop()
-            await self._dc_from_voice(player)
+            await self._wait_and_dc(player)
 
-    async def _dc_from_voice(self, player: Player):
+    async def _wait_and_dc(self, player: Player):
         """
         Disconnects the bot from a voice channel.
         """
         await asyncio.sleep(30)
+        if player is None:
+            return
         voice = self.client.get_guild(player.guild_id).voice_client
-        if voice and player.is_connected and not player.is_playing:
-            for _filter in list(player.filters):
-                await player.remove_filter(_filter)
-                await voice.disconnect(force=True)
-                self.client.logger.info(f"Disconnected from {voice.channel.guild.name}")
+        if voice is None:
+            return
+        if voice and voice.channel and not player.is_playing or not player.queue:
+            self.client.logger.info(f"Disconnected from {voice.channel.guild.name}, Reason: Queue ended.")
+            await self._force_dc(player)
+        elif all([m.id == self.client.user.id for m in voice.channel.members]):
+            self.client.logger.info(f"Disconnected from {voice.channel.guild.name}, Reason: No one in VC.")
+            await self._force_dc(player)
+
+    async def _force_dc(self, player: Player):
+        voice = self.client.get_guild(player.guild_id).voice_client
+        if not voice:
+            return
+        for _filter in list(player.filters):
+            await player.remove_filter(_filter)
+        if player.is_playing:
+            await player.stop()
+        await voice.disconnect(force=True)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member,
                                     before: disnake.VoiceState, after: disnake.VoiceState):
         if member != self.client.user:
-            return  # We don't care about other people's voice state changes
-        if before.channel and not after.channel:
-            # remove all applied filters and effects
-            # Clear the queue.
-            # Stop the current track.
-            # Force disconnect to fix reconnecting issues.
-            if self.player_manager:
-                player: Player = self.player_manager.get(member.guild.id)
-                if player and player.current:
-                    for _filter in list(player.filters):
-                        await player.remove_filter(_filter)
-                    player.queue.clear()
-                    await player.stop()
-            voice = member.guild.voice_client
-            if voice:
-                await voice.disconnect(force=True)
+            return
+        player: Player = self.client.lavalink.player_manager.get(member.guild.id)
+        if after.channel is None:
+            await self._force_dc(player)
+            return
+        elif before.channel is None:
+            return
+        elif before.channel != after.channel:
+            await self._wait_and_dc(player)
 
     # Group Commands
     @commands.slash_command(name="music", description="Music related commands.")
