@@ -31,6 +31,8 @@ class MusicCommands(commands.Cog):
                          event: typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
         # Update client's status
         # Cuz why not ?
+        if not isinstance(event, typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
+            return
         player: Player = event.player
         guild_name = self.client.get_guild(player.guild_id).name
         if isinstance(event, lavalink.events.TrackStartEvent):

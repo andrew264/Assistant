@@ -13,7 +13,7 @@ class Extensions(commands.Cog):
         self.logger = client.logger
 
     @commands.slash_command(name="extensions", description="Manage extensions.", guild_ids=[home_guild],
-                            default_permission=disnake.Permissions(administrator=True))
+                            default_member_permissions=disnake.Permissions(administrator=True))
     async def extensions(self, inter: disnake.ApplicationCommandInteraction) -> None:
         if inter.user.id != self.bot.owner_id:
             return await inter.response.send_message("You are not allowed to use this command.", ephemeral=True)
