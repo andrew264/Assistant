@@ -72,6 +72,7 @@ class MusicCommands(commands.Cog):
             return
         for _filter in list(player.filters):
             await player.remove_filter(_filter)
+        player.queue.clear()
         if player.is_playing:
             await player.stop()
         await voice.disconnect(force=True)

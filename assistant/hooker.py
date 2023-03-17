@@ -3,8 +3,7 @@ import typing
 import disnake
 
 
-async def getch_hook(channel: typing.Union[disnake.TextChannel, disnake.Thread, disnake.VoiceChannel]
-                     ) -> disnake.Webhook:
+async def getch_hook(channel: typing.Union[disnake.abc.GuildMessageable, disnake.abc.PartialMessageable]) -> disnake.Webhook:
     """
     Send a message to a Webhook
     """

@@ -104,7 +104,7 @@ class Fun(commands.Cog):
             user = inter.author
 
         # Fetch Webhook
-        webhook = await getch_hook(inter.channel())
+        webhook = await getch_hook(inter.channel)
 
         # Reply Msg
         match types:
