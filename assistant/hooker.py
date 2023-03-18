@@ -1,9 +1,7 @@
-import typing
-
 import disnake
 
 
-async def getch_hook(channel: typing.Union[disnake.abc.GuildMessageable, disnake.abc.PartialMessageable]) -> disnake.Webhook:
+async def getch_hook(channel: disnake.TextChannel) -> disnake.Webhook:
     """
     Send a message to a Webhook
     """
