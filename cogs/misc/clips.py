@@ -44,9 +44,9 @@ class Clips(commands.Cog):
             def __init__(self):
                 super().__init__(timeout=60)
 
-                class ClipDropdown(disnake.ui.Select):
+                class ClipDropdown(disnake.ui.StringSelect):
                     def __init__(self):
-                        super().__init__(placeholder="Select a clip", custom_id="clips", min_values=1, max_values=1,
+                        super().__init__(placeholder="Select a clip", min_values=1, max_values=1,
                                          options=[disnake.SelectOption(label=c[:-4])
                                                   for c in os.listdir(f'clips/{inter.guild.id}')[:25] if
                                                   c.endswith('.mp3')], )

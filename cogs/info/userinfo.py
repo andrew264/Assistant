@@ -38,7 +38,7 @@ class UserInfo(commands.Cog):
                     pass
 
             @disnake.ui.user_select(placeholder="Select a User", min_values=1, max_values=1)
-            async def select_user(self, select: disnake.ui.Select, interaction: disnake.Interaction) -> None:
+            async def select_user(self, select: disnake.ui.UserSelect, interaction: disnake.Interaction) -> None:
                 selected_user: disnake.Member = select.values[0]
                 await interaction.response.edit_message(embed=await userinfo_embed(selected_user, is_admin),
                                                         view=self)
