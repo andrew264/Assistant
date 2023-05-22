@@ -5,6 +5,7 @@ import typing
 
 import disnake
 import lavalink
+import motor
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 from lavalink.events import TrackEndEvent, TrackExceptionEvent, TrackStuckEvent, TrackStartEvent
@@ -21,6 +22,7 @@ class MusicCommands(commands.Cog):
         self.lavalink = None
         self.player_manager = None
         lavalink.add_event_hook(self.track_hook)
+        self.mongo_db: typing.Optional[motor.MotorClient] = None
 
     def cog_unload(self):
         """ Cog unload handler. This removes any event hooks that were registered. """
@@ -37,6 +39,8 @@ class MusicCommands(commands.Cog):
         guild_name = self.client.get_guild(player.guild_id).name
         if isinstance(event, lavalink.events.TrackStartEvent):
             self.client.logger.info(f"Track started: {event.track.title} in {guild_name}")
+            await self._add_track_to_db(player.guild_id, track=event.track)
+
             if player.guild_id == home_guild and player.current:
                 await self.client.change_presence(activity=disnake.Activity(type=disnake.ActivityType.listening,
                                                                             name=player.current.title, ))
@@ -77,6 +81,32 @@ class MusicCommands(commands.Cog):
             await player.stop()
         await voice.disconnect(force=True)
 
+    async def _add_track_to_db(self, guild_id: int, track):
+        db = self.mongo_db["assistant"]
+        collection = db["songHistory"]
+        result = await collection.find_one(dict(guild_id=guild_id))
+        dict_track = dict(
+            title=track.title,
+            uri=track.uri,
+            by=track.author.display_name,
+        )
+
+        if result is not None:
+            if len(result["songs"]) >= 15:
+                result["songs"].pop(0)
+            if dict_track in result["songs"]:
+                result["songs"].remove(dict_track)
+            result["songs"].append(dict_track)
+            await collection.update_one(dict(guild_id=guild_id), {"$set": result})
+            self.logger.info(f"Added {track.title} to db.")
+            return
+        else:
+            result = dict(guild_id=guild_id, songs=[])
+            result["songs"].append(dict_track)
+            await collection.insert_one(result)
+            self.logger.info(f"Added {track.title} to db.")
+            return
+
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member,
                                     before: disnake.VoiceState, after: disnake.VoiceState):
@@ -90,6 +120,11 @@ class MusicCommands(commands.Cog):
             return
         elif before.channel != after.channel:
             await self._wait_and_dc(player)
+
+    @commands.Cog.listener('on_ready')
+    async def _connect_to_mongo(self) -> None:
+        if self.mongo_db is None:
+            self.mongo_db = self.client.connect_to_mongo()
 
     # Group Commands
     @commands.slash_command(name="music", description="Music related commands.")

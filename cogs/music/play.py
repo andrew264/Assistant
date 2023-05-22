@@ -3,9 +3,11 @@ import json
 import os
 import re
 from itertools import islice
+from typing import Optional
 
 import disnake
 import lavalink
+import motor
 from disnake.ext import commands
 from fuzzywuzzy import process
 from lavalink import DefaultPlayer as Player
@@ -25,6 +27,7 @@ class SlashPlay(commands.Cog):
             f.close()
         del f
         self.player_manager = None
+        self.mongo_client: Optional[motor.MotorClient] = None
 
     def _search_cache(self, query: str) -> dict:
         result = {"Search: " + query: query}
@@ -40,6 +43,17 @@ class SlashPlay(commands.Cog):
             result[self._cache[key]] = "https://www.youtube.com/watch?v=" + key
 
         return dict(islice(result.items(), 10))
+
+    async def _search_history(self, guild_id: int, query: str) -> dict:
+        collection = self.mongo_client["assistant"]["songHistory"]
+        result = {"Search: " + query: query}
+        songHistory = await collection.find_one({"guild_id": guild_id})
+        if songHistory is None:
+            return result
+        songs = songHistory["songs"]
+        for song in songs:
+            result[f"{song['title']} by {song['by']}"] = song["uri"]
+        return result
 
     def _update_cache(self) -> None:
         with open("data/search_cache.json", "w") as f:
@@ -60,6 +74,11 @@ class SlashPlay(commands.Cog):
             self.client.logger.info("Connected to Lavalink")
             del config
             self.client.add_listener(self.client.lavalink.voice_update_handler, "on_socket_response")
+
+    @commands.Cog.listener('on_ready')
+    async def _connect_to_mongo(self) -> None:
+        if self.mongo_client is None:
+            self.mongo_client = self.client.connect_to_mongo()
 
     @commands.slash_command(description="Play Music in VC 🎶")
     @commands.guild_only()
@@ -123,8 +142,8 @@ class SlashPlay(commands.Cog):
 
     @play.autocomplete('query')
     async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:
-        if not query or len(query) < 3:
-            return {"No Results Found": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}
+        if not query or len(query) < 4:
+            return await self._search_history(guild_id=inter.guild.id, query=query)
         return self._search_cache(query)
 
     # Checks

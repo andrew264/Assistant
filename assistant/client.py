@@ -8,11 +8,13 @@ from typing import Optional, Any
 import aiosqlite
 import disnake
 import lavalink
+import motor
 import psutil
 from disnake.ext import commands
+from pymongo.errors import ConnectionFailure
 
 from assistant import log
-from config import LavalinkConfig, database_path, error_channel
+from config import LavalinkConfig, database_path, error_channel, mongo_uri
 
 
 class Client(commands.Bot):
@@ -24,6 +26,7 @@ class Client(commands.Bot):
         super().__init__(**options)
         self.lavalink: Optional[lavalink.Client] = None
         self._db: Optional[aiosqlite.Connection] = None
+        self._mongo: Optional[motor.MotorClient] = None
         self.events = {
             'messages': 0,
             'presence_update': 0,
@@ -60,6 +63,26 @@ class Client(commands.Bot):
             del lava_config
         else:
             self.logger.warning("Lavalink Config not found.")
+
+    def connect_to_mongo(self) -> Optional[motor.MotorClient]:
+        """
+        Connects to MongoDB
+        """
+        if not mongo_uri:
+            return None
+
+        if not self._mongo:
+            try:
+                self.logger.info("Connecting to MongoDB...")
+                self._mongo = motor.motor_tornado.MotorClient(mongo_uri)
+                self._mongo.admin.command('ping')
+            except (ConnectionFailure, Exception) as e:
+                self.logger.warning("MongoDB Connection Failed: %s", str(e))
+                self._mongo = None
+            else:
+                self.logger.info("Connected to MongoDB.")
+
+        return self._mongo
 
     @property
     def start_time(self) -> datetime:

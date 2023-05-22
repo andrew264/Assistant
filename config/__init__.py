@@ -61,3 +61,6 @@ guilds_with_clips: list[int] = [int(name) for name in os.listdir(clips_root_dir)
 
 # logging
 logging_guilds: Optional[Mapping[str, Mapping[str, int]]] = config["logging"] or None
+
+# mongo
+mongo_uri: Optional[str] = f'mongodb+srv://{config["mongo"]["username"]}:{config["mongo"]["password"]}@{config["mongo"]["url"]}' or None

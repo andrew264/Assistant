@@ -12,3 +12,6 @@ googletrans
 lavalink
 python-Levenshtein
 fuzzywuzzy
+motor
+pymongo
+tornado
