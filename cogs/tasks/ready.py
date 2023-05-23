@@ -17,12 +17,12 @@ class Ready(commands.Cog):
         """
         Removes the last_seen column from the database.
         """
-        db = await self.client.db_connect()
-        if db is None:
-            self.client.logger.error("Failed to connect to database.")
-            return
-        await db.execute("UPDATE Members SET last_seen = NULL")
-        await db.commit()
+        # db = await self.client.db_connect()
+        # if db is None:
+        #     self.client.logger.error("Failed to connect to database.")
+        #     return
+        # await db.execute("UPDATE Members SET last_seen = NULL")
+        # await db.commit()
         self.client.logger.info("Removed last_seen column from database")
 
     @commands.Cog.listener()

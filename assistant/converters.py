@@ -27,7 +27,7 @@ def time_delta(time: datetime) -> str:
     if delta.days > 0:
         return f"{delta.days}days"
     if delta.seconds > 3600:
-        return f"{delta.seconds // 3600}hrs {delta.seconds % 3600 // 60}mins"
+        return f"{delta.seconds // 3600}hrs {delta.seconds % 3600 // 60}minutes"
     if delta.seconds > 60:
         return f"{delta.seconds // 60}min {delta.seconds % 60}secs"
     return f"{delta.seconds}s"

@@ -25,7 +25,6 @@
     home_guild = 0 # your main guild id
     dm_receive_category = 0 # must be from home_guild
     error_channel = 0 # must be from home_guild
-    database_path = "path for database.sqlite3"
 
 [clips]
     root_dir = "path for clips"
@@ -40,3 +39,8 @@
     [logging.guild2]
         id = 0 # guild id
         channel_id = 0 # channel id
+
+[mongo]
+    username = "username"
+    password = "passwd"
+    url = "mongo url"

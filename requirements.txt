@@ -4,7 +4,6 @@ gTTS
 lyricsgenius
 python-youtube
 emoji
-aiosqlite
 psutil
 aiohttp
 asyncpraw
@@ -14,4 +13,3 @@ python-Levenshtein
 fuzzywuzzy
 motor
 pymongo
-tornado

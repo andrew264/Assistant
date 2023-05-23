@@ -1,31 +1,29 @@
 import datetime
 from typing import Optional
 
-import aiosqlite
 import disnake
 from disnake.ext import commands
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import Client
-from config import database_path
+from config import mongo_uri
 
 
 class LastSeen(commands.Cog):
     def __init__(self, client: Client):
         self.client = client
-        self.db: Optional[aiosqlite.Connection] = None
+        self.mongo_db: Optional[AsyncIOMotorClient] = None
 
     async def update_time(self, user_id: int) -> None:
-        if self.db is None:
-            self.db = await self.client.db_connect()
-        timestamp = int(datetime.datetime.now().timestamp())
-        async with self.db.execute(f"SELECT * FROM Members WHERE USERID = {user_id}") as cursor:
-            value = await cursor.fetchone()
-            if value:
-                await self.db.execute(f"UPDATE Members SET last_seen = '{timestamp}' WHERE USERID = {user_id}")
-            else:
-                await self.db.execute("INSERT INTO Members (USERID, last_seen) VALUES (?,?)", (user_id, timestamp))
-            if self.db.total_changes:
-                await self.db.commit()
+        if not self.mongo_db:
+            self.mongo_db = self.client.connect_to_mongo()
+
+        db = self.mongo_db["assistant"]
+        collection = db["allUsers"]
+
+        await collection.update_one({"_id": user_id},
+                                    {"$set": {"lastSeen": int(datetime.datetime.now().timestamp())}},
+                                    upsert=True)
 
     @commands.Cog.listener()
     async def on_presence_update(self, before: disnake.Member, after: disnake.Member) -> None:
@@ -74,7 +72,7 @@ class LastSeen(commands.Cog):
 
 
 def setup(client: Client):
-    if database_path:
+    if mongo_uri:
         client.add_cog(LastSeen(client))
     else:
         client.logger.warning("Database not configured, LastSeen cog will not be loaded.")

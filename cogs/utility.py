@@ -99,7 +99,7 @@ class Utility(commands.Cog):
     @commands.message_command(name="Delete till HERE")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def ContextClear(self, inter: disnake.MessageCommandInteraction) -> None:
+    async def context_clear(self, inter: disnake.MessageCommandInteraction) -> None:
         await inter.response.defer(ephemeral=True)
         await inter.channel.purge(after=inter.target)
         await inter.edit_original_message(

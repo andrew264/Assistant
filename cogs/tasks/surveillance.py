@@ -209,7 +209,7 @@ class Surveillance(commands.Cog):
         hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
         await hook.send(f"Started typing in {channel.mention}",
                         username=user.display_name, avatar_url=user.display_avatar.url, delete_after=120)
-        self.logger.info(f"{user.display_name} started typing in {channel.name} on {when}")
+        self.logger.info(f"{user.display_name} started typing in {channel.name} on {when.now().strftime('%d/%m/%Y at %I:%M:%S %p')}")
 
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: disnake.RawGuildMemberRemoveEvent) -> None:

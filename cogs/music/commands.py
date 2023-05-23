@@ -5,7 +5,7 @@ import typing
 
 import disnake
 import lavalink
-import motor
+from motor.motor_asyncio import AsyncIOMotorClient
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
 from lavalink.events import TrackEndEvent, TrackExceptionEvent, TrackStuckEvent, TrackStartEvent
@@ -22,7 +22,7 @@ class MusicCommands(commands.Cog):
         self.lavalink = None
         self.player_manager = None
         lavalink.add_event_hook(self.track_hook)
-        self.mongo_db: typing.Optional[motor.MotorClient] = None
+        self.mongo_db: typing.Optional[AsyncIOMotorClient] = None
 
     def cog_unload(self):
         """ Cog unload handler. This removes any event hooks that were registered. """

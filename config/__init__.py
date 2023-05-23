@@ -19,7 +19,6 @@ dm_receive_category: Optional[int] = config["assistant"]["dm_receive_category"] 
 error_channel: Optional[int] = config["assistant"]["error_channel"] or None
 home_guild: Optional[int] = config["assistant"]["home_guild"] or None
 owner_id: Optional[int] = config["assistant"]["owner_id"] or None
-database_path: Optional[str] = config["assistant"]["database_path"] or None
 
 
 class LavalinkConfig:
@@ -63,4 +62,5 @@ guilds_with_clips: list[int] = [int(name) for name in os.listdir(clips_root_dir)
 logging_guilds: Optional[Mapping[str, Mapping[str, int]]] = config["logging"] or None
 
 # mongo
-mongo_uri: Optional[str] = f'mongodb+srv://{config["mongo"]["username"]}:{config["mongo"]["password"]}@{config["mongo"]["url"]}' or None
+mongo_uri: Optional[str] =\
+    f'mongodb+srv://{config["mongo"]["username"]}:{config["mongo"]["password"]}@{config["mongo"]["url"]}' or None

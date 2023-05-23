@@ -7,7 +7,7 @@ from typing import Optional
 
 import disnake
 import lavalink
-import motor
+from motor.motor_asyncio import AsyncIOMotorClient
 from disnake.ext import commands
 from fuzzywuzzy import process
 from lavalink import DefaultPlayer as Player
@@ -27,7 +27,7 @@ class SlashPlay(commands.Cog):
             f.close()
         del f
         self.player_manager = None
-        self.mongo_client: Optional[motor.MotorClient] = None
+        self.mongo_client: Optional[AsyncIOMotorClient] = None
 
     def _search_cache(self, query: str) -> dict:
         result = {"Search: " + query: query}

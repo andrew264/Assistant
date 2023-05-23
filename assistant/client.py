@@ -5,16 +5,15 @@ import subprocess
 from datetime import datetime, timezone
 from typing import Optional, Any
 
-import aiosqlite
 import disnake
 import lavalink
-import motor
+from motor.motor_asyncio import AsyncIOMotorClient
 import psutil
 from disnake.ext import commands
 from pymongo.errors import ConnectionFailure
 
 from assistant import log
-from config import LavalinkConfig, database_path, error_channel, mongo_uri
+from config import LavalinkConfig, error_channel, mongo_uri
 
 
 class Client(commands.Bot):
@@ -25,8 +24,7 @@ class Client(commands.Bot):
         """
         super().__init__(**options)
         self.lavalink: Optional[lavalink.Client] = None
-        self._db: Optional[aiosqlite.Connection] = None
-        self._mongo: Optional[motor.MotorClient] = None
+        self._mongo_db: Optional[AsyncIOMotorClient] = None
         self.events = {
             'messages': 0,
             'presence_update': 0,
@@ -64,25 +62,25 @@ class Client(commands.Bot):
         else:
             self.logger.warning("Lavalink Config not found.")
 
-    def connect_to_mongo(self) -> Optional[motor.MotorClient]:
+    def connect_to_mongo(self) -> Optional[AsyncIOMotorClient]:
         """
         Connects to MongoDB
         """
         if not mongo_uri:
             return None
 
-        if not self._mongo:
+        if not self._mongo_db:
             try:
                 self.logger.info("Connecting to MongoDB...")
-                self._mongo = motor.motor_tornado.MotorClient(mongo_uri)
-                self._mongo.admin.command('ping')
+                self._mongo_db = AsyncIOMotorClient(mongo_uri)
+                self._mongo_db.admin.command('ping')
             except (ConnectionFailure, Exception) as e:
                 self.logger.warning("MongoDB Connection Failed: %s", str(e))
-                self._mongo = None
+                self._mongo_db = None
             else:
                 self.logger.info("Connected to MongoDB.")
 
-        return self._mongo
+        return self._mongo_db
 
     @property
     def start_time(self) -> datetime:
@@ -104,15 +102,6 @@ class Client(commands.Bot):
             self._log_handler.addHandler(handler)
         return self._log_handler
 
-    async def db_connect(self) -> aiosqlite.Connection:
-        """
-        Returns the Database Connection
-        """
-        if self._db is None and database_path:
-            self._db = await aiosqlite.connect(database_path)
-            self._db.row_factory = aiosqlite.Row
-        return self._db
-
     async def log(self, content: Optional[str] = None, embed: Optional[disnake.Embed] = None) -> None:
         """
         Logs messages to a Text Channel
@@ -125,11 +114,11 @@ class Client(commands.Bot):
         """
         Kills the Lavalink Server and closes the Database Connection
         """
-        if self._db:
-            self.logger.info("Closing Database Connection...")
-            await self._db.close()
-            self._db = None
-            self.logger.info("Database Connection Closed.")
+        if self._mongo_db:
+            self.logger.info("Closing MongoDB Connection...")
+            self._mongo_db.close()
+            self.logger.info("MongoDB Connection Closed.")
+            self._mongo_db = None
         if self._lavalink_pid:
             self.logger.info("Killing Lavalink Server...")
             process = psutil.Process(self._lavalink_pid)
