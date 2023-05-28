@@ -45,7 +45,8 @@ class HandCricket(commands.Cog):
 
             def disable(self):
                 for child in self.children:
-                    child.disabled = True
+                    if isinstance(child, disnake.ui.Button):
+                        child.disabled = True
                 self.stop()
 
             @disnake.ui.button(label="Even", style=disnake.ButtonStyle.green)
@@ -75,14 +76,14 @@ class HandCricket(commands.Cog):
         class TossNumberView(disnake.ui.View):
             def __init__(self):
                 super().__init__(timeout=60)
-                self.choices: dict[disnake.Member, Optional[EvenOdd]] = {user1: None, user2: None}
+                self.choices: dict[disnake.Member | disnake.User, Optional[EvenOdd]] = {user1: None, user2: None}
                 self.user1_choice: Optional[int] = None
                 self.user2_choice: Optional[int] = None
                 self.is_selected = False
                 num = 1
                 for i in range(0, 2):
                     for j in range(0, 3):
-                        self.add_item(TossNumberButton(num, row=i))
+                        self.add_item(TossNumberButton(num, row=i)) # type: ignore
                         num += 1
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
@@ -101,7 +102,8 @@ class HandCricket(commands.Cog):
 
             def disable(self):
                 for child in self.children:
-                    child.disabled = True
+                    if isinstance(child, disnake.ui.Button):
+                        child.disabled = True
                 self.stop()
 
         class TossNumberButton(disnake.ui.Button["TossNumberButton"]):
@@ -121,6 +123,8 @@ class HandCricket(commands.Cog):
                     await interaction.response.edit_message(f"{user2.mention} selected", view=num_view)
                 if all([num_view.user1_choice, num_view.user2_choice]):
                     num_view.disable()
+                    assert num_view.user1_choice is not None
+                    assert num_view.user2_choice is not None
                     msg: str = (
                         f"{user1.mention} selected {num_view.user1_choice}\n"
                         f"{user2.mention} selected {num_view.user2_choice}\n"
@@ -153,7 +157,8 @@ class HandCricket(commands.Cog):
 
             def disable(self):
                 for child in self.children:
-                    child.disabled = True
+                    if isinstance(child, disnake.ui.Button):
+                        child.disabled = True
                 self.stop()
 
             @disnake.ui.button(label="Bat", emoji="🏏")
@@ -173,13 +178,13 @@ class HandCricket(commands.Cog):
         class Game(disnake.ui.View):
             children: list[TossNumberButton]
 
-            def __init__(self, batting: disnake.Member):
+            def __init__(self, batting: disnake.Member | disnake.User):
                 super().__init__()
                 self.player1 = user1
                 self.player2 = user2
-                self.last_score: dict[disnake.Member, Optional[int]] = {user1: None, user2: None}
+                self.last_score: dict[disnake.Member | disnake.User, Optional[int]] = {user1: None, user2: None}
                 self.scores: dict[disnake.Member, int] = {user1: 0, user2: 0}
-                self.batting: disnake.Member = batting
+                self.batting = batting
                 self.innings = 0
 
                 num = 1
@@ -218,13 +223,13 @@ class HandCricket(commands.Cog):
             async def on_timeout(self):
                 self.disable()
 
-        class GameNumberButton(disnake.ui.Button["GameNumberButton"]):
+        class GameNumberButton(disnake.ui.Button):
             def __init__(self, number: int, row: int):
                 super().__init__(label=str(number), style=disnake.ButtonStyle.grey,
                                  custom_id=f"number-{number}", row=row)
                 self.number = number
 
-            def is_player_turn_valid(self, player: disnake.Member, ) -> bool:
+            def is_player_turn_valid(self, player: disnake.Member | disnake.User, ) -> bool:
                 game_view: Game = self.view
                 if player == game_view.player1 and game_view.last_score[game_view.player1] is None:
                     return True
@@ -233,7 +238,7 @@ class HandCricket(commands.Cog):
                 else:
                     return False
 
-            def get_other_player(self, player: disnake.Member) -> disnake.Member:
+            def get_other_player(self, player: disnake.Member | disnake.User) -> disnake.Member:
                 game_view: Game = self.view
                 logger.debug(f"Called: get_other_player({player})")
                 logger.debug(f"Players: {game_view.player1} - {game_view.player2}")
