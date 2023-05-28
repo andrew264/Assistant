@@ -1,3 +1,4 @@
+import random
 from typing import Optional
 from urllib.parse import quote
 
@@ -42,9 +43,10 @@ class UrbanDictionary:
         if len(data['list']) == 0:
             self.result = 'Error: No results found'
             return
-        self._word = data['list'][0]['word']
-        self.definition = data['list'][0]['definition'][-3000:]
-        self.example = data['list'][0]['example'][-1000:]
+        data = random.choice(data['list'])
+        self._word = data['word']
+        self.definition = data['definition'][-3000:]
+        self.example = data['example'][-1000:]
         self.response = True
 
 
