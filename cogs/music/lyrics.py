@@ -5,10 +5,12 @@ from typing import Optional
 import disnake
 from disnake.ext import commands
 from lavalink.client import DefaultPlayer as Player
+from lavalink import AudioTrack
 from lyricsgenius import Genius
-from lyricsgenius.song import Song
+from lyricsgenius.types.song import Song
 
-from assistant import Client, VideoTrack, remove_brackets, colour_gen
+from assistant import Client, remove_brackets, colour_gen
+from assistant.track import TrackInfo
 from config import genius_token
 
 genius = Genius(genius_token, verbose=False, skip_non_songs=True, timeout=10) if genius_token else None
@@ -26,9 +28,10 @@ class GLyrics:
 
     @staticmethod
     def _get_lyrics(title, artist) -> Optional[Song]:
+        assert genius is not None
         if not title:
             return None
-        song: Song = genius.search_song(title, artist)
+        song: Optional[Song] = genius.search_song(title, artist)
         return song if (song and song.lyrics) else None
 
     @staticmethod
@@ -42,6 +45,7 @@ class GLyrics:
 
     def _embeds_list(self) -> list[disnake.Embed]:
         embeds = []
+        assert self.lyrics is not None
         for i, lines in enumerate(self.lyrics):
             embed = disnake.Embed(title=self.title, description=lines, color=self.colour, url=self.url)
             embed.set_thumbnail(url=self.album_art)
@@ -52,7 +56,7 @@ class GLyrics:
     async def get_lyrics(self, author: disnake.Member,
                          title: Optional[str] = None, artist: Optional[str] = None,
                          spotify: Optional[disnake.Spotify] = None,
-                         yt: Optional[VideoTrack] = None) -> list[disnake.Embed]:
+                         yt: Optional[AudioTrack] = None) -> list[disnake.Embed]:
         if not any((title, spotify, yt)):
             return []
         loop = asyncio.get_event_loop()
@@ -63,12 +67,16 @@ class GLyrics:
             self.album_art = spotify.album_cover_url
             self.colour = spotify.color
         elif yt:
+            track_info: Optional[TrackInfo] = yt.extra.get("info")
+            if track_info:
+                self.album_art = track_info.thumbnail
+            else:
+                self.album_art = None
             _title = remove_brackets(yt.title).split("-")
             title = _title[-1].strip()
             artist = _title[0].split(',')[0].strip() if len(_title) > 1 else ""
             self.url = yt.uri
             self.icon = "https://www.gstatic.com/images/branding/product/1x/youtube_64dp.png"
-            self.album_art = yt.thumbnail
             self.colour = 0xFF0000
         else:
             self.icon = author.display_avatar.url

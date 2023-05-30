@@ -3,16 +3,16 @@ import json
 import os
 import re
 from itertools import islice
-from typing import Optional
+from typing import Any
 
 import disnake
 import lavalink
-from motor.motor_asyncio import AsyncIOMotorClient
 from disnake.ext import commands
 from fuzzywuzzy import process
 from lavalink import DefaultPlayer as Player
 
-from assistant import Client, VideoTrack, VoiceClient, remove_brackets
+from assistant import Client, VoiceClient, remove_brackets
+from assistant.track import TrackInfo
 from config import LavalinkConfig
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
@@ -27,7 +27,7 @@ class SlashPlay(commands.Cog):
             f.close()
         del f
         self.player_manager = None
-        self.mongo_client: Optional[AsyncIOMotorClient] = None
+        self.mongo_client: Any = None
 
     def _search_cache(self, query: str) -> dict:
         result = {"Search: " + query: query}
@@ -40,17 +40,20 @@ class SlashPlay(commands.Cog):
         fuzzy_search = process.extractBests(query, self._cache, score_cutoff=85, limit=7)
         keys = [k[-1] for k in fuzzy_search]
         for key in keys:
+            assert isinstance(key, str)
             result[self._cache[key]] = "https://www.youtube.com/watch?v=" + key
 
         return dict(islice(result.items(), 10))
 
     async def _search_history(self, guild_id: int, query: str) -> dict:
+        assert self.mongo_client is not None
         collection = self.mongo_client["assistant"]["songHistory"]
-        result = {"Search: " + query: query}
-        songHistory = await collection.find_one({"guild_id": guild_id})
-        if songHistory is None:
+        result = {"Search: " + query: query} if query else {}
+        song_history = await collection.find_one(dict(_id=guild_id))
+        if song_history is None:
             return result
-        songs = songHistory["songs"]
+        
+        songs = song_history["songs"]
         for song in songs:
             result[f"{song['title']} by {song['by']}"] = song["uri"]
         return result
@@ -89,7 +92,11 @@ class SlashPlay(commands.Cog):
             return
         if self.player_manager is None:
             await self._connect_to_lavalink()
-        player: Player = self.player_manager.create(inter.guild.id)
+        
+        assert isinstance(inter.author, disnake.Member)
+        assert isinstance(inter.guild, disnake.Guild)
+        assert isinstance(inter.author.voice, disnake.VoiceState)
+        player: Player = self.player_manager.create(inter.guild.id) # type: ignore
         await inter.response.defer()
 
         is_search = False if url_rx.match(query) else True
@@ -97,7 +104,7 @@ class SlashPlay(commands.Cog):
 
         results = await player.node.get_tracks(query)
         for track in results["tracks"]:
-            track = VideoTrack(track, author=inter.author)
+            track.extra = dict(info=TrackInfo(author=inter.author, data=track,))
             player.add(track)
             self._cache[track.identifier] = remove_brackets(track.title)
 
@@ -118,6 +125,7 @@ class SlashPlay(commands.Cog):
         # Join VC
         voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
         if voice is None:
+            assert isinstance(inter.author.voice.channel, disnake.VoiceChannel)
             await inter.author.voice.channel.connect(cls=VoiceClient)
             self.client.logger.info(f"Connected to #{inter.author.voice.channel} in {inter.guild.name}")
             if isinstance(inter.author.voice.channel, disnake.StageChannel):
@@ -132,16 +140,18 @@ class SlashPlay(commands.Cog):
         if player.queue and not player.is_playing:
             await player.clear_filters()
             vol_filter = lavalink.Volume()
-            vol_filter.update(volume=0.4)
+            vol_filter.update(volume=1.0)
             await player.set_filter(vol_filter)
             flat_eq = lavalink.Equalizer()
             flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
             await player.set_filter(flat_eq)
             await player.play()
+            assert player.current is not None
             self.client.logger.info(f"Started playing {player.current.title} in {inter.guild.name}")
 
     @play.autocomplete('query')
     async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:
+        assert inter.guild is not None
         if not query or len(query) < 4:
             return await self._search_history(guild_id=inter.guild.id, query=query)
         return self._search_cache(query)
@@ -149,13 +159,18 @@ class SlashPlay(commands.Cog):
     # Checks
     @play.before_invoke
     async def check_play(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        assert isinstance(inter.author, disnake.Member)
+        assert isinstance(inter.guild, disnake.Guild)
+        assert isinstance(inter.me, disnake.Member)
+        
         if inter.author.voice is None:
             raise commands.CheckFailure("You are not connected to a voice channel.")
 
         if inter.guild.voice_client is not None and inter.author.voice is not None:
             if inter.guild.voice_client.channel != inter.author.voice.channel:
                 raise commands.CheckFailure("You must be in same VC as Bot.")
-
+            
+        assert isinstance(inter.author.voice.channel, disnake.VoiceChannel)
         permissions = inter.author.voice.channel.permissions_for(inter.me)
         if not permissions.connect or not permissions.speak:
             raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')

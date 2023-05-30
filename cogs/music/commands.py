@@ -5,13 +5,14 @@ import typing
 
 import disnake
 import lavalink
-from motor.motor_asyncio import AsyncIOMotorClient
 from disnake.ext import commands
 from lavalink import DefaultPlayer as Player
+from lavalink import AudioTrack
 from lavalink.events import TrackEndEvent, TrackExceptionEvent, TrackStuckEvent, TrackStartEvent
 
 import assistant
-from assistant import VideoTrack, time_in_seconds
+from assistant import time_in_seconds
+from assistant.track import TrackInfo
 from config import home_guild, LavalinkConfig
 
 
@@ -22,7 +23,7 @@ class MusicCommands(commands.Cog):
         self.lavalink = None
         self.player_manager = None
         lavalink.add_event_hook(self.track_hook)
-        self.mongo_db: typing.Optional[AsyncIOMotorClient] = None
+        self.mongo_db: typing.Any = None
 
     def cog_unload(self):
         """ Cog unload handler. This removes any event hooks that were registered. """
@@ -35,11 +36,14 @@ class MusicCommands(commands.Cog):
         # Cuz why not ?
         if not isinstance(event, typing.Union[TrackStartEvent, TrackEndEvent, TrackExceptionEvent, TrackStuckEvent]):
             return
-        player: Player = event.player
-        guild_name = self.client.get_guild(player.guild_id).name
+        player: Player = event.player # type: ignore
+        guild = self.client.get_guild(player.guild_id)
+        if not guild:
+            return
+        guild_name = guild.name
         if isinstance(event, lavalink.events.TrackStartEvent):
             self.client.logger.info(f"Track started: {event.track.title} in {guild_name}")
-            await self._add_track_to_db(player.guild_id, track=event.track)
+            await self._add_track_to_db(player.guild_id, track=player.current) # type: ignore
 
             if player.guild_id == home_guild and player.current:
                 await self.client.change_presence(activity=disnake.Activity(type=disnake.ActivityType.listening,
@@ -60,7 +64,10 @@ class MusicCommands(commands.Cog):
         await asyncio.sleep(30)
         if player is None:
             return
-        voice = self.client.get_guild(player.guild_id).voice_client
+        guild = self.client.get_guild(player.guild_id)
+        if not guild:
+            return
+        voice = guild.voice_client
         if voice is None:
             return
         if voice and voice.channel and not player.is_playing or not player.queue:
@@ -71,7 +78,10 @@ class MusicCommands(commands.Cog):
             await self._force_dc(player)
 
     async def _force_dc(self, player: Player):
-        voice = self.client.get_guild(player.guild_id).voice_client
+        guild = self.client.get_guild(player.guild_id)
+        if not guild:
+            return
+        voice = guild.voice_client
         if not voice:
             return
         for _filter in list(player.filters):
@@ -81,38 +91,31 @@ class MusicCommands(commands.Cog):
             await player.stop()
         await voice.disconnect(force=True)
 
-    async def _add_track_to_db(self, guild_id: int, track):
+    async def _add_track_to_db(self, guild_id: int, track: AudioTrack):
+        track_info: typing.Optional[TrackInfo] = track.extra.get('info')
+        if not track_info:
+            return
+        author = track_info.requested_by
         db = self.mongo_db["assistant"]
         collection = db["songHistory"]
-        result = await collection.find_one(dict(guild_id=guild_id))
         dict_track = dict(
             title=track.title,
             uri=track.uri,
-            by=track.author.display_name,
+            by=author,
         )
-
-        if result is not None:
-            if len(result["songs"]) >= 15:
-                result["songs"].pop(0)
-            if dict_track in result["songs"]:
-                result["songs"].remove(dict_track)
-            result["songs"].append(dict_track)
-            await collection.update_one(dict(guild_id=guild_id), {"$set": result})
-            self.logger.info(f"Added {track.title} to db.")
-            return
-        else:
-            result = dict(guild_id=guild_id, songs=[])
-            result["songs"].append(dict_track)
-            await collection.insert_one(result)
-            self.logger.info(f"Added {track.title} to db.")
-            return
+        await collection.update_one(
+            {"_id": guild_id},
+            {"$addToSet": {"songs": dict_track}},
+            upsert=True
+        )
+        self.logger.info(f"Added {track.title} to db.")
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: disnake.Member,
                                     before: disnake.VoiceState, after: disnake.VoiceState):
         if member != self.client.user:
             return
-        player: Player = self.client.lavalink.player_manager.get(member.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(member.guild.id) # type: ignore
         if after.channel is None:
             await self._force_dc(player)
             return
@@ -130,11 +133,12 @@ class MusicCommands(commands.Cog):
     @commands.slash_command(name="music", description="Music related commands.")
     @commands.guild_only()
     async def music(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        assert self.client.lavalink is not None
         self.lavalink = self.client.lavalink
         if self.lavalink is None:
             await inter.response.send_message("Music Player is not connected.", ephemeral=True)
             return
-        self.player_manager = self.client.lavalink.player_manager
+        self.player_manager = self.lavalink.player_manager
 
     # Skip Command
     @music.sub_command(name="skip", description="Remove songs from queue, or skip the current song.")
@@ -142,10 +146,11 @@ class MusicCommands(commands.Cog):
     async def skip(self, inter: disnake.ApplicationCommandInteraction,
                    index: int = commands.Param(description="Enter song index, defaults to current song",
                                                default=0)) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
         if not player.is_playing:
             await inter.response.send_message("Nothing is playing.", ephemeral=True)
             return
+        assert player.current is not None
         if index == 0:
             await inter.response.send_message(
                 f"{inter.author.display_name} removed `{player.current.title}` from Queue.")
@@ -162,7 +167,8 @@ class MusicCommands(commands.Cog):
     @music.sub_command(name="stop", description="Stops the current song.")
     @commands.guild_only()
     async def stop(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        assert inter.guild is not None
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
         if not player.is_playing:
             await inter.response.send_message("Nothing is playing.", ephemeral=True)
             return
@@ -184,7 +190,8 @@ class MusicCommands(commands.Cog):
     @music.sub_command(name="pause", description="Pauses the current song.")
     @commands.guild_only()
     async def pause(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
+        assert player.current is not None
         if player.paused:
             await player.set_pause(False)
             await inter.response.send_message(
@@ -197,7 +204,7 @@ class MusicCommands(commands.Cog):
     # Loop Command
     @music.sub_command(name="loop", description="Loops the current song.")
     async def loop(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
         player.set_repeat(repeat=not player.repeat)
         await inter.response.send_message("Loop Enabled" if player.repeat else "Loop Disabled")
 
@@ -207,7 +214,7 @@ class MusicCommands(commands.Cog):
                       index: int =
                       commands.Param(description="Index of the song to skip to, defaults to current song",
                                      default=1)) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
         if index >= 1:
             try:
                 await inter.response.send_message(
@@ -222,20 +229,20 @@ class MusicCommands(commands.Cog):
     async def seek(self, inter: disnake.ApplicationCommandInteraction,
                    time: str = commands.Param(description="Time to seek to in MM:SS format, defaults to song start",
                                               default="0")) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
 
         if player.is_playing:
-            current_track: VideoTrack = VideoTrack(player.current)
+            assert player.current is not None
             await player.seek(time_in_seconds(time) * 1000)
             await asyncio.sleep(0.5)
-            await inter.response.send_message(f"{inter.author.display_name} seeked `{current_track.title}` to {time}")
+            await inter.response.send_message(f"{inter.author.display_name} seeked `{player.current.title}` to {time}")
 
     # Volume Command
     @music.sub_command(name="volume", description="Sets the volume of the player.")
     async def volume(self, inter: disnake.ApplicationCommandInteraction,
                      volume: typing.Optional[int] = commands.Param(description="Volume to set the player to. (0-100)",
                                                                    default=None, ge=0, le=100)) -> None:
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
         if volume is None:
             await inter.response.send_message(f"Current volume: `{player.volume}%`.")
             return
@@ -250,8 +257,9 @@ class MusicCommands(commands.Cog):
     # Now Playing Command
     @music.sub_command(name="nowplaying", description="Shows the current song.")
     async def nowplaying(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        assert inter.guild is not None
         await inter.response.defer()
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
         if not player.is_playing:
             await inter.response.edit_message("Nothing is playing.")
             return
@@ -264,35 +272,44 @@ class MusicCommands(commands.Cog):
 
             @property
             def embed(self) -> disnake.Embed:
-
-                current_track: typing.Optional[VideoTrack] = VideoTrack(player.current) if player.current else None
+                current_track: typing.Optional[AudioTrack] = player.current
                 if not current_track:
                     return disnake.Embed(title="No Songs in Queue", description="use `/play` to add songs", )
+                
+                track_info: typing.Optional[TrackInfo] = current_track.extra.get("info")
+                if not track_info:
+                    return disnake.Embed(title="No Songs in Queue", description="use `/play` to add songs", )
+                assert isinstance(track_info, TrackInfo)
+                # if current_track.extra
                 _embed = disnake.Embed(colour=0x1ED760)
-                _embed.set_author(name=current_track.title, url=current_track.uri, icon_url=current_track.avatar_url)
-                _embed.set_thumbnail(url=current_track.thumbnail)
+                _embed.set_author(name=current_track.title, url=current_track.uri, icon_url=track_info.avatar_url)
+                _embed.set_thumbnail(url=track_info.thumbnail)
                 bar = "────────────────────"
                 percentile = round((player.position / current_track.duration) * len(bar))
                 progress_bar = bar[:percentile] + "⚪" + bar[percentile + 1:]
-                song_on = current_track.format_time(player.position)
-                song_end = current_track.format_time(current_track.duration)
+                song_on = track_info.format_time(player.position)
+                song_end = track_info.format_time(current_track.duration)
                 _embed.add_field(name=f"{song_on} {progress_bar} {song_end}", value="\u200b", inline=False, )
-                _embed.add_field(name="Views:", value=f"{current_track.views}", inline=True)
-                _embed.add_field(name="Likes:", value=f"{current_track.likes}", inline=True)
-                _embed.add_field(name="Uploaded:", value=f"{current_track.upload_date}", inline=True)
+                _embed.add_field(name="Views:", value=f"{track_info.views}", inline=True)
+                _embed.add_field(name="Likes:", value=f"{track_info.likes}", inline=True)
+                _embed.add_field(name="Uploaded:", value=f"{track_info.upload_date}", inline=True)
                 if player.queue and player.repeat:
                     _embed.set_footer(text=f"Looping through {len(player.queue) + 1} Songs")
                 elif player.queue and not player.repeat:
+                    in_queue_track_info: typing.Optional[TrackInfo] = player.queue[0].extra.get("info")
+                    assert isinstance(in_queue_track_info, TrackInfo)
                     _embed.set_footer(text=f"Next in Queue: {player.queue[0].title}",
-                                      icon_url=VideoTrack(player.queue[0]).avatar_url)
+                                      icon_url=in_queue_track_info.avatar_url)
                 elif not player.queue and player.repeat:
                     _embed.set_footer(text="Looping current Song")
                 else:
-                    _embed.set_footer(text=f"Requested by {current_track.requested_by}")
+                    _embed.set_footer(text=f"Requested by {track_info.requested_by}")
 
                 return _embed
 
             async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
+                assert isinstance(interaction.author, disnake.Member)
+                assert interaction.guild is not None
                 if (not interaction.author.voice or not interaction.guild.voice_client or
                         interaction.author.voice.channel != interaction.guild.voice_client.channel):
                     await interaction.response.send_message(
@@ -305,6 +322,7 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(emoji="⏮️", style=disnake.ButtonStyle.primary,
                                custom_id="assistant:nowplaying:prev_button")
             async def prev_button(self, button: disnake.Button, interaction: disnake.Interaction):
+                assert player.current is not None
                 await player.seek(0)
                 await interaction.response.edit_message(embed=self.embed)
                 logger.info(f"{interaction.author} skipped to beginning of {player.current.title}")
@@ -313,6 +331,7 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(emoji="⏪", style=disnake.ButtonStyle.primary,
                                custom_id="assistant:nowplaying:rewind_button")
             async def rewind_button(self, button: disnake.Button, interaction: disnake.Interaction):
+                assert player.current is not None
                 if player.position > 10000:
                     await player.seek(int(player.position - 10000))
                 else:
@@ -325,6 +344,7 @@ class MusicCommands(commands.Cog):
                                style=disnake.ButtonStyle.primary,
                                custom_id="assistant:nowplaying:pause_button")
             async def play_button(self, button: disnake.Button, interaction: disnake.Interaction):
+                assert player.current is not None
                 if player.paused is False:
                     await player.set_pause(pause=True)
                     button.emoji = "▶️"
@@ -341,6 +361,7 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(emoji="⏩", style=disnake.ButtonStyle.primary,
                                custom_id="assistant:nowplaying:forward_button")
             async def forward_button(self, button: disnake.Button, interaction: disnake.Interaction):
+                assert player.current is not None
                 if player.position < player.current.duration - 10000:
                     await player.seek(int(player.position + 10000))
                 else:
@@ -352,6 +373,7 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(emoji="⏭️", style=disnake.ButtonStyle.primary,
                                custom_id="assistant:nowplaying:skip_button")
             async def skip_button(self, button: disnake.Button, interaction: disnake.Interaction):
+                assert player.current is not None
                 await player.skip()
                 await interaction.response.edit_message(embed=self.embed)
                 logger.info(f"{interaction.author} skipped {player.current.title}")
@@ -360,12 +382,14 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(label="Stop", emoji="⏹️", style=disnake.ButtonStyle.danger, row=1,
                                custom_id="assistant:nowplaying:stop_button")
             async def stop_button(self, button: disnake.Button, interaction: disnake.Interaction):
+                assert interaction.guild is not None
                 # remove all applied filters and effects
                 for _filter in list(player.filters):
                     await player.remove_filter(_filter)
                 player.queue.clear()
                 await player.stop()
-                await interaction.guild.voice_client.disconnect(force=True)
+                if interaction.guild.voice_client:
+                    await interaction.guild.voice_client.disconnect(force=True)
                 await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
                 logger.info(f"{interaction.author} stopped the music")
 
@@ -382,7 +406,7 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(emoji="➖", style=disnake.ButtonStyle.green, row=2,
                                custom_id="assistant:nowplaying:volume_down_button")
             async def volume_down(self, button: disnake.Button, interaction: disnake.Interaction):
-                vol: float = (player.get_filter("Volume")).values
+                vol: float = (player.get_filter("Volume")).values # type: ignore
                 if vol > 0.1:
                     volume_filter.update(volume=max(round(vol - 0.1, 1), 0.1))
                     self.volume_up.disabled = False
@@ -404,7 +428,7 @@ class MusicCommands(commands.Cog):
             @disnake.ui.button(emoji="➕", style=disnake.ButtonStyle.green, row=2,
                                custom_id="assistant:nowplaying:volume_up_button")
             async def volume_up(self, button: disnake.Button, interaction: disnake.Interaction):
-                vol: float = (player.get_filter("Volume")).values
+                vol: float = (player.get_filter("Volume")).values # type: ignore
                 if vol <= 0.9:
                     volume_filter.update(volume=min(round(vol + 0.1, 1), 1.0))
                     self.volume_down.disabled = False
@@ -419,7 +443,8 @@ class MusicCommands(commands.Cog):
             def update_buttons(self):
                 if not player.current and not player.queue:
                     for button in self.children:
-                        button.disabled = True
+                        if isinstance(button, disnake.ui.Button):
+                            button.disabled = True
                     self.stop()
                     return
                 # Play Button
@@ -429,7 +454,7 @@ class MusicCommands(commands.Cog):
                 # Loop Button
                 self.loop_button.emoji = "🔁" if player.repeat else "➡"
                 # Volume Buttons
-                current_volume: int = round((player.get_filter('Volume')).values * 100)
+                current_volume: int = round((player.get_filter('Volume')).values * 100) # type: ignore
                 self.volume.label = f"Volume: {current_volume}%"
                 self.volume_down.disabled = True if current_volume <= 10 else False
                 self.volume_up.disabled = True if current_volume == 100 else False
@@ -451,7 +476,7 @@ class MusicCommands(commands.Cog):
     # Queue command
     @music.sub_command(name="queue", description="View the songs in Queue")
     async def queue(self, inter: disnake.ApplicationCommandInteraction):
-        player: Player = self.player_manager.get(inter.guild.id)
+        player: Player = self.player_manager.get(inter.guild.id) # type: ignore
 
         class QueuePages(disnake.ui.View):
             def __init__(self):
@@ -505,10 +530,12 @@ class MusicCommands(commands.Cog):
 
     @music.before_invoke
     async def ensure_voice(self, inter: disnake.ApplicationCommandInteraction) -> None:
+        assert isinstance(inter.guild, disnake.Guild)
+        assert isinstance(inter.author, disnake.Member)
         if not inter.author.voice or not inter.author.voice.channel:
             raise commands.CheckFailure("You are not connected to a VC.")
 
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+        player: Player = self.client.lavalink.player_manager.get(inter.guild.id) # type: ignore
         if player is None or not player.is_connected:
             raise commands.CheckFailure("Bot is not connected to a VC.")
 
