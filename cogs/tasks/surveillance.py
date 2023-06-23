@@ -1,5 +1,6 @@
 ﻿# Imports
 from datetime import datetime
+from typing import Optional
 
 import disnake
 from disnake import Embed
@@ -16,7 +17,7 @@ class Surveillance(commands.Cog):
         self.logger = client.logger
         self.logging_guilds = logging_guilds
 
-    async def get_webhook(self, _id: int) -> disnake.Webhook | None:
+    async def get_webhook(self, _id: int) -> Optional[disnake.Webhook]:
         channel = self.client.get_channel(_id)
         return await getch_hook(channel)
 
@@ -61,6 +62,9 @@ class Surveillance(commands.Cog):
         embed = Embed(title="Deleted Message", description=f"{message.channel.mention}",
                       colour=colour_gen(author.id))
         embed.add_field(name="Message Content", value=message.clean_content, inline=False)
+        if message.attachments:
+            embed.add_field(name="Attachments", value="\n".join([attachment.url for attachment in message.attachments]),
+                            inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
         hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
         await hook.send(embed=embed,
@@ -137,11 +141,13 @@ class Surveillance(commands.Cog):
         hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
         logger = self.logger
         embed = Embed(title="Presence Update", colour=colour_gen(before.id))
-        if available_clients(before) != available_clients(after):
-            embed.add_field(name=f"Client/Status", value=f"{available_clients(before)} ──> {available_clients(after)}",
+        before_clients = available_clients(before)
+        after_clients = available_clients(after)
+        if before_clients != after_clients:
+            embed.add_field(name=f"Client/Status", value=f"{before_clients} ──> {after_clients}",
                             inline=False, )
             logger.info(f"[{before.guild.name}] {before}'s client update" +
-                        f" {available_clients(before)} -> {available_clients(after)}")
+                        f" {before_clients} -> {after_clients}")
             if before.raw_status == "offline" or after.raw_status == "offline":
                 await hook.send(embed=embed,
                                 username=after.display_name, avatar_url=after.display_avatar.url, delete_after=1200)
@@ -206,9 +212,9 @@ class Surveillance(commands.Cog):
             return
         if user.bot or user.id == owner_id:
             return
-        hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
-        await hook.send(f"Started typing in {channel.mention}",
-                        username=user.display_name, avatar_url=user.display_avatar.url, delete_after=120)
+        # hook = await self.get_webhook(self.logging_guilds["homie"]["channel_id"])
+        # await hook.send(f"Started typing in {channel.mention}",
+        #                 username=user.display_name, avatar_url=user.display_avatar.url, delete_after=120)
         self.logger.info(f"{user.display_name} started typing in {channel.name} on {when.now().strftime('%d/%m/%Y at %I:%M:%S %p')}")
 
     @commands.Cog.listener()
@@ -221,7 +227,7 @@ class Surveillance(commands.Cog):
             await hook.send(f"{payload.user.display_name} left the server.",
                             username=payload.user.display_name,
                             avatar_url=payload.user.display_avatar.url)
-        self.logger.info(f"{payload.user} left {self.client.get_guild(payload.guild_id).name}")
+        self.logger.info(f"{payload.user.display_name} left {self.client.get_guild(payload.guild_id).name}")
 
     @commands.Cog.listener()
     async def on_member_join(self, member: disnake.Member) -> None:

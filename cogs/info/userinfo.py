@@ -120,7 +120,7 @@ class UserInfo(commands.Cog):
             embed.add_field(name="Last Seen" if user.raw_status == 'offline' else "Online for",
                             value=f"{relative_time(timestamp)}")
         # Activities
-        for act_type, act_name in all_activities(user, with_time=True, with_url=True):
+        for act_type, act_name in all_activities(user, with_time=True, with_url=True, include_all_activities=True):
             if act_name:
                 embed.add_field(name=act_type, value=act_name)
 

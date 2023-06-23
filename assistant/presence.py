@@ -47,7 +47,8 @@ def custom_activity(activity: disnake.CustomActivity, with_time: bool = False, w
     return value
 
 
-def all_activities(member: disnake.Member, with_time: bool = False, with_url: bool = False) -> List[Tuple[str, str]]:
+def all_activities(member: disnake.Member, with_time: bool = False, with_url: bool = False,
+                   include_all_activities: bool = False) -> List[Tuple[str, str]]:
     """
     Returns a dictionary of all activities for a Member
     with the key being the activity type and the value being the activity
@@ -68,14 +69,15 @@ def all_activities(member: disnake.Member, with_time: bool = False, with_url: bo
 
         elif isinstance(_activity, disnake.Spotify):
             _value = f"Listening to [{remove_brackets(_activity.title)}]({_activity.track_url} \"" \
-                     + f"by {', '.join(_activity.artists)}\")" \
+                     + f" \u2022 {', '.join(_activity.artists)}\")" \
                 if with_url else f"Listening to {remove_brackets(_activity.title)}" \
-                                 + f" by {', '.join(_activity.artists)}"
+                                 + f" \u2022 {', '.join(_activity.artists)}"
             activities.append(("Spotify", _value))
 
         elif isinstance(_activity, disnake.Activity):
-            _value = f"{_activity.name}\n" + f"**<t:{int(_activity.created_at.timestamp())}:R>**" \
-                if with_time and _activity.created_at else f"{_activity.name}"
-            activities.append((str(_activity.type.name).capitalize(), _value))
+            if include_all_activities:
+                _value = f"{_activity.name}\n" + f"**<t:{int(_activity.created_at.timestamp())}:R>**" \
+                    if with_time and _activity.created_at else f"{_activity.name}"
+                activities.append((str(_activity.type.name).capitalize(), _value))
 
     return activities
