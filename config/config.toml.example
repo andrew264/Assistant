@@ -44,3 +44,7 @@
     username = "username"
     password = "passwd"
     url = "mongo url"
+
+[spotify]
+    id = ""
+    secret = ""
