@@ -1,284 +1,336 @@
-# Imports
-import typing
+from typing import Optional
 
-import disnake
-import lavalink
-from disnake import ButtonStyle, Button, Interaction
-from disnake.ext import commands
-from lavalink import DefaultPlayer as Player
+import discord
+import wavelink
+from discord.ext import commands
 
-from assistant import Client
-from config import LavalinkConfig
+from assistant import AssistantBot
+from utils import check_vc, check_same_vc
 
 
-class MusicFilters(commands.Cog):
-    def __init__(self, client: Client):
-        self.client = client
-        self.logger = client.logger
+class Filters(commands.Cog):
+    def __init__(self, bot: AssistantBot):
+        self.bot = bot
 
-    async def _reset_filters(self, guild_id: int) -> None:
-        # remove all applied filters and effects and apply flat EQ
-        player: Player = self.client.lavalink.player_manager.get(guild_id)
-        for _filter in list(player.filters):
-            if _filter.lower() == "volume":
-                continue
-            await player.remove_filter(_filter)
-        flat_eq = lavalink.Equalizer()
-        flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
-        await player.set_filter(flat_eq)
+    @commands.hybrid_group(name="filters", aliases=['f'], description="Change the filters of the player")
+    @commands.guild_only()
+    @check_vc()
+    @check_same_vc()
+    async def filters(self, ctx: commands.Context):
+        pass
 
-    @commands.slash_command(name="filter", description="Apply filters to the music")
-    async def filters(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        if self.client.lavalink is None:
-            await inter.response.send_message("Music Player is not connected.", ephemeral=True)
+    @filters.command(name="nightcore", aliases=['nc'], description="Enable/Disable nightcore filter")
+    @check_vc()
+    @check_same_vc()
+    async def nightcore(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        # check if nightcore filter is already enabled
+        if vc._filter and vc._filter.timescale and vc._filter.timescale.name == "nightcore":
+            await vc.set_filter(wavelink.Filter(vc._filter,
+                                                timescale=wavelink.Timescale()))
+            await ctx.send("Disabled nightcore filter.")
             return
+        ts = wavelink.Timescale(speed=1.2999, pitch=1.2999, rate=1.0)
+        ts.name = "nightcore"
+        _filter = wavelink.Filter(timescale=ts)
+        await vc.set_filter(_filter)
+        await ctx.send("Enabled nightcore filter.")
 
-    @filters.sub_command(name="bass-boost", description="Apply bass boost filter to the music")
-    async def bass_boost(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+    @filters.command(name="vaporwave", aliases=['vw'], description="Enable/Disable vaporwave filter")
+    async def vaporwave(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        # check if vaporwave filter is already enabled
+        if vc._filter and vc._filter.tremolo and vc._filter.tremolo.name == 'vaporwave':
+            await vc.set_filter(wavelink.Filter(vc._filter,
+                                                equalizer=wavelink.Equalizer(bands=[(0, 0.0), (1, 0.0)]),
+                                                timescale=wavelink.Timescale(),
+                                                tremolo=wavelink.Tremolo()))
+            await ctx.send("Disabled vaporwave filter.")
+            return
+        ts = wavelink.Timescale(speed=1.0, pitch=0.8500, rate=1.0)
+        ts.name = "vaporwave"
+        tremolo = wavelink.Tremolo(frequency=14.0, depth=0.3)
+        tremolo.name = "vaporwave"
+        _filter = wavelink.Filter(equalizer=wavelink.Equalizer(bands=[(0, 0.3), (1, 0.3)]),
+                                  timescale=ts,
+                                  tremolo=tremolo)
+        await vc.set_filter(_filter)
+        await ctx.send("Enabled vaporwave filter.")
 
-        class BassBoostButtons(disnake.ui.View):
+    @filters.command(name="bass", aliases=['bb', 'bassboost'], description="Enable/Disable Bass-Boost filter")
+    async def bass_boost(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
+
+        class BassBoostButtons(discord.ui.View):
             def __init__(self):
                 super().__init__(timeout=180)
+                self.message: Optional[discord.Message] = None
 
-            async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
-                if interaction.author.voice is None:
+            async def interaction_check(self, interaction: discord.Interaction) -> bool:
+                assert isinstance(interaction.user, discord.Member)
+                assert interaction.guild
+                if interaction.user.voice is None:
                     await interaction.response.send_message("You are not connected to a voice channel.", ephemeral=True)
                     return False
-                if interaction.author.voice.channel == interaction.guild.voice_client.channel:
+                if interaction.guild.voice_client is None:
+                    await interaction.response.send_message("leave me alone")
+                    return False
+                if interaction.user.voice.channel == interaction.guild.voice_client.channel:
                     return True
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
 
             async def on_timeout(self) -> None:
-                try:
-                    await inter.edit_original_message(view=None)
-                except disnake.NotFound:
-                    pass
+                self.stop()
+                if self.message is not None:
+                    try:
+                        await self.message.delete()
+                    except discord.NotFound:
+                        pass
 
             @staticmethod
             async def _update_eq(bands: list) -> None:
                 # update the EQ filter
-                eq: typing.Optional[lavalink.filters.Filter] = player.filters.get("equalizer")
-                eq.update(bands=bands)
-                await player.set_filter(eq)
+                eq = wavelink.Equalizer(bands=bands)
+                await vc.set_filter(wavelink.Filter(vc._filter, equalizer=eq))
 
-            @disnake.ui.button(label="off", style=ButtonStyle.gray)
-            async def bass_off(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="off", style=discord.ButtonStyle.gray)
+            async def bass_off(self, interaction: discord.Interaction, button: discord.Button):
                 await self._update_eq([(0, 0.0), (1, 0.0)])
-                embed = disnake.Embed(title="Bass Boost Disabled", colour=0x000000)
+                embed = discord.Embed(title="Bass Boost Disabled", colour=0x000000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-            @disnake.ui.button(label="low", style=ButtonStyle.green)
-            async def bass_low(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="low", style=discord.ButtonStyle.green)
+            async def bass_low(self, interaction: discord.Interaction, button: discord.Button):
                 await self._update_eq([(0, 0.2), (1, 0.15)])
-                embed = disnake.Embed(title="Bass Boost set to Low", colour=0x00FF00)
+                embed = discord.Embed(title="Bass Boost set to Low", colour=0x00FF00)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-            @disnake.ui.button(label="medium", style=ButtonStyle.blurple)
-            async def bass_mid(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="medium", style=discord.ButtonStyle.blurple)
+            async def bass_mid(self, interaction: discord.Interaction, button: discord.Button, ):
                 await self._update_eq([(0, 0.4), (1, 0.25)])
-                embed = disnake.Embed(title="Bass Boost set to Medium", colour=0x0000FF)
+                embed = discord.Embed(title="Bass Boost set to Medium", colour=0x0000FF)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-            @disnake.ui.button(label="high", style=ButtonStyle.danger)
-            async def bass_hi(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="high", style=discord.ButtonStyle.danger)
+            async def bass_hi(self, interaction: discord.Interaction, button: discord.Button, ):
                 await self._update_eq([(0, 0.6), (1, 0.4)])
-                embed = disnake.Embed(title="Bass Boost set to High", colour=0xFF0000)
+                embed = discord.Embed(title="Bass Boost set to High", colour=0xFF0000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-        embed0 = disnake.Embed(title="Bass Boost Disabled", colour=0x000000)
-        await inter.response.send_message(embed=embed0, view=BassBoostButtons())
-        self.logger.info(f"{inter.author} used bass boost command in {inter.guild}")
+        _embed = discord.Embed(title="Bass Boost", colour=0x000000)
+        view = BassBoostButtons()
+        view.message = await ctx.send(embed=_embed, view=view)
 
-    @filters.sub_command(name="treble-boost", description="Apply treble boost filter to the music")
-    async def treble_boost(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
+    @filters.command(name="treble", aliases=['tb', 'trebleboost'], description="Enable/Disable Treble-Boost filter")
+    async def treble_boost(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
 
-        class TrebleBoostButtons(disnake.ui.View):
+        class TrebleBoostButtons(discord.ui.View):
             def __init__(self):
                 super().__init__(timeout=180)
+                self.message: Optional[discord.Message] = None
 
-            async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
-                if interaction.author.voice is None:
+            async def interaction_check(self, interaction: discord.Interaction) -> bool:
+                assert isinstance(interaction.user, discord.Member)
+                assert interaction.guild
+                if interaction.user.voice is None:
                     await interaction.response.send_message("You are not connected to a voice channel.", ephemeral=True)
                     return False
-                if interaction.author.voice.channel == interaction.guild.voice_client.channel:
+                if interaction.guild.voice_client is None:
+                    await interaction.response.send_message("leave me alone")
+                    return False
+                if interaction.user.voice.channel == interaction.guild.voice_client.channel:
                     return True
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
 
             async def on_timeout(self) -> None:
-                try:
-                    await inter.edit_original_message(view=None)
-                except disnake.NotFound:
-                    pass
+                self.stop()
+                if self.message is not None:
+                    try:
+                        await self.message.delete()
+                    except discord.NotFound:
+                        pass
 
             @staticmethod
             async def _update_eq(bands: list) -> None:
                 # update the EQ filter
-                eq: typing.Optional[lavalink.filters.Filter] = player.filters.get("equalizer")
-                eq.update(bands=bands)
-                await player.set_filter(eq)
+                eq = wavelink.Equalizer(bands=bands)
+                await vc.set_filter(wavelink.Filter(vc._filter, equalizer=eq))
 
-            @disnake.ui.button(label="off", style=ButtonStyle.gray)
-            async def treble_off(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="off", style=discord.ButtonStyle.gray)
+            async def treble_off(self, interaction: discord.Interaction, button: discord.Button):
                 await self._update_eq([(10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0)])
-                embed = disnake.Embed(title="Treble Boost Disabled", colour=0x000000)
+                embed = discord.Embed(title="Treble Boost Disabled", colour=0x000000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-            @disnake.ui.button(label="low", style=ButtonStyle.green)
-            async def treble_low(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="low", style=discord.ButtonStyle.green)
+            async def treble_low(self, interaction: discord.Interaction, button: discord.Button):
                 await self._update_eq([(10, 0.2), (11, 0.2), (12, 0.2), (13, 0.25)])
-                embed = disnake.Embed(title="Treble Boost set to Low", colour=0x00FF00)
+                embed = discord.Embed(title="Treble Boost set to Low", colour=0x00FF00)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-            @disnake.ui.button(label="medium", style=ButtonStyle.blurple)
-            async def treble_mid(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="medium", style=discord.ButtonStyle.blurple)
+            async def treble_mid(self, interaction: discord.Interaction, button: discord.Button):
                 await self._update_eq([(10, 0.4), (11, 0.4), (12, 0.4), (13, 0.45)])
-                embed = disnake.Embed(title="Treble Boost set to Medium", colour=0x0000FF)
+                embed = discord.Embed(title="Treble Boost set to Medium", colour=0x0000FF)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-            @disnake.ui.button(label="high", style=ButtonStyle.danger)
-            async def treble_hi(self, button: Button, interaction: Interaction):
+            @discord.ui.button(label="high", style=discord.ButtonStyle.danger)
+            async def treble_hi(self, interaction: discord.Interaction, button: discord.Button):
                 await self._update_eq([(10, 0.6), (11, 0.6), (12, 0.6), (13, 0.65)])
-                embed = disnake.Embed(title="Treble Boost set to High", colour=0xFF0000)
+                embed = discord.Embed(title="Treble Boost set to High", colour=0xFF0000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
-        embed0 = disnake.Embed(title="Treble Boost Disabled", colour=0x000000)
-        await inter.response.send_message(embed=embed0, view=TrebleBoostButtons())
-        self.logger.info(f"{inter.author} used treble-boost command in {inter.guild}")
+        _embed = discord.Embed(title="Treble Boost", colour=0x000000)
+        view = TrebleBoostButtons()
+        view.message = await ctx.send(embed=_embed, view=view)
 
-    @filters.sub_command(name="time-scale", description="Apply time scale filter to the music")
-    async def time_scale(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
-        time_filter = lavalink.filters.Timescale()
+    @filters.command(name="8d", aliases=['surround', '3d'], description="Enable/Disable 8D filter")
+    async def eight_d(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        # check if 8D filter is already enabled
+        if vc._filter and vc._filter.rotation and vc._filter.rotation.name == "rotation_8d":
+            await vc.set_filter(wavelink.Filter(vc._filter,
+                                                rotation=wavelink.Rotation()))
+            await ctx.send("Disabled 8D filter.")
+            return
+        r8d = wavelink.Rotation(speed=0.2)
+        r8d.name = "rotation_8d"
+        await vc.set_filter(wavelink.Filter(vc._filter, rotation=r8d))
+        await ctx.send("Enabled 8D filter.")
 
-        class TimeScaleButtons(disnake.ui.View):
+    @filters.command(name="timescale", aliases=['ts', 'speed', 'pitch'], description="Enable/Disable timescale filter")
+    async def timescale(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        if vc._filter and vc._filter.timescale and vc._filter.timescale.name == "timescale":
+            ts = vc._filter.timescale
+        else:
+            ts = wavelink.Timescale()
+            ts.name = "timescale"
+
+        class TimeScaleButtons(discord.ui.View):
             def __init__(self):
                 super().__init__(timeout=180)
                 self.step: float = 0.1
-                self.speed: float = 1.0
-                self.pitch: float = 1.0
-                self.rate: float = 1.0
-                self._update_values()
+                self.message: Optional[discord.Message] = None
 
-            def _update_values(self):
-                if 'timescale' in player.filters:
-                    timescale: dict = player.filters['timescale'].values
-                    self.speed = float(timescale["speed"])
-                    self.pitch = float(timescale["pitch"])
-                    self.rate = float(timescale["rate"])
-
-            async def interaction_check(self, interaction: disnake.MessageInteraction) -> bool:
-                if interaction.author.voice is None:
+            async def interaction_check(self, interaction: discord.Interaction) -> bool:
+                assert isinstance(interaction.user, discord.Member)
+                assert interaction.guild
+                if interaction.user.voice is None:
                     await interaction.response.send_message("You are not connected to a voice channel.",
                                                             ephemeral=True)
                     return False
-                if interaction.author.voice.channel == interaction.guild.voice_client.channel:
-                    self._update_values()
+                if interaction.guild.voice_client is None:
+                    await interaction.response.send_message("leave me alone")
+                    return False
+                if interaction.user.voice.channel == interaction.guild.voice_client.channel:
                     return True
                 await interaction.response.send_message("You must be in same VC as Bot.", ephemeral=True)
                 return False
 
             async def on_timeout(self) -> None:
-                try:
-                    await inter.edit_original_message(view=None)
-                except disnake.NotFound:
-                    pass
+                self.stop()
+                if self.message is not None:
+                    try:
+                        await self.message.delete()
+                    except discord.NotFound:
+                        pass
 
-            async def apply_filter(self):
-                time_filter.update(speed=self.speed, pitch=self.pitch, rate=self.rate)
-                await player.set_filter(time_filter)
+            @staticmethod
+            async def apply_filter():
+                await vc.set_filter(wavelink.Filter(vc._filter, timescale=ts))
 
             @property
             def embed(self):
-                embed = disnake.Embed(title="Timescale Filters", colour=0xB7121F)
-                embed.add_field(name="Speed", value=f"{round(self.speed * 100)}%", inline=True)
-                embed.add_field(name="Pitch", value=f"{round(self.pitch * 100)}%", inline=True)
-                embed.add_field(name="Rate", value=f"{round(self.rate * 100)}%", inline=True)
+                embed = discord.Embed(title="Timescale Filters", colour=0xB7121F)
+                embed.add_field(name="Speed", value=f"{round(ts.speed * 100)}%", inline=True)
+                embed.add_field(name="Pitch", value=f"{round(ts.pitch * 100)}%", inline=True)
+                embed.add_field(name="Rate", value=f"{round(ts.rate * 100)}%", inline=True)
                 return embed
 
-            @disnake.ui.button(emoji="⬆", style=ButtonStyle.success)
-            async def up_speed(self, button: Button, interaction: Interaction):
-                if round(self.speed, 1) <= 1.9:
-                    self.speed += self.step
-                button.disabled = True if (round(self.speed, 1) >= 2.0) else False
+            @discord.ui.button(emoji="⬆", style=discord.ButtonStyle.success)
+            async def up_speed(self, interaction: discord.Interaction, button: discord.Button):
+                if round(ts.speed, 1) <= 1.9:
+                    ts.speed += self.step
+                button.disabled = True if (round(ts.speed, 1) >= 2.0) else False
                 self.down_speed.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(label="Speed", style=ButtonStyle.primary, row=1)
-            async def speed(self, button: Button, interaction: Interaction):
-                self.speed = 1.0
+            @discord.ui.button(label="Speed", style=discord.ButtonStyle.primary, row=1)
+            async def speed(self, interaction: discord.Interaction, button: discord.Button):
+                ts.speed = 1.0
                 self.up_speed.disabled = False
                 self.down_speed.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(emoji="⬇", style=ButtonStyle.danger, row=2)
-            async def down_speed(self, button: Button, interaction: Interaction):
-                if round(self.speed, 1) >= 0.6:
-                    self.speed -= self.step
-                button.disabled = True if (round(self.speed, 1) <= 0.5) else False
+            @discord.ui.button(emoji="⬇", style=discord.ButtonStyle.danger, row=2)
+            async def down_speed(self, interaction: discord.Interaction, button: discord.Button):
+                if round(ts.speed, 1) >= 0.6:
+                    ts.speed -= self.step
+                button.disabled = True if (round(ts.speed, 1) <= 0.5) else False
                 self.up_speed.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(emoji="⬆", style=ButtonStyle.success)
-            async def up_pitch(self, button: Button, interaction: Interaction):
-                if round(self.pitch, 1) <= 1.9:
-                    self.pitch += self.step
-                button.disabled = True if (round(self.pitch, 1) >= 2.0) else False
+            @discord.ui.button(emoji="⬆", style=discord.ButtonStyle.success)
+            async def up_pitch(self, interaction: discord.Interaction, button: discord.Button):
+                if round(ts.pitch, 1) <= 1.9:
+                    ts.pitch += self.step
+                button.disabled = True if (round(ts.pitch, 1) >= 2.0) else False
                 self.down_pitch.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(label="Pitch", style=ButtonStyle.primary, row=1)
-            async def pitch(self, button: Button, interaction: Interaction):
-                self.pitch = 1.0
+            @discord.ui.button(label="Pitch", style=discord.ButtonStyle.primary, row=1)
+            async def pitch(self, interaction: discord.Interaction, button: discord.Button):
+                ts.pitch = 1.0
                 self.up_pitch.disabled = False
                 self.down_pitch.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(emoji="⬇", style=ButtonStyle.danger, row=2)
-            async def down_pitch(self, button: Button, interaction: Interaction):
-                if round(self.pitch, 1) >= 0.6:
-                    self.pitch -= self.step
-                button.disabled = True if (round(self.pitch, 1) <= 0.5) else False
+            @discord.ui.button(emoji="⬇", style=discord.ButtonStyle.danger, row=2)
+            async def down_pitch(self, interaction: discord.Interaction, button: discord.Button):
+                if round(ts.pitch, 1) >= 0.6:
+                    ts.pitch -= self.step
+                button.disabled = True if (round(ts.pitch, 1) <= 0.5) else False
                 self.up_pitch.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(emoji="⬆", style=ButtonStyle.success)
-            async def up_rate(self, button: Button, interaction: Interaction):
-                if round(self.rate, 1) <= 1.9:
-                    self.rate += self.step
-                button.disabled = True if (round(self.rate, 1) >= 2.0) else False
+            @discord.ui.button(emoji="⬆", style=discord.ButtonStyle.success)
+            async def up_rate(self, interaction: discord.Interaction, button: discord.Button):
+                if round(ts.rate, 1) <= 1.9:
+                    ts.rate += self.step
+                button.disabled = True if (round(ts.rate, 1) >= 2.0) else False
                 self.down_rate.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(label="Rate", style=ButtonStyle.primary, row=1)
-            async def rate(self, button: Button, interaction: Interaction):
-                self.rate = 1.0
+            @discord.ui.button(label="Rate", style=discord.ButtonStyle.primary, row=1)
+            async def rate(self, interaction: discord.Interaction, button: discord.Button):
+                ts.rate = 1.0
                 self.up_rate.disabled = False
                 self.down_rate.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(emoji="⬇", style=ButtonStyle.danger, row=2)
-            async def down_rate(self, button: Button, interaction: Interaction):
-                if round(self.rate, 1) >= 0.6:
-                    self.rate -= self.step
-                button.disabled = True if (round(self.rate, 1) <= 0.5) else False
+            @discord.ui.button(emoji="⬇", style=discord.ButtonStyle.danger, row=2)
+            async def down_rate(self, interaction: discord.Interaction, button: discord.Button):
+                if round(ts.rate, 1) >= 0.6:
+                    ts.rate -= self.step
+                button.disabled = True if (round(ts.rate, 1) <= 0.5) else False
                 self.up_rate.disabled = False
                 await self.apply_filter()
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
-            @disnake.ui.button(emoji="❎", label=f"10%", style=ButtonStyle.gray, row=1)
-            async def step(self, button: Button, interaction: Interaction):
+            @discord.ui.button(emoji="❎", label=f"10%", style=discord.ButtonStyle.gray, row=1)
+            async def _step(self, interaction: discord.Interaction, button: discord.Button):
                 if self.step == 0.1:
                     self.step = 0.05
                 else:
@@ -287,82 +339,14 @@ class MusicFilters(commands.Cog):
                 await interaction.response.edit_message(view=self)
 
         view = TimeScaleButtons()
-        await inter.response.send_message(embed=view.embed, view=view)
-        self.logger.info(f"Timescale Filters applied by {inter.author} in {inter.guild}")
+        view.message = await ctx.send(embed=view.embed, view=view)
 
-    @filters.sub_command(name="nightcore", description="Apply Nightcore Filter")
-    async def nightcore(self, inter: disnake.ApplicationCommandInteraction):
-        player: Player = self.client.lavalink.player_manager.get(inter.guild_id)
-        if "timescale" in player.filters:
-            await player.remove_filter("timescale")
-            await inter.response.send_message(content="Nightcore Disabled")
-            self.logger.info(f"{inter.author} disabled Nightcore Filter in {inter.guild}")
-        else:
-            nc = lavalink.Timescale()
-            nc.update(speed=1.29999, pitch=1.29999, rate=1.0)
-            await player.set_filter(nc)
-            await inter.response.send_message(content="Nightcore Enabled")
-            self.logger.info(f"{inter.author} enabled Nightcore Filter in {inter.guild}")
-
-    @filters.sub_command(name="vaporwave", description="Apply VaporWave Filter")
-    async def vapor_wave(self, inter: disnake.ApplicationCommandInteraction):
-        player: Player = self.client.lavalink.player_manager.get(inter.guild_id)
-        eq: lavalink.Equalizer = player.get_filter("equalizer")
-        if "tremolo" in player.filters:
-            eq.update(bands=[(0, 0.0), (1, 0.0)])
-            await player.set_filter(eq)
-            await player.remove_filter("timescale")
-            await player.remove_filter("tremolo")
-            await inter.response.send_message(content="VaporWave Disabled")
-            self.logger.info(f"{inter.author} disabled VaporWave Filter in {inter.guild}")
-        else:
-            eq.update(bands=[(0, 0.3), (1, 0.3)])
-            pitch = lavalink.Timescale()
-            pitch.update(pitch=0.5)
-            tremolo = lavalink.Tremolo()
-            tremolo.update(depth=0.3, frequency=14)
-            await player.set_filter(eq)
-            await player.set_filter(pitch)
-            await player.set_filter(tremolo)
-            await inter.response.send_message(content="VaporWave Enabled")
-            self.logger.info(f"{inter.author} enabled VaporWave Filter in {inter.guild}")
-
-    @filters.sub_command(name="surround-audio", description="Apply 8D Audio Filter")
-    async def eight_d(self, inter: disnake.ApplicationCommandInteraction):
-        player: Player = self.client.lavalink.player_manager.get(inter.guild_id)
-        if "rotation" in player.filters:
-            await player.remove_filter("rotation")
-            await inter.response.send_message(content="8D Audio Disabled")
-            self.logger.info(f"{inter.author} disabled 8D Audio Filter in {inter.guild}")
-        else:
-            rotate = lavalink.Rotation()
-            rotate.update(rotationHz=0.2)
-            await player.set_filter(rotate)
-            await inter.response.send_message(content="Surround Audio Enabled")
-            self.logger.info(f"{inter.author} enabled Surround Audio Filter in {inter.guild}")
-
-    @filters.sub_command(name="reset", description="Remove all applied Filters")
-    async def reset(self, inter: disnake.ApplicationCommandInteraction):
-        await self._reset_filters(inter.guild_id)
-        await inter.response.send_message(content="Filters Reset")
-        self.logger.info(f"{inter.author} reset Filters in {inter.guild}")
-
-    @filters.before_invoke
-    async def ensure_voice(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        if not inter.author.voice or not inter.author.voice.channel:
-            raise commands.CheckFailure("You are not connected to a VC.")
-
-        player: Player = self.client.lavalink.player_manager.get(inter.guild.id)
-        if player is None or not player.is_connected:
-            raise commands.CheckFailure("Bot is not connected to a VC.")
-
-        if inter.guild.me.voice and inter.guild.me.voice.channel != inter.author.voice.channel:
-            raise commands.CheckFailure("You must be in same VC as Bot.")
+    @filters.command(name="reset", description="Reset all filters")
+    async def reset(self, ctx: commands.Context):
+        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        await vc.set_filter(wavelink.Filter())
+        await ctx.send("Reset all filters.")
 
 
-def setup(client):
-    config = LavalinkConfig()
-    if not config:
-        client.logger.warning("Lavalink Config not found. Music Filters will not be loaded.")
-        return
-    client.add_cog(MusicFilters(client))
+async def setup(bot: AssistantBot):
+    await bot.add_cog(Filters(bot))

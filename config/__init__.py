@@ -1,7 +1,10 @@
-import os
+import tomllib
 from pathlib import Path
 from typing import Optional, Mapping
-import tomllib
+
+import discord
+
+from .log import logger
 
 # Path to the config file
 __config_file = Path(__file__).parent / "config.toml"
@@ -11,56 +14,65 @@ if not __config_file.exists():
 with open(__config_file, 'rb') as f:
     config = tomllib.load(f)
 
-# Discord Token
-bot_token: Optional[str] = config["assistant"]["token"] or None
+# Client
+DISCORD_TOKEN: Optional[str] = config["client"]["token"] or None
+PREFIX: Optional[str] = config["client"]["prefix"] or None
+OWNER_ID: Optional[int] = config["client"]["owner_id"] or None
 
-# Other Configs
-dm_receive_category: Optional[int] = config["assistant"]["dm_receive_category"] or None
-error_channel: Optional[int] = config["assistant"]["error_channel"] or None
-home_guild: Optional[int] = config["assistant"]["home_guild"] or None
-owner_id: Optional[int] = config["assistant"]["owner_id"] or None
+# Status and activity
+STATUS: discord.Status = discord.Status[config["client"]["status"]] or discord.Status.online
+ACTIVITY_TYPE: discord.ActivityType = discord.ActivityType[config["client"]["activity_type"]] \
+                                      or discord.ActivityType.playing
+ACTIVITY_TEXT: Optional[str] = config["client"]["activity_text"] or None
+
+# Channels
+HOME_GUILD_ID: int = config["client"]["home_guild_id"] or 0
+TEST_GUILDS: list[int] = config["client"]["test_guilds"] or []
+DM_RECIPIENTS_CATEGORY: int = config["client"]["dm_recipients_category"] or 0
+
+# MongoDB
+_MONGO_USERNAME: Optional[str] = config["mongo"]["username"] or None
+_MONGO_PASSWORD: Optional[str] = config["mongo"]["password"] or None
+_MONGO_URL: Optional[str] = config["mongo"]["url"] or None
+MONGO_URI: Optional[str] = f"mongodb+srv://{_MONGO_USERNAME}:{_MONGO_PASSWORD}@{_MONGO_URL}" if _MONGO_URL else None
+
+# Resource Path
+RESOURCE_PATH: Path = Path(__file__).parent.parent / "resources"
 
 
-class LavalinkConfig:
-    """Lavalink Configs"""
-    host: Optional[str] = config["lavalink"]["host"] or None
-    port: Optional[int] = config["lavalink"]["port"] or None
-    password: Optional[str] = config["lavalink"]["password"] or None
-    region: Optional[str] = config["lavalink"]["region"] or None
-    node_name: Optional[str] = config["lavalink"]["node_name"] or None
-    JAVA_PATH: Optional[str] = config["lavalink"]["java_path"] or None
-    LAVALINK_PATH: Optional[str] = config["lavalink"]["lavalink_path"] or None
-
-    def __bool__(self) -> bool:
-        return bool(self.host and self.port and self.password and self.LAVALINK_PATH)
-
-
+# Reddit
 class RedditConfig:
-    """Reddit Configs"""
-    client_id: Optional[str] = config["reddit"]["client_id"] or None
-    client_secret: Optional[str] = config["reddit"]["client_secret"] or None
-    username: Optional[str] = config["reddit"]["username"] or None
-    password: Optional[str] = config["reddit"]["password"] or None
+    CLIENT_ID: Optional[str] = config["reddit"]["client_id"] or None
+    CLIENT_SECRET: Optional[str] = config["reddit"]["client_secret"] or None
+    USERNAME: Optional[str] = config["reddit"]["username"] or None
+    PASSWORD: Optional[str] = config["reddit"]["password"] or None
 
-    def __bool__(self) -> bool:
-        return bool(self.client_id and self.client_secret and self.username and self.password)
+    def __bool__(self):
+        return bool(self.CLIENT_ID and self.CLIENT_SECRET and self.USERNAME and self.PASSWORD)
 
 
-# Other API Keys
-genius_token: Optional[str] = config["genius"]["token"] or None
-yt_token: Optional[str] = config["youtube"]["token"] or None
+LOGGING_GUILDS: Optional[Mapping[str, Mapping[str, int]]] = config["logging"] or None
 
-# fun
-female_roles: list[int] = config["fun"]["female_role_ids"] or []
 
-# Clips
-clips_root_dir: str = config["clips"]["root_dir"] or None
-guilds_with_clips: list[int] = [int(name) for name in os.listdir(clips_root_dir) if
-                                os.path.isdir(os.path.join(clips_root_dir, name))] if clips_root_dir else []
+# Lavalink
+class LavaConfig:
+    URI: Optional[str] = config["lavalink"]["uri"] or None
+    PASSWORD: Optional[str] = config["lavalink"]["password"] or None
 
-# logging
-logging_guilds: Optional[Mapping[str, Mapping[str, int]]] = config["logging"] or None
+    def __bool__(self):
+        return bool(self.URI and self.PASSWORD)
 
-# mongo
-mongo_uri: Optional[str] =\
-    f'mongodb+srv://{config["mongo"]["username"]}:{config["mongo"]["password"]}@{config["mongo"]["url"]}' or None
+
+class SpotifyConfig:
+    CLIENT_ID: Optional[str] = config["spotify"]["client_id"] or None
+    CLIENT_SECRET: Optional[str] = config["spotify"]["client_secret"] or None
+
+    def __bool__(self):
+        return bool(self.CLIENT_ID and self.CLIENT_SECRET)
+
+
+# YouTube
+YT_API_KEY: Optional[str] = config["youtube"]["api_key"] or None
+
+# Genius
+GENIUS_TOKEN: Optional[str] = config["genius"]["token"] or None

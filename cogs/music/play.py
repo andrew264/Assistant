@@ -1,191 +1,169 @@
 import asyncio
-import json
-import os
 import re
-from itertools import islice
-from typing import Any
+from collections import defaultdict
+from typing import Optional, Dict, List
 
-import disnake
-import lavalink
-from disnake.ext import commands
-from fuzzywuzzy import process
-from lavalink import DefaultPlayer as Player
+import discord
+import wavelink
+from discord import app_commands
+from discord.app_commands import Choice
+from discord.ext import commands
+from motor.motor_asyncio import AsyncIOMotorClient
+from thefuzz import process
+from wavelink.ext import spotify
 
-from assistant import Client, VoiceClient, remove_brackets
-from assistant.track import TrackInfo
-from config import LavalinkConfig
+from assistant import AssistantBot
+from config import LavaConfig, HOME_GUILD_ID, STATUS, ACTIVITY_TYPE, ACTIVITY_TEXT
+from utils import check_vc, remove_brackets, YTTrack, YTPlaylist, clickable_song
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
+yt_video_rx = r'^(?:https?://(?:www\.)?youtube\.com/watch\?(?=.*v=\w+)(?:\S+)?|https?://youtu\.be/\w+)$'
+yt_playlist_rx = r'^https?://(?:www\.)?youtube\.com/playlist\?(?=.*list=\w+)(?:\S+)?$'
+spotify_rx = r'https?://(?:open\.)?spotify\.com/(?:track|playlist)/[^\s?/]+'
 
 
-class SlashPlay(commands.Cog):
-    def __init__(self, client: Client):
-        self.client = client
-        self._cache = {}
-        with open("data/search_cache.json", "r") as f:
-            self._cache = json.load(f)
-            f.close()
-        del f
-        self.player_manager = None
-        self.mongo_client: Any = None
+class Play(commands.Cog):
+    def __init__(self, bot: AssistantBot):
+        self.bot = bot
+        self._mongo_client: Optional[AsyncIOMotorClient] = None  # type: ignore
+        self._cache: Dict[int, List[Dict[str, str]]] = defaultdict(list)
 
-    def _search_cache(self, query: str) -> dict:
-        result = {"Search: " + query: query}
+    @property
+    def mongo_client(self) -> AsyncIOMotorClient:  # type: ignore
+        if not self._mongo_client:
+            self._mongo_client = self.bot.connect_to_mongo()
+        return self._mongo_client
 
-        for identifier, title in self._cache.items():
-            if identifier in query.split('/') or identifier in query.split('='):
-                result[title] = "https://www.youtube.com/watch?v=" + identifier
+    @commands.Cog.listener()
+    async def on_wavelink_node_ready(self, node: wavelink.Node) -> None:
+        self.bot.logger.info(f"[LAVALINK] Node {node.id} is ready.")
 
-        # search in Titles
-        fuzzy_search = process.extractBests(query, self._cache, score_cutoff=85, limit=7)
-        keys = [k[-1] for k in fuzzy_search]
-        for key in keys:
-            assert isinstance(key, str)
-            result[self._cache[key]] = "https://www.youtube.com/watch?v=" + key
+    @commands.Cog.listener()
+    async def on_wavelink_track_start(self, payload: wavelink.TrackEventPayload) -> None:
+        assert payload.player.guild is not None
+        self.bot.logger.info(f"[LAVALINK] Playing {payload.track.title} on {payload.player.guild}")
+        await self._add_track_to_db(payload.player)
+        if payload.player.guild.id == HOME_GUILD_ID:
+            await self.bot.change_presence(status=STATUS,
+                                           activity=discord.Activity(type=discord.ActivityType.listening,
+                                                                     name=remove_brackets(payload.track.title)))
 
-        return dict(islice(result.items(), 10))
+    @commands.Cog.listener()
+    async def on_wavelink_track_end(self, payload: wavelink.TrackEventPayload) -> None:
+        assert payload.player.guild is not None
+        self.bot.logger.info(f"[LAVALINK] Finished playing {payload.track.title} on {payload.player.guild}")
+        if payload.player.queue.count or payload.player.queue.loop:
+            await payload.player.play(payload.player.queue.get())
+            await asyncio.sleep(1)
+        if not payload.player.current:
+            if payload.player.guild.id == HOME_GUILD_ID:
+                await self.bot.change_presence(status=STATUS,
+                                               activity=discord.Activity(type=ACTIVITY_TYPE, name=ACTIVITY_TEXT), )
 
-    async def _search_history(self, guild_id: int, query: str) -> dict:
-        assert self.mongo_client is not None
-        collection = self.mongo_client["assistant"]["songHistory"]
-        result = {"Search: " + query: query} if query else {}
-        song_history = await collection.find_one(dict(_id=guild_id))
-        if song_history is None:
-            return result
-        
-        songs = song_history["songs"]
-        for song in songs:
-            result[f"{song['title']} by {song['by']}"] = song["uri"]
-        return result
+    async def _fill_cache(self, guild_id: int):
+        db = self.mongo_client["assistant"]
+        collection = db["songHistory"]
+        history = await collection.find_one({"_id": guild_id})
+        self._cache[guild_id].extend({song['title']: song['uri']} for song in history['songs'])
 
-    def _update_cache(self) -> None:
-        with open("data/search_cache.json", "w") as f:
-            json.dump(self._cache, f, indent=4)
-            f.close()
-        del f
-        return
+    async def _add_track_to_db(self, player: wavelink.Player):
+        assert player.guild is not None
+        assert player.current is not None
+        guild_id = player.guild.id
+        track = player.current
+        if not isinstance(track, wavelink.YouTubeTrack):
+            return
+        uri = f"https://www.youtube.com/watch?v={track.identifier}"
+        title = track.title
+        if not self._cache[guild_id]:
+            await self._fill_cache(guild_id)
+        self._cache[guild_id].append({title: uri})
+        db = self.mongo_client["assistant"]
+        collection = db["songHistory"]
+        await collection.update_one(
+            {"_id": guild_id},
+            {"$addToSet": {"songs": dict(title=title, uri=uri)}},
+            upsert=True
+        )
 
-    @commands.Cog.listener('on_ready')
-    async def _connect_to_lavalink(self) -> None:
-        config = LavalinkConfig()
-        if config and self.client.lavalink is None:
-            self.client.lavalink = lavalink.Client(self.client.user.id)
-            self.client.logger.info("Connecting to Lavalink...")
-            self.player_manager = self.client.lavalink.player_manager
-            self.client.lavalink.add_node(host=config.host, port=config.port, password=config.password,
-                                          region=config.region, name=config.node_name)
-            self.client.logger.info("Connected to Lavalink")
-            del config
-            self.client.add_listener(self.client.lavalink.voice_update_handler, "on_socket_response")
-
-    @commands.Cog.listener('on_ready')
-    async def _connect_to_mongo(self) -> None:
-        if self.mongo_client is None:
-            self.mongo_client = self.client.connect_to_mongo()
-
-    @commands.slash_command(description="Play Music in VC 🎶")
+    @commands.hybrid_command(name="play", aliases=["p"], description="Play a song")
+    @app_commands.describe(query="Title/URL of the song to play")
     @commands.guild_only()
-    async def play(self, inter: disnake.ApplicationCommandInteraction,
-                   query: str = commands.Param(description="Search or Enter URL", )) -> None:
-        if self.client.lavalink is None:
-            await inter.response.send_message("Music Player is not connected.", ephemeral=True)
-            return
-        if self.player_manager is None:
-            await self._connect_to_lavalink()
-        
-        assert isinstance(inter.author, disnake.Member)
-        assert isinstance(inter.guild, disnake.Guild)
-        assert isinstance(inter.author.voice, disnake.VoiceState)
-        player: Player = self.player_manager.create(inter.guild.id) # type: ignore
-        await inter.response.defer()
-
-        is_search = False if url_rx.match(query) else True
-        query = f'ytsearch:{query}' if is_search else query
-
-        results = await player.node.get_tracks(query)
-        for track in results["tracks"]:
-            track.extra = dict(info=TrackInfo(author=inter.author, data=track,))
-            player.add(track)
-            self._cache[track.identifier] = remove_brackets(track.title)
-
-            if is_search:  # if is_search, only add the first track
-                break
-
-        if results['loadType'] == 'PLAYLIST_LOADED':
-            title = "[PLAYLIST] " + results['playlistInfo']['name']
-        elif results['loadType'] == 'SEARCH_RESULT' or results['loadType'] == 'TRACK_LOADED':
-            title = results['tracks'][0]['info']['title']
+    @check_vc()
+    async def play(self, ctx: commands.Context, *, query: Optional[str] = None):
+        assert isinstance(ctx.author, discord.Member)
+        if not ctx.voice_client:
+            vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player(),  # type: ignore
+                                                                         self_deaf=True)
         else:
-            await inter.edit_original_message(content="No results found.")
+            vc: wavelink.Player = ctx.voice_client  # type: ignore
+
+        if not query:
+            if not vc.is_playing() or not vc.current:
+                await ctx.send("I am not playing anything right now.")
+                return
+            if vc.is_paused():
+                await vc.resume()
+                await ctx.send(f"Resuming: {clickable_song(vc.current)}", suppress_embeds=True)
+            else:
+                await vc.pause()
+                await ctx.send(f"Paused: {clickable_song(vc.current)}", suppress_embeds=True)
             return
 
-        await inter.edit_original_message(content=f"Added `{title}` to the queue")
-        self.client.logger.info(f"{inter.author} added {title} to the queue in {inter.guild.name}")
+        await ctx.defer()
 
-        # Join VC
-        voice = disnake.utils.get(self.client.voice_clients, guild=inter.guild)
-        if voice is None:
-            assert isinstance(inter.author.voice.channel, disnake.VoiceChannel)
-            await inter.author.voice.channel.connect(cls=VoiceClient)
-            self.client.logger.info(f"Connected to #{inter.author.voice.channel} in {inter.guild.name}")
-            if isinstance(inter.author.voice.channel, disnake.StageChannel):
-                await asyncio.sleep(1)
-                if inter.guild.me.voice:
-                    await inter.guild.me.request_to_speak()
-                    self.client.logger.info(
-                        f"Requesting to speak in #{inter.guild.me.voice.channel} {inter.guild.name}.")
+        if re.match(yt_video_rx, query) or not re.match(url_rx, query):  # single video
+            track: YTTrack = await YTTrack.search(query)
+            track.requested_by = ctx.author
+            vc.queue.put(track)
+            await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True)
+        elif re.match(yt_playlist_rx, query):  # yt playlist
+            tracks: YTPlaylist = await YTPlaylist.search(query)  # type: ignore
+            assert isinstance(tracks, YTPlaylist)
+            tracks.requested_by = ctx.author
+            for t in tracks.tracks:
+                vc.queue.put(t)
+            await ctx.send(f"Added {len(tracks.tracks)} songs to queue")
+        elif re.match(spotify_rx, query):  # spotify track
+            decoded = spotify.decode_url(query)
+            if not decoded:
+                await ctx.send("Invalid Spotify URL")
+                return
+            if decoded.type == spotify.SpotifySearchType.track:
+                tracks: list[spotify.SpotifyTrack] = await spotify.SpotifyTrack.search(query)
+                vc.queue.put(tracks[0])
+                await ctx.send(f"Added {clickable_song(tracks[0])} to queue")
+            elif decoded.type == spotify.SpotifySearchType.playlist:
+                tracks: list[spotify.SpotifyTrack] = await spotify.SpotifyTrack.search(query)
+                for t in tracks:
+                    vc.queue.put(t)
+                await ctx.send(f"Added {len(tracks)} songs to queue")
+        else:
+            await ctx.send("Invalid URL or query")
+            return  # invalid url
 
-        # Start playing
-        self._update_cache()
-        if player.queue and not player.is_playing:
-            await player.clear_filters()
-            vol_filter = lavalink.Volume()
-            vol_filter.update(volume=1.0)
-            await player.set_filter(vol_filter)
-            flat_eq = lavalink.Equalizer()
-            flat_eq.update(bands=[(band, 0.0) for band in range(0, 15)])
-            await player.set_filter(flat_eq)
-            await player.play()
-            assert player.current is not None
-            self.client.logger.info(f"Started playing {player.current.title} in {inter.guild.name}")
+        if not vc.is_playing():
+            await vc.play(track=vc.queue.get())
+            await vc.set_volume(100)
 
     @play.autocomplete('query')
-    async def play_autocomplete(self, inter: disnake.ApplicationCommandInteraction, query: str) -> dict:
-        assert inter.guild is not None
-        if not query or len(query) < 4:
-            return await self._search_history(guild_id=inter.guild.id, query=query)
-        return self._search_cache(query)
+    async def play_autocomplete(self, ctx: discord.Interaction, query: str):
+        assert ctx.guild is not None
+        if query == "":
+            return [Choice(name="Enter a song name or URL", value="https://youtu.be/dQw4w9WgXcQ")]
+        result = {"Search: " + query: query} if query else {}
+        guild_id = ctx.guild.id
+        if guild_id not in self._cache:
+            await self._fill_cache(guild_id)
+        search = [s[0] for s in process.extractBests(query, self._cache[guild_id], limit=24, score_cutoff=70)]
+        for s in search:
+            result |= s
 
-    # Checks
-    @play.before_invoke
-    async def check_play(self, inter: disnake.ApplicationCommandInteraction) -> None:
-        assert isinstance(inter.author, disnake.Member)
-        assert isinstance(inter.guild, disnake.Guild)
-        assert isinstance(inter.me, disnake.Member)
-        
-        if inter.author.voice is None:
-            raise commands.CheckFailure("You are not connected to a voice channel.")
-
-        if inter.guild.voice_client is not None and inter.author.voice is not None:
-            if inter.guild.voice_client.channel != inter.author.voice.channel:
-                raise commands.CheckFailure("You must be in same VC as Bot.")
-            
-        assert isinstance(inter.author.voice.channel, disnake.VoiceChannel)
-        permissions = inter.author.voice.channel.permissions_for(inter.me)
-        if not permissions.connect or not permissions.speak:
-            raise commands.CheckFailure('Missing `CONNECT` and `SPEAK` permissions.')
+        return [Choice(name=k, value=v) for k, v in result.items()]
 
 
-def setup(client: Client):
-    config = LavalinkConfig()
-    if not config:
-        client.logger.warning("Lavalink Config not found. Music Player will not be loaded.")
+async def setup(bot: AssistantBot):
+    lc = LavaConfig()
+    if not lc:
         return
-    # check if cache exists
-    if not os.path.exists("data/search_cache.json"):
-        client.logger.info("Music Search Cache not found, creating one...")
-        with open("data/search_cache.json", "w") as f:
-            json.dump({}, f)
-            f.close()
-        del f
-    client.add_cog(SlashPlay(client))
+    await bot.add_cog(Play(bot))

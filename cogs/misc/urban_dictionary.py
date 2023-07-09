@@ -1,14 +1,14 @@
 import random
+import re
 from typing import List, Self
 from urllib.parse import quote
-import re
 
 import aiohttp
-import disnake
-from disnake.ext import commands
+import discord
+from discord import app_commands
+from discord.ext import commands
 
-import assistant
-from assistant.hooker import getch_hook
+from assistant import AssistantBot
 
 
 class UrbanDictionaryEntry:
@@ -115,34 +115,47 @@ class UrbanDictionary:
 
 
 class Dictionary(commands.Cog):
-    def __init__(self, client: assistant.Client):
-        self.client = client
+    def __init__(self, bot: AssistantBot):
+        self.bot = bot
 
-    @commands.slash_command()
-    async def define(self, inter: disnake.ApplicationCommandInteraction,
-                     word: str = commands.Param(description="Enter a word to define", default=None)):
-        """
-        Fetch definition from Urban Dictionary
-        """
-        await inter.response.defer()
-        urban = UrbanDictionary(word=word)
+    async def get_webhook(self, channel: discord.TextChannel):
+        assert self.bot.user
+        webhooks = await channel.webhooks()
+        webhook = None
+        for wh in webhooks:
+            assert wh.user
+            if wh.user.id == self.bot.user.id:
+                webhook = wh
+                break
+        if webhook is None:
+            webhook = await channel.create_webhook(name='Assistant', avatar=await self.bot.user.display_avatar.read())
+        return webhook
+
+    @commands.hybrid_command(name='define', aliases=['def', 'dictionary', 'dict'], description='Define a word')
+    @app_commands.describe(word='The word to define')
+    async def define(self, ctx: commands.Context, *, word: str = ''):
+        await ctx.defer()
+        urban = UrbanDictionary(word)
         results = await urban.get_results()
         if not urban.response:
-            await inter.edit_original_message(content="No results found.")
+            await ctx.send(f"No definition found for {word}.")
+            return
         else:
             random_result = random.choice(results[:5])
             if len(random_result.markdown) > 2000:
                 msgs = random_result.markdown.split('\n\n')
-                await inter.edit_original_message(content=msgs[0], suppress_embeds=True)
-                webhook = await getch_hook(inter.channel)
+                await ctx.send(content=msgs[0], suppress_embeds=True)
+                if not isinstance(ctx.channel, discord.TextChannel):
+                    return
+                webhook = await self.get_webhook(ctx.channel)
                 for msg in msgs[1:]:
                     await webhook.send(msg if len(msg) < 2000 else msg[:2000],
-                                       username=inter.me.display_name,
-                                       avatar_url=inter.me.display_avatar.url,
+                                       username=ctx.me.display_name,
+                                       avatar_url=ctx.me.display_avatar.url,
                                        suppress_embeds=True)
             else:
-                await inter.edit_original_message(content=random_result.markdown, suppress_embeds=True)
+                await ctx.send(content=random_result.markdown, suppress_embeds=True)
 
 
-def setup(client):
-    client.add_cog(Dictionary(client))
+async def setup(bot: AssistantBot):
+    await bot.add_cog(Dictionary(bot))

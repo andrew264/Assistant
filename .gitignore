@@ -1,22 +1,15 @@
-# Environment Variables
-/config/config.toml
+# virtual environment
+venv/
 
-# Environment and Cache
-/env
+# pycache
+__pycache__/
 *.pyc
 
-#ignore batch files
-*.bat
+# pycharm
+.idea/
 
-# ignore database
-*.sqlite3
+# resources
+resources/
 
-# ignore Music Cache
-/data/search_cache.json
-
-# PyCharm
-/.idea
-/.run
-
-# audio clips
-/clips
+# config
+config/config.toml

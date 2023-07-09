@@ -1,22 +1,23 @@
 import datetime
 from typing import Optional
 
-import disnake
-from disnake.ext import commands
+import discord
+from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from assistant import Client
-from config import mongo_uri
+from assistant import AssistantBot
+from config import MONGO_URI
 
 
 class LastSeen(commands.Cog):
-    def __init__(self, client: Client):
-        self.client = client
-        self.mongo_db: Optional[AsyncIOMotorClient] = None
+    def __init__(self, bot: AssistantBot):
+        self.bot = bot
+        self.mongo_db: Optional[AsyncIOMotorClient] = None  # type: ignore
 
     async def update_time(self, user_id: int) -> None:
         if not self.mongo_db:
-            self.mongo_db = self.client.connect_to_mongo()
+            self.mongo_db = self.bot.connect_to_mongo()
+        assert self.mongo_db is not None
 
         db = self.mongo_db["assistant"]
         collection = db["allUsers"]
@@ -25,8 +26,19 @@ class LastSeen(commands.Cog):
                                     {"$set": {"lastSeen": int(datetime.datetime.now().timestamp())}},
                                     upsert=True)
 
+    @commands.Cog.listener('on_ready')
+    async def reset_last_seen(self) -> None:
+        if not self.mongo_db:
+            self.mongo_db = self.bot.connect_to_mongo()
+        assert self.mongo_db is not None
+
+        db = self.mongo_db["assistant"]
+        collection = db["allUsers"]
+        await collection.update_many({}, {"$unset": {"lastSeen": ""}})
+        self.bot.logger.info("[RESET] lastSeen times from DB.")
+
     @commands.Cog.listener()
-    async def on_presence_update(self, before: disnake.Member, after: disnake.Member) -> None:
+    async def on_presence_update(self, before: discord.Member, after: discord.Member) -> None:
         if before.bot:
             return
         if (before.raw_status == after.raw_status) or \
@@ -35,9 +47,9 @@ class LastSeen(commands.Cog):
         await self.update_time(after.id)
 
     @commands.Cog.listener()
-    async def on_message(self, message: disnake.Message) -> None:
+    async def on_message(self, message: discord.Message) -> None:
         author = message.author
-        if isinstance(author, disnake.User):
+        if isinstance(author, discord.User):
             return
         if author.bot:
             return
@@ -46,8 +58,8 @@ class LastSeen(commands.Cog):
         await self.update_time(author.id)
 
     @commands.Cog.listener()
-    async def on_typing(self, channel: disnake.TextChannel, user: disnake.Member, when: datetime) -> None:
-        if isinstance(channel, disnake.DMChannel):
+    async def on_typing(self, channel: discord.TextChannel, user: discord.Member, when: datetime.datetime) -> None:
+        if isinstance(channel, discord.DMChannel):
             return
         if user.bot:
             return
@@ -56,8 +68,8 @@ class LastSeen(commands.Cog):
         await self.update_time(user.id)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: disnake.Member,
-                                    before: disnake.VoiceState, after: disnake.VoiceState) -> None:
+    async def on_voice_state_update(self, member: discord.Member,
+                                    before: discord.VoiceState, after: discord.VoiceState) -> None:
         if member.bot:
             return
         if member.raw_status != 'offline':
@@ -65,14 +77,14 @@ class LastSeen(commands.Cog):
         await self.update_time(member.id)
 
     @commands.Cog.listener()
-    async def on_member_join(self, member: disnake.Member) -> None:
+    async def on_member_join(self, member: discord.Member) -> None:
         if member.bot:
             return
         await self.update_time(member.id)
 
 
-def setup(client: Client):
-    if mongo_uri:
-        client.add_cog(LastSeen(client))
+async def setup(bot: AssistantBot):
+    if MONGO_URI:
+        await bot.add_cog(LastSeen(bot))
     else:
-        client.logger.warning("Database not configured, LastSeen cog will not be loaded.")
+        bot.logger.warning("[FAILED] last_seen.py cog not loaded. MONGO_URI not set.")

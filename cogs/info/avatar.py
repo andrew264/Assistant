@@ -1,29 +1,46 @@
-import disnake
-from disnake.ext import commands
+import io
+from typing import Union
 
-from assistant import Client, colour_gen, to_file
+import discord
+from discord import app_commands
+from discord.ext import commands
 
-
-class Avatar(commands.Cog):
-    def __init__(self, client: Client):
-        self.client = client
-
-    @commands.slash_command(description="Shows the avatar of the user")
-    async def avatar(self, inter: disnake.ApplicationCommandInteraction,
-                     user: disnake.Member = commands.Param(description="Mention a User",
-                                                           default=lambda inter: inter.author), ) -> None:
-        await inter.response.defer()
-        avatar = disnake.Embed(title=f"{user.display_name}'s Avatar 🖼", color=colour_gen(user.id))
-        avatar.set_image(file=await to_file(user.display_avatar))
-        await inter.edit_original_message(embed=avatar)
-
-    @commands.user_command(name="Avatar")
-    async def context_avatar(self, inter: disnake.UserCommandInteraction) -> None:
-        await inter.response.defer(ephemeral=True)
-        avatar = disnake.Embed(title=f"{inter.target.display_name}'s Avatar 🖼", color=colour_gen(inter.target.id))
-        avatar.set_image(url=inter.target.display_avatar.url)
-        await inter.edit_original_message(embed=avatar)
+from assistant import AssistantBot
 
 
-def setup(client):
-    client.add_cog(Avatar(client))
+class AvatarCommands(commands.Cog):
+    def __init__(self, bot: AssistantBot):
+        self.bot = bot
+        for command in self.build_context_menus():
+            self.bot.tree.add_command(command)
+
+    async def cog_unload(self):
+        for command in self.build_context_menus():
+            self.bot.tree.remove_command(command.name, type=command.type)
+
+    def build_context_menus(self):
+        return [
+            app_commands.ContextMenu(
+                name="View Avatar",
+                callback=self.__view_avatar,
+            ),
+        ]
+
+    @app_commands.command(name="avatar", description="Get the avatar of a user")
+    @app_commands.describe(user="Select a user to get their avatar")
+    async def avatar(self, ctx: discord.Interaction, user: Union[discord.User, discord.Member]):
+        await ctx.response.defer()
+        image_file = discord.File(fp=io.BytesIO(await user.display_avatar.read()),
+                                  filename="avatar.png",
+                                  description=f"{user.display_name}'s Avatar")
+        await ctx.edit_original_response(content=f"# {user.display_name}'s Avatar",
+                                         attachments=[image_file])
+
+    async def __view_avatar(self, ctx: discord.Interaction, user: Union[discord.User, discord.Member]):
+        embed = discord.Embed(title=f"{user.display_name}'s Avatar")
+        embed.set_image(url=user.display_avatar.url)
+        await ctx.response.send_message(embed=embed, ephemeral=True)
+
+
+async def setup(bot: AssistantBot):
+    await bot.add_cog(AvatarCommands(bot))
