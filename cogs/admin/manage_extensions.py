@@ -56,6 +56,12 @@ class ManageExtensions(commands.Cog):
         synced = await self.bot.tree.sync(guild=ctx.guild)
         await ctx.response.send_message(f"Synced {len(synced)} extensions to this server", ephemeral=True)
 
+    @extensions.command(name="desync", description="Desync all extensions")
+    async def desync(self, ctx: discord.Interaction):
+        self.bot.tree.clear_commands(guild=ctx.guild)
+        await self.bot.tree.sync(guild=ctx.guild)
+        await ctx.channel.send(content=f"Desynced all extensions from this server", delete_after=10)
+
     @unload.autocomplete('extension')
     @reload.autocomplete('extension')
     async def extension_autocomplete(self, ctx: discord.Interaction, extension: str):

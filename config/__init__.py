@@ -1,6 +1,6 @@
 import tomllib
 from pathlib import Path
-from typing import Optional, Mapping
+from typing import Optional, Mapping, List
 
 import discord
 
@@ -27,7 +27,7 @@ ACTIVITY_TEXT: Optional[str] = config["client"]["activity_text"] or None
 
 # Channels
 HOME_GUILD_ID: int = config["client"]["home_guild_id"] or 0
-TEST_GUILDS: list[int] = config["client"]["test_guilds"] or []
+TEST_GUILDS: Optional[List[int]] = config["client"]["test_guilds"] or None
 DM_RECIPIENTS_CATEGORY: int = config["client"]["dm_recipients_category"] or 0
 
 # MongoDB
