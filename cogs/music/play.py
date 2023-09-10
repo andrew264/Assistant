@@ -1,7 +1,7 @@
 import asyncio
 import re
 from collections import defaultdict
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 
 import discord
 import wavelink
@@ -26,7 +26,7 @@ class Play(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
         self._mongo_client: Optional[AsyncIOMotorClient] = None  # type: ignore
-        self._cache: Dict[int, List[Dict[str, str]]] = defaultdict(list)
+        self._cache: Dict[int, Dict[str, str]] = defaultdict()
 
     @property
     def mongo_client(self) -> AsyncIOMotorClient:  # type: ignore
@@ -64,7 +64,9 @@ class Play(commands.Cog):
         db = self.mongo_client["assistant"]
         collection = db["songHistory"]
         history = await collection.find_one({"_id": guild_id})
-        self._cache[guild_id].extend({song['title']: song['uri']} for song in history['songs'])
+        self._cache[guild_id] = {}
+        for song in history['songs']:
+            self._cache[guild_id] |= {song['title']: song['uri']}
 
     async def _add_track_to_db(self, player: wavelink.Player):
         assert player.guild is not None
@@ -77,7 +79,7 @@ class Play(commands.Cog):
         title = track.title
         if not self._cache[guild_id]:
             await self._fill_cache(guild_id)
-        self._cache[guild_id].append({title: uri})
+        self._cache[guild_id] |= {title: uri}
         db = self.mongo_client["assistant"]
         collection = db["songHistory"]
         await collection.update_one(
@@ -155,9 +157,11 @@ class Play(commands.Cog):
         guild_id = ctx.guild.id
         if guild_id not in self._cache:
             await self._fill_cache(guild_id)
-        search = [s[0] for s in process.extractBests(query, self._cache[guild_id], limit=24, score_cutoff=70)]
+        split_term = ' <URL> '
+        _cache = [f"{title}{split_term}{url}" for title, url in self._cache[guild_id].items()]
+        search = [s[0].split(split_term)[0] for s in process.extractBests(query, _cache, limit=24, score_cutoff=50)]
         for s in search:
-            result |= s
+            result |= {s: self._cache[guild_id][s]}
 
         return [Choice(name=k, value=v) for k, v in result.items()]
 
