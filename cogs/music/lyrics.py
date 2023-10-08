@@ -36,7 +36,7 @@ class GLyrics:
 
     @staticmethod
     def _lyrics_list(lyrics: str) -> list[str]:
-        lyrics = lyrics.replace("[", "\n\n[")
+        lyrics = lyrics.replace("[", "\n\n[").replace("You might also like", '')  # i hate doing this
         lyrics = re.sub(r"[0-9]*Embed*", "", lyrics)
         lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
         if len(lyrics.splitlines()) > 1 and "lyrics" in lyrics.splitlines()[0].lower():

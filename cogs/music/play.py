@@ -43,10 +43,22 @@ class Play(commands.Cog):
         assert payload.player.guild is not None
         self.bot.logger.info(f"[LAVALINK] Playing {payload.track.title} on {payload.player.guild}")
         await self._add_track_to_db(payload.player)
+        await self.reset_dc(payload.player)
         if payload.player.guild.id == HOME_GUILD_ID:
             await self.bot.change_presence(status=STATUS,
                                            activity=discord.Activity(type=discord.ActivityType.listening,
                                                                      name=remove_brackets(payload.track.title)))
+
+    async def schedule_dc(self, player: wavelink.Player, delay: int = 30):
+        await asyncio.sleep(delay)
+        if not player.is_playing() and not player.queue.count:
+            await player.disconnect(force=True)
+            self.bot.logger.info(f"[LAVALINK] Disconnected from {player.guild}")
+
+    async def reset_dc(self, player: wavelink.Player):
+        if hasattr(player, "dc_task"):
+            player.dc_task.cancel()
+        player.dc_task = self.bot.loop.create_task(self.schedule_dc(player))
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEventPayload) -> None:
@@ -56,6 +68,7 @@ class Play(commands.Cog):
             await payload.player.play(payload.player.queue.get())
             await asyncio.sleep(1)
         if not payload.player.current:
+            await self.schedule_dc(payload.player)
             if payload.player.guild.id == HOME_GUILD_ID:
                 await self.bot.change_presence(status=STATUS,
                                                activity=discord.Activity(type=ACTIVITY_TYPE, name=ACTIVITY_TEXT), )
