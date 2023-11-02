@@ -27,7 +27,7 @@ class MusicCommands(commands.Cog):
             await ctx.send(f"Skipping {clickable_song(vc.current)}", suppress_embeds=True)
             await vc.stop()
             return
-        if index >= vc.queue.count or index < 0:
+        if index > vc.queue.count or index < 0:
             await ctx.send("Invalid index")
             return
         else:
