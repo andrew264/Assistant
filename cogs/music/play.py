@@ -80,6 +80,7 @@ class Play(commands.Cog):
         self._cache[guild_id] = {}
         for song in history['songs']:
             self._cache[guild_id] |= {song['title']: song['uri']}
+        self.bot.logger.info(f"[MONGO] Filled cache for {guild_id} with {len(self._cache[guild_id])} songs")
 
     async def _add_track_to_db(self, player: wavelink.Player):
         assert player.guild is not None
@@ -100,6 +101,7 @@ class Play(commands.Cog):
             {"$addToSet": {"songs": dict(title=title, uri=uri)}},
             upsert=True
         )
+        self.bot.logger.info(f"[MONGO] Added {title} to {guild_id}")
 
     @commands.hybrid_command(name="play", aliases=["p"], description="Play a song")
     @app_commands.describe(query="Title/URL of the song to play")
@@ -114,15 +116,20 @@ class Play(commands.Cog):
             vc: wavelink.Player = ctx.voice_client  # type: ignore
 
         if not query:
-            if not vc.is_playing() or not vc.current:
-                await ctx.send("I am not playing anything right now.")
-                return
-            if vc.is_paused():
+            if not vc.current or not vc.queue.count:
+                message = "I am not playing anything right now."
+            elif vc.is_paused():
                 await vc.resume()
-                await ctx.send(f"Resuming: {clickable_song(vc.current)}", suppress_embeds=True)
+                message = f"Resuming: {clickable_song(vc.current)}"
             else:
-                await vc.pause()
-                await ctx.send(f"Paused: {clickable_song(vc.current)}", suppress_embeds=True)
+                if not vc.current:
+                    await vc.play(track=vc.queue.get())
+                    message = f"Playing: {clickable_song(vc.current)}"
+                else:
+                    await vc.pause()
+                    message = f"Paused: {clickable_song(vc.current)}"
+
+            await ctx.send(message, suppress_embeds=True)
             return
 
         await ctx.defer()
@@ -159,10 +166,10 @@ class Play(commands.Cog):
 
         if not vc.is_playing():
             await vc.play(track=vc.queue.get())
-            await vc.set_volume(100)
+            await vc.set_volume(30)
 
     @play.autocomplete('query')
-    async def play_autocomplete(self, ctx: discord.Interaction, query: str):
+    async def play_autocomplete(self, ctx: discord.Interaction, query: str) -> list[Choice[str]]:
         assert ctx.guild is not None
         if query == "":
             return [Choice(name="Enter a song name or URL", value="https://youtu.be/dQw4w9WgXcQ")]

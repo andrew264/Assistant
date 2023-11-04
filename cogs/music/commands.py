@@ -20,7 +20,7 @@ class MusicCommands(commands.Cog):
     @app_commands.describe(index="Index of the song to skip")
     async def skip(self, ctx: commands.Context, index: int = 0):
         vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.is_playing():
+        if not vc.current and vc.queue.count == 0:
             await ctx.send("I am not playing anything right now.")
             return
         if index == 0:
@@ -40,7 +40,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     async def loop(self, ctx: commands.Context):
         vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.is_playing():
+        if not vc.current and vc.queue.count == 0:
             await ctx.send("I am not playing anything right now.")
             return
         if vc.queue.loop:
@@ -57,7 +57,7 @@ class MusicCommands(commands.Cog):
     @app_commands.describe(volume="Volume to set [0 - 100]")
     async def volume(self, ctx: commands.Context, volume: int):
         vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.is_playing():
+        if not vc.current and vc.queue.count == 0:
             await ctx.send("I am not playing anything right now.")
             return
         if ctx.author.id == OWNER_ID:
@@ -92,7 +92,7 @@ class MusicCommands(commands.Cog):
     @app_commands.describe(index="Index of the song to skip to")
     async def skipto(self, ctx: commands.Context, index: int = 0):
         vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.is_playing():
+        if not vc.current:
             await ctx.send("I am not playing anything right now.")
             return
         if index == 0:
@@ -114,11 +114,9 @@ class MusicCommands(commands.Cog):
     @app_commands.describe(time="Time to seek to in MM:SS format")
     async def seek(self, ctx: commands.Context, time: Optional[str] = None):
         vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.is_playing():
+        if not vc.current:
             await ctx.send("I am not playing anything right now.")
             return
-        if not time:
-            await vc.seek(0)
 
         def time_in_seconds(timestamp: str) -> int:
             """
@@ -133,8 +131,12 @@ class MusicCommands(commands.Cog):
             seconds = sum(comp * 60 ** (len(time_components) - idx - 1) for idx, comp in enumerate(time_components))
             return seconds
 
-        await vc.seek(time_in_seconds(time) * 1000)
-        await ctx.send(f"Seeked to {time}")
+        if not time:
+            await vc.seek(0)
+            await ctx.send("Seeked to Beginning")
+        else:
+            await vc.seek(time_in_seconds(time) * 1000)
+            await ctx.send(f"Seeked to {time}")
 
 
 async def setup(bot: AssistantBot):
