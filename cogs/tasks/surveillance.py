@@ -40,7 +40,7 @@ class Surveillance(commands.Cog):
         if before.clean_content == after.clean_content:
             return
         for name, guild in LOGGING_GUILDS.items():
-            if guild["id"] == before.guild.id:
+            if guild["guild_id"] == before.guild.id:
                 hook = await self.get_webhook(guild["channel_id"])
                 break
         else:
@@ -91,7 +91,7 @@ class Surveillance(commands.Cog):
         embed.add_field(name="New Name", value=after.display_name, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
         for name, guild in LOGGING_GUILDS.items():
-            if guild["id"] == before.guild.id:
+            if guild["guild_id"] == before.guild.id:
                 hook = await self.get_webhook(guild["channel_id"])
                 break
         else:
@@ -113,7 +113,7 @@ class Surveillance(commands.Cog):
         if str(before) == str(after):
             return
         for name, guild in LOGGING_GUILDS.items():
-            if guild["id"] == member.guild.id:
+            if guild["guild_id"] == member.guild.id:
                 hook = await self.get_webhook(guild["channel_id"])
                 break
         else:
@@ -194,7 +194,7 @@ class Surveillance(commands.Cog):
             log_msg = f"#{before.channel.name} -> #{after.channel.name}"
 
         for name, guild in LOGGING_GUILDS.items():
-            if guild["id"] == member.guild.id:
+            if guild["guild_id"] == member.guild.id:
                 hook = await self.get_webhook(guild["channel_id"])
                 break
         else:
