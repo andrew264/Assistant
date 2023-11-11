@@ -1,0 +1,34 @@
+import discord
+from discord.ext import commands
+
+# import libtorrent as lt
+
+from assistant import AssistantBot
+
+
+class FetchTorrent(commands.Cog):
+    def __init__(self, bot: AssistantBot):
+        self.bot = bot
+
+    @staticmethod
+    def fetch_torrent(magnet_link: str):
+        ses = lt.session()
+        info = lt.torrent_info(lt.parse_magnet_uri(magnet_link))
+
+        return info
+
+    @commands.command(name="torrent", )
+    @commands.hybrid_command('torrent', description="Fetches a torrent file and shows info.")
+    async def torrent(self, ctx: commands.Context, url: str):
+        await ctx.defer()
+        info = self.fetch_torrent(url)
+        embed = discord.Embed(title=info.name())
+        embed.add_field(name="Size", value=info.total_size())
+        embed.add_field(name="Files", value=len(info.files()))
+        await ctx.send(embed=embed)
+        await ctx.send(content=f'```{url}```')
+
+
+def setup(bot: AssistantBot):
+    # bot.add_cog(FetchTorrent(bot))
+    pass

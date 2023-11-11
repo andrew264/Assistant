@@ -8,3 +8,4 @@ thefuzz[speedup]
 git+https://github.com/PythonistaGuild/Wavelink.git
 python-youtube
 lyricsgenius
+libtorrent
