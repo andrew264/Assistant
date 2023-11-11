@@ -17,7 +17,6 @@ class FetchTorrent(commands.Cog):
 
         return info
 
-    @commands.command(name="torrent", )
     @commands.hybrid_command('torrent', description="Fetches a torrent file and shows info.")
     async def torrent(self, ctx: commands.Context, url: str):
         await ctx.defer()
@@ -29,6 +28,6 @@ class FetchTorrent(commands.Cog):
         await ctx.send(content=f'```{url}```')
 
 
-def setup(bot: AssistantBot):
+async def setup(bot: AssistantBot):
     # bot.add_cog(FetchTorrent(bot))
     pass
