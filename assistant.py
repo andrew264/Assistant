@@ -7,9 +7,8 @@ from discord import utils
 from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ConnectionFailure
-from wavelink.ext import spotify
 
-from config import logger, TEST_GUILDS, MONGO_URI, LavaConfig, SpotifyConfig
+from config import logger, TEST_GUILDS, MONGO_URI, LavaConfig
 
 
 class AssistantBot(commands.Bot):
@@ -40,15 +39,10 @@ class AssistantBot(commands.Bot):
 
         lconf = LavaConfig()
         if lconf:
-            sconf = SpotifyConfig()
-            if sconf:
-                sc = spotify.SpotifyClient(client_id=sconf.CLIENT_ID, client_secret=sconf.CLIENT_SECRET)
-                self.logger.info("[LOADED] Spotify Client")
-            else:
-                sc = None
-            self.logger.info("[CONNECTING] to LavaLink...")
-            node: wavelink.Node = wavelink.Node(uri=lconf.URI, password=lconf.PASSWORD, )
-            await wavelink.NodePool.connect(client=self, nodes=[node], spotify=sc)
+            nodes = [
+                wavelink.Node(uri=lconf.URI, password=lconf.PASSWORD),
+            ]
+            await wavelink.Pool.connect(nodes=nodes, client=self, cache_capacity=100)
             self.logger.info("[CONNECTED] to LavaLink.")
         else:
             self.logger.warning("[FAILED] LavaLink is not configured.")

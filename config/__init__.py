@@ -63,14 +63,6 @@ class LavaConfig:
         return bool(self.URI and self.PASSWORD)
 
 
-class SpotifyConfig:
-    CLIENT_ID: Optional[str] = config["spotify"]["client_id"] or None
-    CLIENT_SECRET: Optional[str] = config["spotify"]["client_secret"] or None
-
-    def __bool__(self):
-        return bool(self.CLIENT_ID and self.CLIENT_SECRET)
-
-
 # YouTube
 YT_API_KEY: Optional[str] = config["youtube"]["api_key"] or None
 

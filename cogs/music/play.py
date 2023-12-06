@@ -1,45 +1,41 @@
 import asyncio
 import re
 from collections import defaultdict
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, cast
 
 import discord
 import wavelink
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
-from motor.motor_asyncio import AsyncIOMotorClient
 from thefuzz import process
-from wavelink.ext import spotify
+from wavelink import Playlist
 
 from assistant import AssistantBot
 from config import LavaConfig, HOME_GUILD_ID, STATUS, ACTIVITY_TYPE, ACTIVITY_TEXT
-from utils import check_vc, remove_brackets, YTTrack, YTPlaylist, clickable_song
+from utils import check_vc, remove_brackets, clickable_song
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
-yt_video_rx = r'^(?:https?://(?:www\.)?youtube\.com/watch\?(?=.*v=\w+)(?:\S+)?|https?://youtu\.be/\w+)$'
-yt_playlist_rx = r'^https?://(?:www\.)?youtube\.com/playlist\?(?=.*list=\w+)(?:\S+)?$'
-spotify_rx = r'https?://(?:open\.)?spotify\.com/(?:track|playlist)/[^\s?/]+'
 
 
 class Play(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
-        self._mongo_client: Optional[AsyncIOMotorClient] = None  # type: ignore
+        self._mongo_client: Optional[Any] = None  # type: ignore
         self._cache: Dict[int, Dict[str, str]] = defaultdict()
 
     @property
-    def mongo_client(self) -> AsyncIOMotorClient:  # type: ignore
+    def mongo_client(self) -> Any:  # type: ignore
         if not self._mongo_client:
             self._mongo_client = self.bot.connect_to_mongo()
         return self._mongo_client
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: wavelink.Node) -> None:
-        self.bot.logger.info(f"[LAVALINK] Node {node.id} is ready.")
+        self.bot.logger.info(f"[LAVALINK] Node {node.identifier} is ready.")
 
     @commands.Cog.listener()
-    async def on_wavelink_track_start(self, payload: wavelink.TrackEventPayload) -> None:
+    async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
         assert payload.player.guild is not None
         self.bot.logger.info(f"[LAVALINK] Playing {payload.track.title} on {payload.player.guild}")
         await self._add_track_to_db(payload.player)
@@ -49,9 +45,10 @@ class Play(commands.Cog):
                                            activity=discord.Activity(type=discord.ActivityType.listening,
                                                                      name=remove_brackets(payload.track.title)))
 
-    async def schedule_dc(self, player: wavelink.Player, delay: int = 30):
+    async def schedule_dc(self, player: wavelink.Player, delay: int = 300):
         await asyncio.sleep(delay)
-        if not player.is_playing() and not player.queue.count:
+        if not player.playing and not player.queue:
+            await player.set_filters(None)
             await player.disconnect(force=True)
             self.bot.logger.info(f"[LAVALINK] Disconnected from {player.guild}")
 
@@ -61,10 +58,10 @@ class Play(commands.Cog):
         player.dc_task = self.bot.loop.create_task(self.schedule_dc(player))
 
     @commands.Cog.listener()
-    async def on_wavelink_track_end(self, payload: wavelink.TrackEventPayload) -> None:
+    async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload) -> None:
         assert payload.player.guild is not None
         self.bot.logger.info(f"[LAVALINK] Finished playing {payload.track.title} on {payload.player.guild}")
-        if payload.player.queue.count or payload.player.queue.loop:
+        if payload.player.queue or payload.player.queue.mode.loop or payload.player.queue.mode.loop_all:
             await payload.player.play(payload.player.queue.get())
             await asyncio.sleep(1)
         if not payload.player.current:
@@ -87,18 +84,17 @@ class Play(commands.Cog):
         assert player.current is not None
         guild_id = player.guild.id
         track = player.current
-        if not isinstance(track, wavelink.YouTubeTrack):
+        if track.uri is None:
             return
-        uri = f"https://www.youtube.com/watch?v={track.identifier}"
         title = track.title
         if not self._cache[guild_id]:
             await self._fill_cache(guild_id)
-        self._cache[guild_id] |= {title: uri}
+        self._cache[guild_id] |= {title: track.uri}
         db = self.mongo_client["assistant"]
         collection = db["songHistory"]
         await collection.update_one(
             {"_id": guild_id},
-            {"$addToSet": {"songs": dict(title=title, uri=uri)}},
+            {"$addToSet": {"songs": dict(title=title, uri=track.uri)}},
             upsert=True
         )
         self.bot.logger.info(f"[MONGO] Added {title} to {guild_id}")
@@ -109,62 +105,50 @@ class Play(commands.Cog):
     @check_vc()
     async def play(self, ctx: commands.Context, *, query: Optional[str] = None):
         assert isinstance(ctx.author, discord.Member)
+
+        vc: wavelink.Player
+        vc = cast(wavelink.Player, ctx.voice_client)
+
         if not ctx.voice_client:
-            vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player(),  # type: ignore
+            vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player,  # type: ignore
                                                                          self_deaf=True)
-        else:
-            vc: wavelink.Player = ctx.voice_client  # type: ignore
+
+        vc.autoplay = wavelink.AutoPlayMode.disabled
 
         if not query:
-            if not vc.current or not vc.queue.count:
+            if not (vc.current or vc.queue):
                 message = "I am not playing anything right now."
-            elif vc.is_paused():
-                await vc.resume()
+            elif vc.paused:
+                await vc.pause(False)
                 message = f"Resuming: {clickable_song(vc.current)}"
             else:
-                if not vc.current:
-                    await vc.play(track=vc.queue.get())
-                    message = f"Playing: {clickable_song(vc.current)}"
-                else:
-                    await vc.pause()
-                    message = f"Paused: {clickable_song(vc.current)}"
+                await vc.pause(True)
+                message = f"Paused: {clickable_song(vc.current)}"
 
             await ctx.send(message, suppress_embeds=True)
             return
 
         await ctx.defer()
+        if not re.match(url_rx, query):
+            query = f"ytsearch:{query}"
 
-        if re.match(yt_video_rx, query) or not re.match(url_rx, query):  # single video
-            track: YTTrack = await YTTrack.search(query)
-            track.requested_by = ctx.author
-            vc.queue.put(track)
+        try:
+            tracks = await wavelink.Pool.fetch_tracks(query)
+        except wavelink.LavalinkLoadException:
+            await ctx.send("Invalid URL")
+            return
+        if isinstance(tracks, list):
+            track = tracks[0]
+            await vc.queue.put_wait(track)
             await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True)
-        elif re.match(yt_playlist_rx, query):  # yt playlist
-            tracks: YTPlaylist = await YTPlaylist.search(query)  # type: ignore
-            assert isinstance(tracks, YTPlaylist)
-            tracks.requested_by = ctx.author
-            for t in tracks.tracks:
-                vc.queue.put(t)
-            await ctx.send(f"Added {len(tracks.tracks)} songs to queue")
-        elif re.match(spotify_rx, query):  # spotify track
-            decoded = spotify.decode_url(query)
-            if not decoded:
-                await ctx.send("Invalid Spotify URL")
-                return
-            if decoded.type == spotify.SpotifySearchType.track:
-                tracks: list[spotify.SpotifyTrack] = await spotify.SpotifyTrack.search(query)
-                vc.queue.put(tracks[0])
-                await ctx.send(f"Added {clickable_song(tracks[0])} to queue")
-            elif decoded.type == spotify.SpotifySearchType.playlist:
-                tracks: list[spotify.SpotifyTrack] = await spotify.SpotifyTrack.search(query)
-                for t in tracks:
-                    vc.queue.put(t)
-                await ctx.send(f"Added {len(tracks)} songs to queue")
+        elif isinstance(tracks, Playlist):
+            await vc.queue.put_wait(tracks)
+            await ctx.send(f"Added {len(tracks)} songs to queue")
         else:
-            await ctx.send("Invalid URL or query")
-            return  # invalid url
+            await ctx.send("Something went wrong")
+            self.bot.logger.error(f"[LAVALINK] Something went wrong while fetching {query}")
 
-        if not vc.is_playing():
+        if not vc.playing:
             await vc.play(track=vc.queue.get())
             await vc.set_volume(30)
 

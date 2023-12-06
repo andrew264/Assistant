@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import discord
 import wavelink
@@ -23,43 +23,44 @@ class Filters(commands.Cog):
     @check_vc()
     @check_same_vc()
     async def nightcore(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
         # check if nightcore filter is already enabled
-        if vc._filter and vc._filter.timescale and vc._filter.timescale.name == "nightcore":
-            await vc.set_filter(wavelink.Filter(vc._filter,
-                                                timescale=wavelink.Timescale()))
-            await ctx.send("Disabled nightcore filter.")
+        filters: wavelink.Filters = vc.filters
+        if filters.timescale.payload.get('rate', 1.) == 1.:
+            filters.timescale.set(rate=1.3)
+            await vc.set_filters(filters)
+            await ctx.send("Enabled nightcore filter.")
+            self.bot.logger.info(f"[FILTERS] Enabled nightcore filter in {ctx.guild}")
             return
-        ts = wavelink.Timescale(speed=1.2999, pitch=1.2999, rate=1.0)
-        ts.name = "nightcore"
-        _filter = wavelink.Filter(timescale=ts)
-        await vc.set_filter(_filter)
-        await ctx.send("Enabled nightcore filter.")
+        filters.timescale.set(rate=1.)
+        await vc.set_filters(filters)
+        await ctx.send("Disabled nightcore filter.")
+        self.bot.logger.info(f"[FILTERS] Disabled nightcore filter in {ctx.guild}")
 
     @filters.command(name="vaporwave", aliases=['vw'], description="Enable/Disable vaporwave filter")
     async def vaporwave(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
         # check if vaporwave filter is already enabled
-        if vc._filter and vc._filter.tremolo and vc._filter.tremolo.name == 'vaporwave':
-            await vc.set_filter(wavelink.Filter(vc._filter,
-                                                equalizer=wavelink.Equalizer(bands=[(0, 0.0), (1, 0.0)]),
-                                                timescale=wavelink.Timescale(),
-                                                tremolo=wavelink.Tremolo()))
-            await ctx.send("Disabled vaporwave filter.")
+        filters: wavelink.Filters = vc.filters
+        if filters.tremolo.payload.get('depth', 0.) == 0.:
+            filters.timescale.set(pitch=0.9)
+            filters.tremolo.set(depth=0.3, frequency=14.0)
+            filters.equalizer.set(bands=[{"band": 0, "gain": 0.3}, {"band": 1, "gain": 0.3}])
+            await vc.set_filters(filters)
+            await ctx.send("Enabled vaporwave filter.")
+            self.bot.logger.info(f"[FILTERS] Enabled vaporwave filter in {ctx.guild}")
             return
-        ts = wavelink.Timescale(speed=1.0, pitch=0.8500, rate=1.0)
-        ts.name = "vaporwave"
-        tremolo = wavelink.Tremolo(frequency=14.0, depth=0.3)
-        tremolo.name = "vaporwave"
-        _filter = wavelink.Filter(equalizer=wavelink.Equalizer(bands=[(0, 0.3), (1, 0.3)]),
-                                  timescale=ts,
-                                  tremolo=tremolo)
-        await vc.set_filter(_filter)
-        await ctx.send("Enabled vaporwave filter.")
+        filters.timescale.reset()
+        filters.tremolo.reset()
+        filters.equalizer.reset()
+        await vc.set_filters(filters)
+        await ctx.send("Disabled vaporwave filter.")
+        self.bot.logger.info(f"[FILTERS] Disabled vaporwave filter in {ctx.guild}")
 
     @filters.command(name="bass", aliases=['bb', 'bassboost'], description="Enable/Disable Bass-Boost filter")
     async def bass_boost(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        filters: wavelink.Filters = vc.filters
 
         class BassBoostButtons(discord.ui.View):
             def __init__(self):
@@ -88,33 +89,31 @@ class Filters(commands.Cog):
                     except discord.NotFound:
                         pass
 
-            @staticmethod
-            async def _update_eq(bands: list) -> None:
-                # update the EQ filter
-                eq = wavelink.Equalizer(bands=bands)
-                await vc.set_filter(wavelink.Filter(vc._filter, equalizer=eq))
-
             @discord.ui.button(label="off", style=discord.ButtonStyle.gray)
             async def bass_off(self, interaction: discord.Interaction, button: discord.Button):
-                await self._update_eq([(0, 0.0), (1, 0.0)])
+                filters.equalizer.set(bands=[{'band': 0, 'gain': 0.0}, {'band': 1, 'gain': 0.0}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Bass Boost Disabled", colour=0x000000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="low", style=discord.ButtonStyle.green)
             async def bass_low(self, interaction: discord.Interaction, button: discord.Button):
-                await self._update_eq([(0, 0.2), (1, 0.15)])
+                filters.equalizer.set(bands=[{'band': 0, 'gain': 0.2}, {'band': 1, 'gain': 0.15}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Bass Boost set to Low", colour=0x00FF00)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="medium", style=discord.ButtonStyle.blurple)
             async def bass_mid(self, interaction: discord.Interaction, button: discord.Button, ):
-                await self._update_eq([(0, 0.4), (1, 0.25)])
+                filters.equalizer.set(bands=[{'band': 0, 'gain': 0.4}, {'band': 1, 'gain': 0.25}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Bass Boost set to Medium", colour=0x0000FF)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="high", style=discord.ButtonStyle.danger)
             async def bass_hi(self, interaction: discord.Interaction, button: discord.Button, ):
-                await self._update_eq([(0, 0.6), (1, 0.4)])
+                filters.equalizer.set(bands=[{'band': 0, 'gain': 0.6}, {'band': 1, 'gain': 0.35}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Bass Boost set to High", colour=0xFF0000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
@@ -124,7 +123,8 @@ class Filters(commands.Cog):
 
     @filters.command(name="treble", aliases=['tb', 'trebleboost'], description="Enable/Disable Treble-Boost filter")
     async def treble_boost(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        filters: wavelink.Filters = vc.filters
 
         class TrebleBoostButtons(discord.ui.View):
             def __init__(self):
@@ -153,33 +153,43 @@ class Filters(commands.Cog):
                     except discord.NotFound:
                         pass
 
-            @staticmethod
-            async def _update_eq(bands: list) -> None:
-                # update the EQ filter
-                eq = wavelink.Equalizer(bands=bands)
-                await vc.set_filter(wavelink.Filter(vc._filter, equalizer=eq))
-
             @discord.ui.button(label="off", style=discord.ButtonStyle.gray)
             async def treble_off(self, interaction: discord.Interaction, button: discord.Button):
-                await self._update_eq([(10, 0.0), (11, 0.0), (12, 0.0), (13, 0.0)])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.0},
+                                             {'band': 11, 'gain': 0.0},
+                                             {'band': 12, 'gain': 0.0},
+                                             {'band': 13, 'gain': 0.0}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost Disabled", colour=0x000000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="low", style=discord.ButtonStyle.green)
             async def treble_low(self, interaction: discord.Interaction, button: discord.Button):
-                await self._update_eq([(10, 0.2), (11, 0.2), (12, 0.2), (13, 0.25)])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.2},
+                                             {'band': 11, 'gain': 0.2},
+                                             {'band': 12, 'gain': 0.2},
+                                             {'band': 13, 'gain': 0.25}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost set to Low", colour=0x00FF00)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="medium", style=discord.ButtonStyle.blurple)
             async def treble_mid(self, interaction: discord.Interaction, button: discord.Button):
-                await self._update_eq([(10, 0.4), (11, 0.4), (12, 0.4), (13, 0.45)])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.4},
+                                             {'band': 11, 'gain': 0.4},
+                                             {'band': 12, 'gain': 0.4},
+                                             {'band': 13, 'gain': 0.45}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost set to Medium", colour=0x0000FF)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="high", style=discord.ButtonStyle.danger)
             async def treble_hi(self, interaction: discord.Interaction, button: discord.Button):
-                await self._update_eq([(10, 0.6), (11, 0.6), (12, 0.6), (13, 0.65)])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.6},
+                                             {'band': 11, 'gain': 0.6},
+                                             {'band': 12, 'gain': 0.6},
+                                             {'band': 13, 'gain': 0.65}])
+                await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost set to High", colour=0xFF0000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
@@ -189,26 +199,24 @@ class Filters(commands.Cog):
 
     @filters.command(name="8d", aliases=['surround', '3d'], description="Enable/Disable 8D filter")
     async def eight_d(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
         # check if 8D filter is already enabled
-        if vc._filter and vc._filter.rotation and vc._filter.rotation.name == "rotation_8d":
-            await vc.set_filter(wavelink.Filter(vc._filter,
-                                                rotation=wavelink.Rotation()))
-            await ctx.send("Disabled 8D filter.")
+        filters: wavelink.Filters = vc.filters
+        if filters.rotation.payload.get('rotationHz', 0.0) == 0.0:
+            filters.rotation.set(rotation_hz=0.2)
+            await vc.set_filters(filters)
+            await ctx.send("Enabled 8D filter.")
+            self.bot.logger.info(f"[FILTERS] Enabled 8D filter in {ctx.guild}")
             return
-        r8d = wavelink.Rotation(speed=0.2)
-        r8d.name = "rotation_8d"
-        await vc.set_filter(wavelink.Filter(vc._filter, rotation=r8d))
-        await ctx.send("Enabled 8D filter.")
+        filters.rotation.reset()
+        await vc.set_filters(filters)
+        await ctx.send("Disabled 8D filter.")
+        self.bot.logger.info(f"[FILTERS] Disabled 8D filter in {ctx.guild}")
 
     @filters.command(name="timescale", aliases=['ts', 'speed', 'pitch'], description="Enable/Disable timescale filter")
     async def timescale(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if vc._filter and vc._filter.timescale and vc._filter.timescale.name == "timescale":
-            ts = vc._filter.timescale
-        else:
-            ts = wavelink.Timescale()
-            ts.name = "timescale"
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        filters: wavelink.Filters = vc.filters
 
         class TimeScaleButtons(discord.ui.View):
             def __init__(self):
@@ -239,94 +247,106 @@ class Filters(commands.Cog):
                     except discord.NotFound:
                         pass
 
-            @staticmethod
-            async def apply_filter():
-                await vc.set_filter(wavelink.Filter(vc._filter, timescale=ts))
-
             @property
             def embed(self):
                 embed = discord.Embed(title="Timescale Filters", colour=0xB7121F)
-                embed.add_field(name="Speed", value=f"{round(ts.speed * 100)}%", inline=True)
-                embed.add_field(name="Pitch", value=f"{round(ts.pitch * 100)}%", inline=True)
-                embed.add_field(name="Rate", value=f"{round(ts.rate * 100)}%", inline=True)
+                pload = filters.timescale.payload
+                speed = round(pload.get('speed', 1.) * 100)
+                pitch = round(pload.get('pitch', 1.) * 100)
+                rate = round(pload.get('rate', 1.) * 100)
+                embed.add_field(name="Speed", value=f"{speed}%", inline=True)
+                embed.add_field(name="Pitch", value=f"{pitch}%", inline=True)
+                embed.add_field(name="Rate", value=f"{rate}%", inline=True)
                 return embed
 
             @discord.ui.button(emoji="⬆", style=discord.ButtonStyle.success)
             async def up_speed(self, interaction: discord.Interaction, button: discord.Button):
-                if round(ts.speed, 1) <= 1.9:
-                    ts.speed += self.step
-                button.disabled = True if (round(ts.speed, 1) >= 2.0) else False
+                speed = filters.timescale.payload.get('speed', 1.)
+                if round(speed, 1) <= 1.9:
+                    speed += self.step
+                    filters.timescale.set(speed=speed)
+                button.disabled = True if (round(speed, 1) >= 2.0) else False
                 self.down_speed.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(label="Speed", style=discord.ButtonStyle.primary, row=1)
             async def speed(self, interaction: discord.Interaction, button: discord.Button):
-                ts.speed = 1.0
+                filters.timescale.set(speed=1.)
                 self.up_speed.disabled = False
                 self.down_speed.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="⬇", style=discord.ButtonStyle.danger, row=2)
             async def down_speed(self, interaction: discord.Interaction, button: discord.Button):
-                if round(ts.speed, 1) >= 0.6:
-                    ts.speed -= self.step
-                button.disabled = True if (round(ts.speed, 1) <= 0.5) else False
+                speed = filters.timescale.payload.get('speed', 1.)
+                if round(speed, 1) >= 0.6:
+                    speed -= self.step
+                    filters.timescale.set(speed=speed)
+                button.disabled = True if (round(speed, 1) <= 0.5) else False
                 self.up_speed.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="⬆", style=discord.ButtonStyle.success)
             async def up_pitch(self, interaction: discord.Interaction, button: discord.Button):
-                if round(ts.pitch, 1) <= 1.9:
-                    ts.pitch += self.step
-                button.disabled = True if (round(ts.pitch, 1) >= 2.0) else False
+                pitch = filters.timescale.payload.get('pitch', 1.)
+                if round(pitch, 1) <= 1.9:
+                    pitch += self.step
+                    filters.timescale.set(pitch=pitch)
+                button.disabled = True if (round(pitch, 1) >= 2.0) else False
                 self.down_pitch.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(label="Pitch", style=discord.ButtonStyle.primary, row=1)
             async def pitch(self, interaction: discord.Interaction, button: discord.Button):
-                ts.pitch = 1.0
+                filters.timescale.set(pitch=1.)
                 self.up_pitch.disabled = False
                 self.down_pitch.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="⬇", style=discord.ButtonStyle.danger, row=2)
             async def down_pitch(self, interaction: discord.Interaction, button: discord.Button):
-                if round(ts.pitch, 1) >= 0.6:
-                    ts.pitch -= self.step
-                button.disabled = True if (round(ts.pitch, 1) <= 0.5) else False
+                pitch = filters.timescale.payload.get('pitch', 1.)
+                if round(pitch, 1) >= 0.6:
+                    pitch -= self.step
+                    filters.timescale.set(pitch=pitch)
+                button.disabled = True if (round(pitch, 1) <= 0.5) else False
                 self.up_pitch.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="⬆", style=discord.ButtonStyle.success)
             async def up_rate(self, interaction: discord.Interaction, button: discord.Button):
-                if round(ts.rate, 1) <= 1.9:
-                    ts.rate += self.step
-                button.disabled = True if (round(ts.rate, 1) >= 2.0) else False
+                rate = filters.timescale.payload.get('rate', 1.)
+                if round(rate, 1) <= 1.9:
+                    rate += self.step
+                    filters.timescale.set(rate=rate)
+                button.disabled = True if (round(rate, 1) >= 2.0) else False
                 self.down_rate.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(label="Rate", style=discord.ButtonStyle.primary, row=1)
             async def rate(self, interaction: discord.Interaction, button: discord.Button):
-                ts.rate = 1.0
+                filters.timescale.set(rate=1.)
                 self.up_rate.disabled = False
                 self.down_rate.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="⬇", style=discord.ButtonStyle.danger, row=2)
             async def down_rate(self, interaction: discord.Interaction, button: discord.Button):
-                if round(ts.rate, 1) >= 0.6:
-                    ts.rate -= self.step
-                button.disabled = True if (round(ts.rate, 1) <= 0.5) else False
+                rate = filters.timescale.payload.get('rate', 1.)
+                if round(rate, 1) >= 0.6:
+                    rate -= self.step
+                    filters.timescale.set(rate=rate)
+                button.disabled = True if (round(rate, 1) <= 0.5) else False
                 self.up_rate.disabled = False
-                await self.apply_filter()
+                await vc.set_filters(filters)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="❎", label=f"10%", style=discord.ButtonStyle.gray, row=1)
@@ -343,8 +363,10 @@ class Filters(commands.Cog):
 
     @filters.command(name="reset", description="Reset all filters")
     async def reset(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
-        await vc.set_filter(wavelink.Filter())
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        filters: wavelink.Filters = vc.filters
+        filters.reset()
+        await vc.set_filters(filters)
         await ctx.send("Reset all filters.")
 
 

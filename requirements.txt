@@ -5,7 +5,7 @@ pymongo
 aiohttp
 asyncpraw
 thefuzz[speedup]
-git+https://github.com/PythonistaGuild/Wavelink.git
+wavelink
 python-youtube
 lyricsgenius
 libtorrent

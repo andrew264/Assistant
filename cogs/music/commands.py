@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import wavelink
 from discord import app_commands
@@ -19,36 +19,36 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(index="Index of the song to skip")
     async def skip(self, ctx: commands.Context, index: int = 0):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.current and vc.queue.count == 0:
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        if not vc.current and not vc.queue:
             await ctx.send("I am not playing anything right now.")
             return
         if index == 0:
             await ctx.send(f"Skipping {clickable_song(vc.current)}", suppress_embeds=True)
             await vc.stop()
             return
-        if index > vc.queue.count or index < 0:
+        if index > len(vc.queue) or index < 0:
             await ctx.send("Invalid index")
             return
         else:
             await ctx.send(f"Skipping {clickable_song(vc.queue[index - 1])}", suppress_embeds=True)
-            del vc.queue[index - 1]
+            await vc.queue.delete(index - 1)
 
     @commands.hybrid_command(name="loop", aliases=["l"], description="Loop the current song")
     @commands.guild_only()
     @check_vc()
     @check_same_vc()
     async def loop(self, ctx: commands.Context):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.current and vc.queue.count == 0:
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        if not (vc.current or vc.queue):
             await ctx.send("I am not playing anything right now.")
             return
-        if vc.queue.loop:
-            vc.queue.loop = False
-            await ctx.send("Looping is now disabled.")
-        else:
-            vc.queue.loop = True
+        if vc.queue.mode is wavelink.QueueMode.normal:
+            vc.queue.mode = wavelink.QueueMode.loop_all
             await ctx.send("Looping is now enabled.")
+        else:
+            vc.queue.mode = wavelink.QueueMode.normal
+            await ctx.send("Looping is now disabled.")
 
     @commands.hybrid_command(name="volume", aliases=["v", "vol"], description="Change the volume")
     @commands.guild_only()
@@ -56,8 +56,8 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(volume="Volume to set [0 - 100]")
     async def volume(self, ctx: commands.Context, volume: int):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc.current and vc.queue.count == 0:
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        if not vc.current and vc.queue:
             await ctx.send("I am not playing anything right now.")
             return
         if ctx.author.id == OWNER_ID:
@@ -77,10 +77,10 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     async def stop(self, ctx: commands.Context):
         assert ctx.guild
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
-        if not vc or not vc.is_connected() or not ctx.guild.voice_client:
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        if not vc or not vc.connected or not ctx.guild.voice_client:
             return await ctx.send("I am not connected to a voice channel", ephemeral=True)
-        vc.queue.reset()
+        vc.queue.clear()
         await vc.stop()
         await ctx.guild.voice_client.disconnect(force=True)
         await ctx.send("Thanks for Listening")
@@ -91,7 +91,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(index="Index of the song to skip to")
     async def skipto(self, ctx: commands.Context, index: int = 0):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
         if not vc.current:
             await ctx.send("I am not playing anything right now.")
             return
@@ -99,12 +99,12 @@ class MusicCommands(commands.Cog):
             await ctx.send(f"Skipping {clickable_song(vc.current)}", suppress_embeds=True)
             await vc.stop()
             return
-        if index >= vc.queue.count or index < 0:
+        if index > len(vc.queue) or index < 0:
             await ctx.send("Invalid index")
             return
         else:
             await ctx.send(f"Skipping to {clickable_song(vc.queue[index - 1])}", suppress_embeds=True)
-            vc.queue.queue.rotate(-(index - 1))
+            vc.queue._queue.rotate(-(index - 1))
             await vc.stop()
 
     @commands.hybrid_command(name="seek", description="Seek to a specific time in the song")
@@ -113,7 +113,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(time="Time to seek to in MM:SS format")
     async def seek(self, ctx: commands.Context, time: Optional[str] = None):
-        vc: wavelink.Player = ctx.voice_client  # type: ignore
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
         if not vc.current:
             await ctx.send("I am not playing anything right now.")
             return
