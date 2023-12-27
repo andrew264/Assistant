@@ -1,5 +1,5 @@
 import asyncio
-from typing import cast
+from typing import cast, Optional
 
 import discord
 import wavelink
@@ -44,15 +44,22 @@ class MusicTasks(commands.Cog):
         assert payload.player.guild is not None
         if payload.player.queue or payload.player.current:
             return
+        guild = payload.player.guild
         self.bot.logger.debug(
-            f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {payload.player.guild}, reason: empty queue")
+            f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {guild}, reason: empty queue")
         await asyncio.sleep(SLEEP_TIME)
-        if payload.player.queue or payload.player.current:
-            self.bot.logger.debug(f"[LAVALINK] Not disconnecting from {payload.player.guild} as queue is not empty")
+        player: Optional[discord.VoiceProtocol] = discord.utils.get(self.bot.voice_clients,
+                                                                    guild=guild)  # get the updated voice client
+        if player is None:
+            self.bot.logger.debug(f"[LAVALINK] Not disconnecting from {guild}, reason: not connected")
             return
-        await payload.player.set_filters(None)
-        await payload.player.disconnect(force=True)
-        self.bot.logger.info(f"[LAVALINK] Disconnected from {payload.player.guild}, reason: empty queue")
+        player: wavelink.Player = cast(wavelink.Player, player)
+        if player.queue or player.current:
+            self.bot.logger.debug(f"[LAVALINK] Not disconnecting from {guild}, reason: queue is not empty")
+            return
+        await player.set_filters(None)
+        await player.disconnect(force=True)
+        self.bot.logger.info(f"[LAVALINK] Disconnected from {guild}, reason: empty queue")
 
     def _am_i_alone(self, vc: wavelink.Player) -> bool:
         self.bot.logger.debug(f"[LAVALINK] Checking if I am alone in {vc.guild}")
@@ -76,12 +83,20 @@ class MusicTasks(commands.Cog):
             self.bot.logger.debug(
                 f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {vc.guild}, reason: no listeners")
             await asyncio.sleep(SLEEP_TIME)
-            if self._am_i_alone(vc):
-                if vc.playing:
-                    await vc.stop()
-                await vc.set_filters(None)
-                await vc.disconnect(force=True)
-                self.bot.logger.debug(f"[LAVALINK] Disconnected from {vc.guild}, reason: no listeners")
+
+            player: Optional[discord.VoiceProtocol] = discord.utils.get(self.bot.voice_clients,
+                                                                        guild=guild)  # get the updated voice client
+            if player is None:
+                self.bot.logger.debug(
+                    f"[LAVALINK] Not disconnecting from {guild}, reason: not connected")
+                return
+            player: wavelink.Player = cast(wavelink.Player, player)
+            if self._am_i_alone(player):
+                if player.playing:
+                    await player.stop()
+                await player.set_filters(None)
+                await player.disconnect(force=True)
+                self.bot.logger.debug(f"[LAVALINK] Disconnected from {guild}, reason: no listeners")
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _play_next_track(self, payload: wavelink.TrackEndEventPayload) -> None:
