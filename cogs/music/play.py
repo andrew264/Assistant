@@ -1,4 +1,3 @@
-import asyncio
 import re
 from collections import defaultdict
 from typing import Optional, Dict, Any, cast
@@ -12,8 +11,8 @@ from thefuzz import process
 from wavelink import Playlist
 
 from assistant import AssistantBot
-from config import LavaConfig, HOME_GUILD_ID, STATUS, ACTIVITY_TYPE, ACTIVITY_TEXT
-from utils import check_vc, remove_brackets, clickable_song
+from config import LavaConfig
+from utils import check_vc, clickable_song
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
@@ -30,58 +29,11 @@ class Play(commands.Cog):
             self._mongo_client = self.bot.connect_to_mongo()
         return self._mongo_client
 
-    @commands.Cog.listener()
-    async def on_wavelink_node_ready(self, node: wavelink.Node) -> None:
-        self.bot.logger.info(f"[LAVALINK] Node {node.identifier} is ready.")
-
-    @commands.Cog.listener()
-    async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
+    @commands.Cog.listener('on_wavelink_track_start')
+    async def _add_track_to_db(self, payload: wavelink.TrackStartEventPayload) -> None:
         assert payload.player.guild is not None
         self.bot.logger.info(f"[LAVALINK] Playing {payload.track.title} on {payload.player.guild}")
-        await self._add_track_to_db(payload.player)
-        await self.reset_dc(payload.player)
-        if payload.player.guild.id == HOME_GUILD_ID:
-            await self.bot.change_presence(status=STATUS,
-                                           activity=discord.Activity(type=discord.ActivityType.listening,
-                                                                     name=remove_brackets(payload.track.title)))
-
-    async def schedule_dc(self, player: wavelink.Player, delay: int = 300):
-        await asyncio.sleep(delay)
-        if not player.playing and not player.queue:
-            await player.set_filters(None)
-            await player.disconnect(force=True)
-            self.bot.logger.info(f"[LAVALINK] Disconnected from {player.guild}")
-
-    async def reset_dc(self, player: wavelink.Player):
-        if hasattr(player, "dc_task"):
-            player.dc_task.cancel()
-        player.dc_task = self.bot.loop.create_task(self.schedule_dc(player))
-
-    @commands.Cog.listener()
-    async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload) -> None:
-        assert payload.player.guild is not None
-        self.bot.logger.info(f"[LAVALINK] Finished playing {payload.track.title} on {payload.player.guild}")
-        if payload.player.queue or payload.player.queue.mode.loop or payload.player.queue.mode.loop_all:
-            await payload.player.play(payload.player.queue.get())
-            await asyncio.sleep(1)
-        if not payload.player.current:
-            await self.schedule_dc(payload.player)
-            if payload.player.guild.id == HOME_GUILD_ID:
-                await self.bot.change_presence(status=STATUS,
-                                               activity=discord.Activity(type=ACTIVITY_TYPE, name=ACTIVITY_TEXT), )
-
-    async def _fill_cache(self, guild_id: int):
-        db = self.mongo_client["assistant"]
-        collection = db["songHistory"]
-        history = await collection.find_one({"_id": guild_id})
-        self._cache[guild_id] = {}
-        for song in history['songs']:
-            self._cache[guild_id] |= {song['title']: song['uri']}
-        self.bot.logger.info(f"[MONGO] Filled cache for {guild_id} with {len(self._cache[guild_id])} songs")
-
-    async def _add_track_to_db(self, player: wavelink.Player):
-        assert player.guild is not None
-        assert player.current is not None
+        player = payload.player
         guild_id = player.guild.id
         track = player.current
         if track.uri is None:
@@ -99,6 +51,15 @@ class Play(commands.Cog):
         )
         self.bot.logger.info(f"[MONGO] Added {title} to {guild_id}")
 
+    async def _fill_cache(self, guild_id: int):
+        db = self.mongo_client["assistant"]
+        collection = db["songHistory"]
+        history = await collection.find_one({"_id": guild_id})
+        self._cache[guild_id] = {}
+        for song in history['songs']:
+            self._cache[guild_id] |= {song['title']: song['uri']}
+        self.bot.logger.info(f"[MONGO] Filled cache for {guild_id} with {len(self._cache[guild_id])} songs")
+
     @commands.hybrid_command(name="play", aliases=["p"], description="Play a song")
     @app_commands.describe(query="Title/URL of the song to play")
     @commands.guild_only()
@@ -106,8 +67,7 @@ class Play(commands.Cog):
     async def play(self, ctx: commands.Context, *, query: Optional[str] = None):
         assert isinstance(ctx.author, discord.Member)
 
-        vc: wavelink.Player
-        vc = cast(wavelink.Player, ctx.voice_client)
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
 
         if not ctx.voice_client:
             vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player,  # type: ignore
