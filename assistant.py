@@ -8,19 +8,24 @@ from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ConnectionFailure
 
-from config import logger, TEST_GUILDS, MONGO_URI, LavaConfig
+from config import TEST_GUILDS, MONGO_URI, LavaConfig, LOG_LEVEL
+from utils import get_logger
 
 
 class AssistantBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logger
+        self.logger = get_logger(name="Assistant", level=LOG_LEVEL)
         self.start_time = utils.utcnow()
         self._mongo_db: Optional[AsyncIOMotorClient] = None
 
     async def setup_hook(self) -> None:
         for folder in Path("cogs").iterdir():
             if folder.is_dir():
+                # Skip tasks folder. it's annoying to debug with it.
+                if LOG_LEVEL == "DEBUG" and folder.name == "tasks":
+                    self.logger.warning(f"[SKIPPED] - {folder.name}, reason: DEBUG mode")
+                    continue
                 for file in folder.iterdir():
                     if file.suffix == ".py":
                         try:

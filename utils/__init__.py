@@ -1,4 +1,5 @@
 from .checks import *
+from .log import get_logger
 from .presence import *
 from .tracks import *
 

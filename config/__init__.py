@@ -4,8 +4,6 @@ from typing import Optional, Mapping, List
 
 import discord
 
-from .log import logger
-
 # Path to the config file
 __config_file = Path(__file__).parent / "config.toml"
 if not __config_file.exists():
@@ -18,6 +16,7 @@ with open(__config_file, 'rb') as f:
 DISCORD_TOKEN: Optional[str] = config["client"]["token"] or None
 PREFIX: Optional[str] = config["client"]["prefix"] or None
 OWNER_ID: Optional[int] = config["client"]["owner_id"] or None
+LOG_LEVEL: str = config["client"]["log_level"] or "DEBUG"
 
 # Status and activity
 STATUS: discord.Status = discord.Status[config["client"]["status"]] or discord.Status.online
