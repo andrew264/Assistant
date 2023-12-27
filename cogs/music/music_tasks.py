@@ -75,7 +75,6 @@ class MusicTasks(commands.Cog):
             self.bot.logger.debug(f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {vc.guild}")
             await asyncio.sleep(SLEEP_TIME)
             if self._am_i_alone(vc):
-                self.bot.logger.debug(f"[LAVALINK] Disconnecting from {vc.guild}")
                 if vc.playing:
                     await vc.stop()
                 await vc.set_filters(None)

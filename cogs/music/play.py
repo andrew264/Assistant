@@ -1,3 +1,4 @@
+import asyncio
 import re
 from collections import defaultdict
 from typing import Optional, Dict, Any, cast
@@ -39,26 +40,36 @@ class Play(commands.Cog):
         if track.uri is None:
             return
         title = track.title
-        if not self._cache[guild_id]:
+        if guild_id not in self._cache:
             await self._fill_cache(guild_id)
         self._cache[guild_id] |= {title: track.uri}
         db = self.mongo_client["assistant"]
         collection = db["songHistory"]
-        await collection.update_one(
+        new_song = dict(title=title, uri=track.uri)
+        result = await collection.update_one(
             {"_id": guild_id},
-            {"$addToSet": {"songs": dict(title=title, uri=track.uri)}},
-            upsert=True
+            {
+                "$addToSet": {"songs": new_song},
+            }
         )
-        self.bot.logger.info(f"[MONGO] Added {title} to {guild_id}")
+        if result.modified_count:
+            self.bot.logger.info(f"[MONGO] Added {title} to songHistory collection for GuildID: {guild_id}")
+        else:
+            self.bot.logger.info(f"[MONGO] {title} already exists in GuildID: {guild_id} or failed to add")
 
     async def _fill_cache(self, guild_id: int):
         db = self.mongo_client["assistant"]
         collection = db["songHistory"]
-        history = await collection.find_one({"_id": guild_id})
         self._cache[guild_id] = {}
+        if await collection.count_documents({"_id": guild_id}) == 0:
+            self.bot.logger.info(f"[MONGO] Creating new document for GuildID: {guild_id} in songHistory collection")
+            await collection.insert_one({"_id": guild_id, "songs": []})
+            await asyncio.sleep(1)  # wait for mongo to create the document
+            return
+        history = await collection.find_one({"_id": guild_id})
         for song in history['songs']:
             self._cache[guild_id] |= {song['title']: song['uri']}
-        self.bot.logger.info(f"[MONGO] Filled cache for {guild_id} with {len(self._cache[guild_id])} songs")
+        self.bot.logger.info(f"[MONGO] Filled cache for GuildID: {guild_id} with {len(self._cache[guild_id])} songs")
 
     @commands.hybrid_command(name="play", aliases=["p"], description="Play a song")
     @app_commands.describe(query="Title/URL of the song to play")
