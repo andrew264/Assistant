@@ -22,36 +22,37 @@ class MusicTasks(commands.Cog):
 
     @commands.Cog.listener('on_wavelink_track_start')
     async def _set_bot_activity(self, payload: wavelink.TrackStartEventPayload) -> None:
-        assert payload.player.guild is not None
-        if payload.player.guild.id == HOME_GUILD_ID:
-            track_name = remove_brackets(payload.track.title)
-            await self.bot.change_presence(status=STATUS,
-                                           activity=discord.Activity(type=discord.ActivityType.listening,
-                                                                     name=track_name), )
+        if payload.player.guild.id != HOME_GUILD_ID:
+            return
+        track_name = remove_brackets(payload.track.title)
+        await self.bot.change_presence(status=STATUS,
+                                       activity=discord.Activity(type=discord.ActivityType.listening,
+                                                                 name=track_name), )
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _reset_bot_activity(self, payload: wavelink.TrackEndEventPayload) -> None:
-        assert payload.player.guild is not None
+        if payload.player.guild.id != HOME_GUILD_ID:
+            return
         if payload.player.queue or payload.player.current:
             return
-        if payload.player.guild.id == HOME_GUILD_ID:
-            await self.bot.change_presence(status=STATUS,
-                                           activity=discord.Activity(type=ACTIVITY_TYPE,
-                                                                     name=ACTIVITY_TEXT), )
+        await self.bot.change_presence(status=STATUS,
+                                       activity=discord.Activity(type=ACTIVITY_TYPE,
+                                                                 name=ACTIVITY_TEXT), )
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _disconnect_after_playing(self, payload: wavelink.TrackEndEventPayload) -> None:
         assert payload.player.guild is not None
         if payload.player.queue or payload.player.current:
             return
-        self.bot.logger.debug(f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {payload.player.guild}")
+        self.bot.logger.debug(
+            f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {payload.player.guild}, reason: empty queue")
         await asyncio.sleep(SLEEP_TIME)
         if payload.player.queue or payload.player.current:
             self.bot.logger.debug(f"[LAVALINK] Not disconnecting from {payload.player.guild} as queue is not empty")
             return
         await payload.player.set_filters(None)
         await payload.player.disconnect(force=True)
-        self.bot.logger.info(f"[LAVALINK] Disconnected from {payload.player.guild}")
+        self.bot.logger.info(f"[LAVALINK] Disconnected from {payload.player.guild}, reason: empty queue")
 
     def _am_i_alone(self, vc: wavelink.Player) -> bool:
         self.bot.logger.debug(f"[LAVALINK] Checking if I am alone in {vc.guild}")
@@ -72,14 +73,15 @@ class MusicTasks(commands.Cog):
 
         # at this point, we are in a voice channel
         if self._am_i_alone(vc):
-            self.bot.logger.debug(f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {vc.guild}")
+            self.bot.logger.debug(
+                f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {vc.guild}, reason: no listeners")
             await asyncio.sleep(SLEEP_TIME)
             if self._am_i_alone(vc):
                 if vc.playing:
                     await vc.stop()
                 await vc.set_filters(None)
                 await vc.disconnect(force=True)
-                self.bot.logger.info(f"[LAVALINK] Disconnected from {vc.guild}")
+                self.bot.logger.debug(f"[LAVALINK] Disconnected from {vc.guild}, reason: no listeners")
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _play_next_track(self, payload: wavelink.TrackEndEventPayload) -> None:

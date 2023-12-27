@@ -53,9 +53,9 @@ class Play(commands.Cog):
             }
         )
         if result.modified_count:
-            self.bot.logger.info(f"[MONGO] Added {title} to songHistory collection for GuildID: {guild_id}")
+            self.bot.logger.debug(f"[MONGO] Added {title} to songHistory collection for GuildID: {guild_id}")
         else:
-            self.bot.logger.info(f"[MONGO] {title} already exists in GuildID: {guild_id} or failed to add")
+            self.bot.logger.debug(f"[MONGO] {title} already exists in GuildID: {guild_id}")
 
     async def _fill_cache(self, guild_id: int):
         db = self.mongo_client["assistant"]
@@ -132,12 +132,21 @@ class Play(commands.Cog):
         guild_id = ctx.guild.id
         if guild_id not in self._cache:
             await self._fill_cache(guild_id)
-        split_term = ' <URL> '
-        _cache = [f"{title}{split_term}{url}" for title, url in self._cache[guild_id].items()]
-        search = [s[0].split(split_term)[0] for s in process.extractBests(query, _cache, limit=24, score_cutoff=50)]
-        for s in search:
-            result |= {s: self._cache[guild_id][s]}
+        cache_data = self._cache[guild_id]
+        title_matches = process.extractBests(query, [title for title, _ in cache_data.items()], limit=24,
+                                             score_cutoff=80)
+        url_matches = process.extractBests(query, [url for _, url in cache_data.items()], limit=24, score_cutoff=70)
 
+        combined_matches = sorted(title_matches + url_matches, key=lambda x: x[1], reverse=True)
+        for title_or_url, score in combined_matches[:24]:
+            if title_or_url in cache_data:  # Title match
+                result[title_or_url] = cache_data[title_or_url]
+            elif title_or_url in cache_data.values():  # URL match
+                title = next(title for title, url in cache_data.items() if url == title_or_url)
+                if title not in result:
+                    result[title] = title_or_url
+            else:
+                self.bot.logger.error(f"[LAVALINK] Something went wrong while fetching {query}")
         return [Choice(name=k, value=v) for k, v in result.items()]
 
 
