@@ -13,7 +13,7 @@ from wavelink import Playlist
 
 from assistant import AssistantBot
 from config import LavaConfig
-from utils import check_vc, clickable_song
+from utils import check_vc, clickable_song, remove_brackets
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
@@ -39,7 +39,7 @@ class Play(commands.Cog):
         track = player.current
         if track.uri is None:
             return
-        title = track.title
+        title = remove_brackets(track.title)
         if guild_id not in self._cache:
             await self._fill_cache(guild_id)
         self._cache[guild_id] |= {title: track.uri}
