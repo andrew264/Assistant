@@ -39,27 +39,11 @@ class MusicTasks(commands.Cog):
                                        activity=discord.Activity(type=ACTIVITY_TYPE,
                                                                  name=ACTIVITY_TEXT), )
 
-    @commands.Cog.listener('on_wavelink_track_end')
-    async def _disconnect_after_playing(self, payload: wavelink.TrackEndEventPayload) -> None:
-        assert payload.player.guild is not None
-        if payload.player.queue or payload.player.current:
-            return
-        guild = payload.player.guild
-        self.bot.logger.debug(
-            f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {guild}, reason: empty queue")
-        await asyncio.sleep(SLEEP_TIME)
-        player: Optional[discord.VoiceProtocol] = discord.utils.get(self.bot.voice_clients,
-                                                                    guild=guild)  # get the updated voice client
-        if player is None:
-            self.bot.logger.debug(f"[LAVALINK] Not disconnecting from {guild}, reason: not connected")
-            return
-        player: wavelink.Player = cast(wavelink.Player, player)
-        if player.queue or player.current:
-            self.bot.logger.debug(f"[LAVALINK] Not disconnecting from {guild}, reason: queue is not empty")
-            return
-        await player.set_filters(None)
+    @commands.Cog.listener('on_wavelink_inactive_player')
+    async def _disconnect_inactive_player(self, player: wavelink.Player) -> None:
+        guild = player.guild
+        self.bot.logger.info(f"[LAVALINK] Disconnected from {guild}, reason: no songs in queue")
         await player.disconnect(force=True)
-        self.bot.logger.info(f"[LAVALINK] Disconnected from {guild}, reason: empty queue")
 
     def _am_i_alone(self, vc: wavelink.Player) -> bool:
         self.bot.logger.debug(f"[LAVALINK] Checking if I am alone in {vc.guild}")
