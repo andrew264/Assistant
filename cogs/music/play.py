@@ -62,14 +62,14 @@ class Play(commands.Cog):
         collection = db["songHistory"]
         self._cache[guild_id] = {}
         if await collection.count_documents({"_id": guild_id}) == 0:
-            self.bot.logger.info(f"[MONGO] Creating new document for GuildID: {guild_id} in songHistory collection")
+            self.bot.logger.debug(f"[MONGO] Creating new document for GuildID: {guild_id} in songHistory collection")
             await collection.insert_one({"_id": guild_id, "songs": []})
             await asyncio.sleep(1)  # wait for mongo to create the document
             return
         history = await collection.find_one({"_id": guild_id})
         for song in history['songs']:
             self._cache[guild_id] |= {song['title']: song['uri']}
-        self.bot.logger.info(f"[MONGO] Filled cache for GuildID: {guild_id} with {len(self._cache[guild_id])} songs")
+        self.bot.logger.debug(f"[MONGO] Filled cache for GuildID: {guild_id} with {len(self._cache[guild_id])} songs")
 
     @commands.hybrid_command(name="play", aliases=["p"], description="Play a song")
     @app_commands.describe(query="Title/URL of the song to play")
@@ -87,7 +87,7 @@ class Play(commands.Cog):
         vc.autoplay = wavelink.AutoPlayMode.disabled
 
         if not query:
-            if not (vc.current or vc.queue):
+            if vc.current is None and vc.queue.is_empty:
                 message = "I am not playing anything right now."
             elif vc.paused:
                 await vc.pause(False)

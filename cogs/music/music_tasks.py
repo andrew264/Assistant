@@ -33,7 +33,7 @@ class MusicTasks(commands.Cog):
     async def _reset_bot_activity(self, payload: wavelink.TrackEndEventPayload) -> None:
         if payload.player.guild.id != HOME_GUILD_ID:
             return
-        if payload.player.queue or payload.player.current:
+        if not payload.player.queue.is_empty or payload.player.current is not None:
             return
         await self.bot.change_presence(status=STATUS,
                                        activity=discord.Activity(type=ACTIVITY_TYPE,
@@ -42,7 +42,7 @@ class MusicTasks(commands.Cog):
     @commands.Cog.listener('on_wavelink_inactive_player')
     async def _disconnect_inactive_player(self, player: wavelink.Player) -> None:
         guild = player.guild
-        self.bot.logger.info(f"[LAVALINK] Disconnected from {guild}, reason: no songs in queue")
+        self.bot.logger.debug(f"[LAVALINK] Disconnected from {guild}, reason: no songs in queue")
         await player.disconnect(force=True)
 
     def _am_i_alone(self, vc: wavelink.Player) -> bool:
@@ -84,8 +84,8 @@ class MusicTasks(commands.Cog):
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _play_next_track(self, payload: wavelink.TrackEndEventPayload) -> None:
-        self.bot.logger.info(f"[LAVALINK] Finished playing {payload.track.title} on {payload.player.guild}")
-        if payload.player.queue or payload.player.queue.mode.loop or payload.player.queue.mode.loop_all:
+        self.bot.logger.debug(f"[LAVALINK] Finished playing {payload.track.title} on {payload.player.guild}")
+        if not payload.player.queue.is_empty or payload.player.queue.mode.loop or payload.player.queue.mode.loop_all:
             await payload.player.play(payload.player.queue.get())
 
 

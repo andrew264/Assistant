@@ -45,7 +45,7 @@ class AssistantBot(commands.Bot):
         lconf = LavaConfig()
         if lconf:
             nodes = [
-                wavelink.Node(uri=lconf.URI, password=lconf.PASSWORD, inactive_player_timeout=300,),
+                wavelink.Node(uri=lconf.URI, password=lconf.PASSWORD, inactive_player_timeout=300, ),
             ]
             await wavelink.Pool.connect(nodes=nodes, client=self, cache_capacity=100)
             self.logger.info("[CONNECTED] to LavaLink.")

@@ -67,12 +67,12 @@ class NowPlaying(commands.Cog):
                 #     _embed.add_field(name="Likes:", value=f"{current_track.likes}", inline=True)
                 #     _embed.add_field(name="Uploaded:", value=f"{current_track.upload_date}", inline=True)
 
-                if vc.queue:
+                if not vc.queue.is_empty:
                     if vc.queue.mode is wavelink.QueueMode.loop_all:
-                        _embed.set_footer(text=f"Looping through {len(vc.queue) + 1} Songs")
+                        _embed.set_footer(text=f"Looping through {vc.queue.count + 1} Songs")
                     elif vc.queue.mode is wavelink.QueueMode.normal:
-                        in_queue_track: Playable = vc.queue[0]
-                        _embed.set_footer(text=f"Next in Queue: {vc.queue[0].title}",
+                        in_queue_track: Playable = vc.queue.peek(0)
+                        _embed.set_footer(text=f"Next in Queue: {in_queue_track.title}",
                                           icon_url=in_queue_track.artwork)
                 else:
                     if vc.queue.mode is wavelink.QueueMode.loop_all:
@@ -100,7 +100,7 @@ class NowPlaying(commands.Cog):
                 assert vc.current is not None
                 await vc.seek(0)
                 await interaction.response.edit_message(embed=await self.embed())
-                logger.info(f"{interaction.user} skipped to beginning of {vc.current.title} in {interaction.guild}")
+                logger.debug(f"{interaction.user} skipped to beginning of {vc.current.title} in {interaction.guild}")
 
             # Rewind Button
             @discord.ui.button(custom_id="assistant:nowplaying:rewind_button",
@@ -112,7 +112,7 @@ class NowPlaying(commands.Cog):
                 else:
                     await vc.seek(0)
                 await interaction.response.edit_message(embed=await self.embed())
-                logger.info(f"{interaction.user} rewound 10 seconds in {vc.current.title} in {interaction.guild}")
+                logger.debug(f"{interaction.user} rewound 10 seconds in {vc.current.title} in {interaction.guild}")
 
             # Play/Pause Button
             @discord.ui.button(custom_id="assistant:nowplaying:pause_button",
@@ -123,12 +123,12 @@ class NowPlaying(commands.Cog):
                     await vc.pause(True)
                     button.emoji = "▶️"
                     button.style = discord.ButtonStyle.success
-                    logger.info(f"{interaction.user} paused {vc.current.title} in {interaction.guild}")
+                    logger.debug(f"{interaction.user} paused {vc.current.title} in {interaction.guild}")
                 else:
                     await vc.pause(False)
                     button.emoji = "⏸️"
                     button.style = discord.ButtonStyle.primary
-                    logger.info(f"{interaction.user} resumed {vc.current.title} in {interaction.guild}")
+                    logger.debug(f"{interaction.user} resumed {vc.current.title} in {interaction.guild}")
                 await interaction.response.edit_message(view=self)
 
             # Fast Forward Button
@@ -141,7 +141,7 @@ class NowPlaying(commands.Cog):
                 else:
                     await vc.stop()
                 await interaction.response.edit_message(embed=await self.embed())
-                logger.info(
+                logger.debug(
                     f"{interaction.user} fast forwarded 10 seconds of {vc.current.title} in {interaction.guild}")
 
             # Skip Button
@@ -149,7 +149,7 @@ class NowPlaying(commands.Cog):
                                style=discord.ButtonStyle.primary, emoji="⏭️", )
             async def skip_button(self, interaction: discord.Interaction, button: discord.Button):
                 assert vc.current is not None
-                logger.info(f"{interaction.user} skipped {vc.current.title} in {interaction.guild}")
+                logger.debug(f"{interaction.user} skipped {vc.current.title} in {interaction.guild}")
                 await vc.stop()
                 await interaction.response.edit_message(embed=await self.embed())
 
@@ -163,7 +163,7 @@ class NowPlaying(commands.Cog):
                 if interaction.guild.voice_client:
                     await interaction.guild.voice_client.disconnect(force=True)
                 await interaction.response.edit_message(content="Thanks for Listening", embed=None, view=None)
-                logger.info(f"{interaction.user} stopped the music in {interaction.guild}")
+                logger.debug(f"{interaction.user} stopped the music in {interaction.guild}")
 
             # Repeat Button
             @discord.ui.button(label="Loop", custom_id="assistant:nowplaying:loop_button",
@@ -172,11 +172,11 @@ class NowPlaying(commands.Cog):
                 if vc.queue.mode.loop is wavelink.QueueMode.normal:
                     vc.queue.mode.loop = wavelink.QueueMode.loop_all
                     self.loop_button.emoji = "🔁"
-                    logger.info(f"{interaction.user} enabled looping in {interaction.guild}")
+                    logger.debug(f"{interaction.user} enabled looping in {interaction.guild}")
                 else:
                     vc.queue.mode.loop = wavelink.QueueMode.normal
                     self.loop_button.emoji = "➡"
-                    logger.info(f"{interaction.user} disabled looping in {interaction.guild}")
+                    logger.debug(f"{interaction.user} disabled looping in {interaction.guild}")
                 await interaction.response.edit_message(embed=await self.embed(), view=self)
 
             # Volume-down Button
@@ -192,7 +192,7 @@ class NowPlaying(commands.Cog):
                 button.disabled = True if vc.volume <= 10 else False
                 self.volume.label = f"Volume: {vol} %"
                 await interaction.response.edit_message(view=self)
-                logger.info(f"{interaction.user} set volume to {vol} % in {ctx.guild}")
+                logger.debug(f"{interaction.user} set volume to {vol} % in {ctx.guild}")
 
             # Volume Button
             @discord.ui.button(label=f"Volume: {vc.volume} %", disabled=True,
@@ -213,10 +213,10 @@ class NowPlaying(commands.Cog):
                 button.disabled = True if vol == 100 else False
                 self.volume.label = f"Volume: {vol} %"
                 await interaction.response.edit_message(view=self)
-                logger.info(f"{interaction.user} set volume to {vol} % in {ctx.guild}")
+                logger.debug(f"{interaction.user} set volume to {vol} % in {ctx.guild}")
 
             def update_buttons(self):
-                if not vc.current and not vc.queue:
+                if vc.current is None and vc.queue.is_empty:
                     for button in self.children:
                         if isinstance(button, discord.ui.Button):
                             button.disabled = True

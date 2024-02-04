@@ -37,12 +37,12 @@ class Queue(commands.Cog):
                 if self.page_no > 1:
                     self.page_no -= 1
                 else:
-                    self.page_no = math.ceil(len(vc.queue) / 4)
+                    self.page_no = math.ceil(vc.queue.count / 4)
                 await interaction.response.edit_message(embed=self.embed, view=self)
 
             @discord.ui.button(emoji="▶", style=discord.ButtonStyle.secondary)
             async def next_page(self, interaction: discord.Interaction, button: discord.Button):
-                if self.page_no < math.ceil(len(vc.queue) / 4):
+                if self.page_no < math.ceil(vc.queue.count / 4):
                     self.page_no += 1
                 else:
                     self.page_no = 1
@@ -51,25 +51,25 @@ class Queue(commands.Cog):
             @property
             def embed(self) -> discord.Embed:
                 first = (self.page_no * 4) - 4
-                if (self.page_no * 4) + 1 <= len(vc.queue):
+                if (self.page_no * 4) + 1 <= vc.queue.count:
                     last = (self.page_no * 4)
                 else:
-                    last = len(vc.queue)
+                    last = vc.queue.count
                 song_index = [i for i in range(first, last)]
                 if not vc.current:
                     return discord.Embed(title="Queue is Empty", colour=0xFFA31A)
                 embed = discord.Embed(title="Now Playing", colour=0xFFA31A,
                                       description=f"{clickable_song(vc.current)}")
-                if len(vc.queue) >= 1:
+                if vc.queue.count > 0:
                     next_songs = "\u200b"
-                    max_page = math.ceil(len(vc.queue) / 4)
+                    max_page = math.ceil(vc.queue.count / 4)
                     for i in song_index:
                         next_songs += f"{i + 1}. {clickable_song(vc.queue[i])}\n"
                     embed.add_field(name=f"Next Up ({self.page_no}/{max_page})", value=next_songs, inline=False)
                 if vc.queue.mode is wavelink.QueueMode.loop_all:
-                    embed.set_footer(text=f"Looping through {len(vc.queue) + 1} Songs")
+                    embed.set_footer(text=f"Looping through {vc.queue.count + 1} Songs")
                 else:
-                    embed.set_footer(text=f"{len(vc.queue) + 1} Songs in Queue")
+                    embed.set_footer(text=f"{vc.queue.count + 1} Songs in Queue")
                 return embed
 
         v = QueuePages()
