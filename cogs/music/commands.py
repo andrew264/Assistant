@@ -1,5 +1,6 @@
 from typing import Optional, cast
 
+import discord
 import wavelink
 from discord import app_commands
 from discord.ext import commands
@@ -13,13 +14,20 @@ class MusicCommands(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
 
+    def get_voice_client(self, ctx: commands.Context) -> wavelink.Player:
+        vc = ctx.guild.voice_client
+        if not vc:
+            self.bot.logger.debug("[MUSIC] Creating a new voice client. idk why?")
+            vc = ctx.author.voice.channel.connect(cls=wavelink.Player, self_deaf=True)
+        return cast(wavelink.Player, vc)
+
     @commands.hybrid_command(name="skip", aliases=["s", "next"], description="Skip songs that are in queue")
     @commands.guild_only()
     @check_vc()
     @check_same_vc()
     @app_commands.describe(index="Index of the song to skip")
     async def skip(self, ctx: commands.Context, index: int = 0):
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        vc = self.get_voice_client(ctx)
         if vc.current is None and vc.queue.is_empty:
             await ctx.send("I am not playing anything right now.")
             return
@@ -39,7 +47,7 @@ class MusicCommands(commands.Cog):
     @check_vc()
     @check_same_vc()
     async def loop(self, ctx: commands.Context):
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        vc = self.get_voice_client(ctx)
         if vc.current is None and vc.queue.is_empty:
             await ctx.send("I am not playing anything right now.")
             return
@@ -56,7 +64,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(volume="Volume to set [0 - 100]")
     async def volume(self, ctx: commands.Context, volume: int):
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        vc = self.get_voice_client(ctx)
         if vc.current is None and vc.queue.is_empty:
             await ctx.send("I am not playing anything right now.")
             return
@@ -77,7 +85,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     async def stop(self, ctx: commands.Context):
         assert ctx.guild
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        vc = self.get_voice_client(ctx)
         if not vc or not vc.connected or not ctx.guild.voice_client:
             return await ctx.send("I am not connected to a voice channel", ephemeral=True)
         vc.queue.clear()
@@ -91,7 +99,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(index="Index of the song to skip to")
     async def skipto(self, ctx: commands.Context, index: int = 0):
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        vc = self.get_voice_client(ctx)
         if vc.current is None:
             await ctx.send("I am not playing anything right now.")
             return
@@ -114,7 +122,7 @@ class MusicCommands(commands.Cog):
     @check_same_vc()
     @app_commands.describe(time="Time to seek to in MM:SS format")
     async def seek(self, ctx: commands.Context, time: Optional[str] = None):
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+        vc = self.get_voice_client(ctx)
         if vc.current is None:
             await ctx.send("I am not playing anything right now.")
             return

@@ -78,12 +78,10 @@ class Play(commands.Cog):
     async def play(self, ctx: commands.Context, *, query: Optional[str] = None):
         assert isinstance(ctx.author, discord.Member)
 
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
-
         if not ctx.voice_client:
             vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player,  # type: ignore
                                                                          self_deaf=True)
-
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
         vc.autoplay = wavelink.AutoPlayMode.disabled
 
         if not query:
@@ -105,9 +103,9 @@ class Play(commands.Cog):
 
         try:
             tracks = await wavelink.Pool.fetch_tracks(query)
-        except wavelink.LavalinkLoadException:
-            await ctx.send("Invalid URL")
-            return
+        except wavelink.LavalinkLoadException as e:
+            await ctx.send(f"Something went wrong!\n{e.error}")
+            raise commands.CommandError(f"Something went wrong while fetching the song: {e}")
         if isinstance(tracks, list):
             track = tracks[0]
             await vc.queue.put_wait(track)
@@ -122,6 +120,7 @@ class Play(commands.Cog):
         if not vc.playing:
             await vc.play(track=vc.queue.get())
             await vc.set_volume(30)
+            return
 
     @play.autocomplete('query')
     async def play_autocomplete(self, ctx: discord.Interaction, query: str) -> list[Choice[str]]:
