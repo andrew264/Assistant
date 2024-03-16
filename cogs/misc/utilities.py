@@ -4,6 +4,7 @@ from discord import app_commands, Status, ActivityType
 from discord.ext import commands
 
 from assistant import AssistantBot
+from utils import owner_only
 
 
 class Utilities(commands.Cog):
@@ -37,7 +38,7 @@ class Utilities(commands.Cog):
 
     @app_commands.command(name='setstatus', description='Set the bot\'s status', )
     # @app_commands.guilds(HOME_GUILD_ID)
-    @commands.is_owner()
+    @app_commands.check(owner_only)
     async def set_status(self, inter: discord.Interaction, status: Status, activity_type: ActivityType, activity: str):
         await self.bot.change_presence(status=status, activity=discord.Activity(type=activity_type, name=activity))
         await inter.response.send_message(
