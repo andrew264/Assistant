@@ -62,7 +62,7 @@ class TranslatorProMax(commands.Cog):
 
     @app_commands.command(name='send', description='Translate Text')
     @app_commands.describe(sentence='The sentence to translate')
-    async def define(self, ctx: discord.Interaction, sentence: str = '', language: Language = Language.ENGLISH):
+    async def trans_command(self, ctx: discord.Interaction, sentence: str = '', language: Language = Language.ENGLISH):
         await ctx.defer(ephemeral=True)
         translated = self._translate(sentence, language)
         await ctx.edit_original_response(content="Sent!")

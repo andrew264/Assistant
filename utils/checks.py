@@ -30,3 +30,7 @@ def check_same_vc():
         raise commands.CheckFailure("You must be in the same voice channel as me.")
 
     return commands.check(predicate)
+
+
+async def owner_only(interaction: discord.Interaction):
+    return await interaction.client.is_owner(interaction.user)

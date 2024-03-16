@@ -26,8 +26,8 @@ class MessageDeleteCommands(commands.Cog):
         ]
 
     @app_commands.guild_only()
-    @commands.has_permissions(administrator=True)
-    @commands.bot_has_permissions(manage_messages=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.bot_has_permissions(manage_messages=True)
     async def __delete_till_here(self, ctx: discord.Interaction, message: discord.Message):
         assert isinstance(message.channel, (discord.TextChannel, discord.Thread))
         await ctx.response.defer(ephemeral=True)
@@ -40,8 +40,8 @@ class MessageDeleteCommands(commands.Cog):
 
     @app_commands.command(name="clear", description="Delete messages in a channel")
     @app_commands.guild_only()
-    @commands.has_permissions(administrator=True)
-    @commands.bot_has_permissions(manage_messages=True)
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.checks.bot_has_permissions(manage_messages=True)
     @app_commands.describe(amount="Number of messages to delete")
     async def clear(self, ctx: discord.Interaction, amount: app_commands.Range[int, 1, 420]):
         assert isinstance(ctx.channel, (discord.TextChannel, discord.Thread))
