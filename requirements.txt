@@ -9,3 +9,4 @@ wavelink
 python-youtube
 lyricsgenius
 libtorrent
+googletrans-py
