@@ -1,4 +1,6 @@
+import asyncio
 from enum import Enum
+from functools import partial
 from typing import Optional
 
 import discord
@@ -12,10 +14,10 @@ from assistant import AssistantBot
 class Language(Enum):
     ENGLISH = "en"
     JAPANESE = "ja"
-    JAP_ENGLISH = "jp"
     TAMIL = "ta"
-    THANGLISH = "ta"
+    HINDI = "hi"
     SPANISH = "es"
+    FRENCH = "fr"
 
 
 class TranslatorProMax(commands.Cog):
@@ -39,33 +41,33 @@ class TranslatorProMax(commands.Cog):
             return await channel.create_webhook(name="Assistant", avatar=await self.bot.user.display_avatar.read())
 
     @staticmethod
-    def _translate(text: str, language: Language) -> str:
-        pronounce = False
-        if Language in (Language.JAPANESE, Language.THANGLISH):
-            pronounce = True
-        translation = Translator().translate(text, dest=language.value)
-        return translation.text if not pronounce else translation.pronunciation
+    async def trans_fn(text: str, language: Language, pronounce: bool = True) -> str:
+        loop = asyncio.get_event_loop()
+        t_fn = partial(Translator().translate, text=text, dest=str(language.value))
+        translation = await loop.run_in_executor(None, t_fn)
+        return translation.pronunciation if pronounce else translation.text
 
     def build_context_menus(self):
         return [
             app_commands.ContextMenu(
                 name="Translate to English",
-                callback=self.__translate_msg_command,
+                callback=self.trans_msg_command,
             ),
         ]
 
     @app_commands.guild_only()
-    async def __translate_msg_command(self, ctx: discord.Interaction, message: discord.Message):
-        await ctx.defer(ephemeral=True)
-        translated = self._translate(message.clean_content(), Language.ENGLISH)
-        await ctx.edit_original_response(content=translated)
+    async def trans_msg_command(self, ctx: discord.Interaction, message: discord.Message):
+        await ctx.response.defer(ephemeral=True)
+        translated = await self.trans_fn(message.clean_content(), Language.ENGLISH, pronounce=False)
+        await ctx.response.send_message(content=translated, ephemeral=True)
 
-    @app_commands.command(name='send', description='Translate Text')
-    @app_commands.describe(sentence='The sentence to translate')
-    async def trans_command(self, ctx: discord.Interaction, sentence: str = '', language: Language = Language.ENGLISH):
-        await ctx.defer(ephemeral=True)
-        translated = self._translate(sentence, language)
-        await ctx.edit_original_response(content="Sent!")
+    @app_commands.command(name='translate', description='Translate Text')
+    @app_commands.describe(sentence='The sentence to translate',
+                           language='The language to translate to', pronunciation='Pronounce the translation')
+    async def trans_command(self, ctx: discord.Interaction, sentence: str = '',
+                            language: Language = Language.ENGLISH, pronunciation: bool = True):
+        await ctx.response.send_message(content="Translating...", ephemeral=True)
+        translated = await self.trans_fn(sentence, language, pronunciation)
         webhook = await self.get_webhook(ctx.channel_id)
         await webhook.send(translated, username=ctx.user.display_name, avatar_url=ctx.user.display_avatar.url)
 
