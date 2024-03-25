@@ -144,12 +144,12 @@ class Dictionary(commands.Cog):
             random_result = random.choice(results[:5])
             if len(random_result.markdown) > 2000:
                 msgs = random_result.markdown.split('\n\n')
-                await ctx.send(content=msgs[0], suppress_embeds=True)
+                await ctx.send(content=msgs[0][:2000], suppress_embeds=True)
                 if not isinstance(ctx.channel, discord.TextChannel):
                     return
                 webhook = await self.get_webhook(ctx.channel)
                 for msg in msgs[1:]:
-                    await webhook.send(msg if len(msg) < 2000 else msg[:2000],
+                    await webhook.send(msg[:2000],
                                        username=ctx.me.display_name,
                                        avatar_url=ctx.me.display_avatar.url,
                                        suppress_embeds=True)
