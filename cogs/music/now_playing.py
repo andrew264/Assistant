@@ -1,5 +1,5 @@
 import asyncio
-from typing import cast
+from typing import cast, Dict
 
 import discord
 import wavelink
@@ -14,6 +14,7 @@ from utils import check_vc, check_same_vc
 class NowPlaying(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
+        self._live_messages: Dict[int, discord.Message] = {}
 
     @commands.hybrid_command(name="nowplaying", aliases=["np", "now"], description="View the currently playing song")
     @commands.guild_only()
@@ -41,7 +42,8 @@ class NowPlaying(commands.Cog):
                 else:
                     return f'{int(seconds // 60):02}:{int(seconds % 60):02}'
 
-            async def embed(self) -> discord.Embed:
+            @property
+            def embed(self) -> discord.Embed:
                 self.update_buttons()
                 if not vc.current:
                     return discord.Embed(title="No Songs in Queue", description="use `/play` to add songs", )
@@ -99,7 +101,7 @@ class NowPlaying(commands.Cog):
             async def prev_button(self, interaction: discord.Interaction, button: discord.Button):
                 assert vc.current is not None
                 await vc.seek(0)
-                await interaction.response.edit_message(embed=await self.embed())
+                await interaction.response.edit_message(embed=self.embed)
                 logger.debug(f"{interaction.user} skipped to beginning of {vc.current.title} in {interaction.guild}")
 
             # Rewind Button
@@ -111,7 +113,7 @@ class NowPlaying(commands.Cog):
                     await vc.seek(vc.position - 10000)
                 else:
                     await vc.seek(0)
-                await interaction.response.edit_message(embed=await self.embed())
+                await interaction.response.edit_message(embed=self.embed)
                 logger.debug(f"{interaction.user} rewound 10 seconds in {vc.current.title} in {interaction.guild}")
 
             # Play/Pause Button
@@ -140,7 +142,7 @@ class NowPlaying(commands.Cog):
                     await vc.seek(int(vc.position + 10000))
                 else:
                     await vc.stop()
-                await interaction.response.edit_message(embed=await self.embed())
+                await interaction.response.edit_message(embed=self.embed)
                 logger.debug(
                     f"{interaction.user} fast forwarded 10 seconds of {vc.current.title} in {interaction.guild}")
 
@@ -151,7 +153,7 @@ class NowPlaying(commands.Cog):
                 assert vc.current is not None
                 logger.debug(f"{interaction.user} skipped {vc.current.title} in {interaction.guild}")
                 await vc.stop()
-                await interaction.response.edit_message(embed=await self.embed())
+                await interaction.response.edit_message(embed=self.embed)
 
             # Stop Button
             @discord.ui.button(label="Stop", custom_id="assistant:nowplaying:stop_button",
@@ -177,7 +179,7 @@ class NowPlaying(commands.Cog):
                     vc.queue.mode.loop = wavelink.QueueMode.normal
                     self.loop_button.emoji = "➡"
                     logger.debug(f"{interaction.user} disabled looping in {interaction.guild}")
-                await interaction.response.edit_message(embed=await self.embed(), view=self)
+                await interaction.response.edit_message(embed=self.embed, view=self)
 
             # Volume-down Button
             @discord.ui.button(custom_id="assistant:nowplaying:volume_down_button",
@@ -235,21 +237,35 @@ class NowPlaying(commands.Cog):
                 self.volume_up.disabled = True if current_volume == 100 else False
 
         view = NowPlayingView()
-        msg = await ctx.send(embed=await view.embed(), view=view)
-        if ctx.guild.id != HOME_GUILD_ID:
-            return
+        msg = await ctx.send(embed=view.embed, view=view)
+        msg.view = view
+
+        # delete any old messages
+        old_msg = self._live_messages.get(ctx.guild.id)
+        if old_msg:
+            try:
+                if hasattr(old_msg, "view"):
+                    old_msg.view.stop()
+                await old_msg.delete()
+            except discord.NotFound:
+                pass
+        self._live_messages[ctx.guild.id] = msg
+
+        seconds_per_update = 5 if ctx.guild.id == HOME_GUILD_ID else 10
 
         while True:
-            await asyncio.sleep(7)
+            await asyncio.sleep(seconds_per_update)
             try:
-                await msg.edit(embed=await view.embed(), view=view)
+                await msg.edit(embed=view.embed, view=view)
             except discord.HTTPException:
                 break
-            while vc.paused or vc.current is None:
-                await asyncio.sleep(1)
-            if not vc.playing or not ctx.guild.me.voice:
+            if vc.paused or vc.current is None:
+                continue
+            if (not vc.current and vc.queue.is_empty) or ctx.guild.me.voice is None:
                 break
         try:
+            self._live_messages.pop(ctx.guild.id, None)
+            view.stop()
             await msg.delete()
         except discord.NotFound:
             pass
