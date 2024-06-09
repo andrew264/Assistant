@@ -107,6 +107,9 @@ class Play(commands.Cog):
             await ctx.send(f"Something went wrong!\n{e.error}")
             raise commands.CommandError(f"Something went wrong while fetching the song: {e}")
         if isinstance(tracks, list):
+            if not tracks:
+                await ctx.send("No results found")
+                return
             track = tracks[0]
             await vc.queue.put_wait(track)
             await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True)
