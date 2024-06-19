@@ -1,6 +1,3 @@
-import asyncio
-from typing import cast, Optional
-
 import discord
 import wavelink
 from discord.ext import commands
@@ -40,47 +37,9 @@ class MusicTasks(commands.Cog):
                                                                  name=ACTIVITY_TEXT), )
 
     @commands.Cog.listener('on_wavelink_inactive_player')
-    async def _disconnect_inactive_player(self, player: wavelink.Player) -> None:
-        guild = player.guild
-        self.bot.logger.debug(f"[LAVALINK] Disconnected from {guild}, reason: no songs in queue")
+    async def _disconnect_if_no_listeners(self, player: wavelink.Player) -> None:
+        self.bot.logger.debug(f"[LAVALINK] Disconnected from {player.guild}, reason: no listeners")
         await player.disconnect(force=True)
-
-    def _am_i_alone(self, vc: wavelink.Player) -> bool:
-        self.bot.logger.debug(f"[LAVALINK] Checking if I am alone in {vc.guild}")
-        if members := vc.channel.members:
-            if len(members) == 1 and members[0] == vc.guild.me:
-                return True
-        return False
-
-    @commands.Cog.listener('on_voice_state_update')
-    async def _disconnect_if_no_listeners(self, member: discord.Member, *args) -> None:
-        guild = member.guild
-        if guild.voice_client is None:
-            return
-        vc: wavelink.Player = cast(wavelink.Player, guild.voice_client)
-
-        if vc.channel is None:
-            return
-
-        # at this point, we are in a voice channel
-        if self._am_i_alone(vc):
-            self.bot.logger.debug(
-                f"[LAVALINK] Disconnecting in {SLEEP_TIME} secs from {vc.guild}, reason: no listeners")
-            await asyncio.sleep(SLEEP_TIME)
-
-            player: Optional[discord.VoiceProtocol] = discord.utils.get(self.bot.voice_clients,
-                                                                        guild=guild)  # get the updated voice client
-            if player is None:
-                self.bot.logger.debug(
-                    f"[LAVALINK] Not disconnecting from {guild}, reason: not connected")
-                return
-            player: wavelink.Player = cast(wavelink.Player, player)
-            if self._am_i_alone(player):
-                if player.playing:
-                    await player.stop()
-                await player.set_filters(None)
-                await player.disconnect(force=True)
-                self.bot.logger.debug(f"[LAVALINK] Disconnected from {guild}, reason: no listeners")
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _play_next_track(self, payload: wavelink.TrackEndEventPayload) -> None:
