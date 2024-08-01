@@ -271,7 +271,7 @@ class NowPlaying(commands.Cog):
         if msg and view:
             view.stop()
             await msg.delete(delay=30)
-        self.bot.logger.debug(f"Deleting nowplaying message in {guild_id}")
+            self.bot.logger.debug(f"Deleting nowplaying message in {guild_id}")
 
     @commands.hybrid_command(name="nowplaying", aliases=["np", "now"], description="View the currently playing song")
     @commands.guild_only()

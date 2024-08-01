@@ -1,6 +1,7 @@
 import asyncio
 
 import discord
+import wavelink
 
 from assistant import AssistantBot
 from config import PREFIX, DISCORD_TOKEN, OWNER_ID, STATUS, ACTIVITY_TYPE, ACTIVITY_TEXT
@@ -28,4 +29,14 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(main())
+    except (KeyboardInterrupt, SystemExit):
+        bot.logger.info("[RECEIVED] Keyboard Interrupt. Exiting...")
+    finally:
+        for task in asyncio.all_tasks(loop):
+            task.cancel()
+        loop.run_until_complete(wavelink.Pool.close())
+        loop.run_until_complete(bot.close())
+        loop.close()

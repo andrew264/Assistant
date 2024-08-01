@@ -43,7 +43,7 @@ def custom_activity(activity: discord.CustomActivity, with_time: bool = False, w
 
 def remove_brackets(string: str) -> str:
     """Removes brackets from a string"""
-    return re.sub(r"[\(\[].*?[\)\]]", "", string).strip()
+    return re.sub(r"[(\[].*?[)\]]", "", string).strip()
 
 
 def all_activities(member: discord.Member, with_time: bool = False, with_url: bool = False,

@@ -12,10 +12,10 @@ class CustomLogsFormatter(logging.Formatter):
     _format = "%(asctime)s - %(filename)s - %(levelname)s - %(message)s"
 
     FORMATS = {
-        logging.DEBUG   : blue + _format + reset,
-        logging.INFO    : cyan + _format + reset,
-        logging.WARNING : yellow + _format + reset,
-        logging.ERROR   : red + _format + reset,
+        logging.DEBUG: blue + _format + reset,
+        logging.INFO: cyan + _format + reset,
+        logging.WARNING: yellow + _format + reset,
+        logging.ERROR: red + _format + reset,
         logging.CRITICAL: bold_red + _format + reset
     }
 

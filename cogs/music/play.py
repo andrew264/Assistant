@@ -49,7 +49,12 @@ class Play(commands.Cog):
         result = await collection.update_one(
             {"_id": guild_id},
             {
-                "$addToSet": {"songs": new_song},
+                "$push": {
+                    "songs": {
+                        "$each": [new_song],
+                        "$slice": -100
+                    }
+                },
             }
         )
         if result.modified_count:
@@ -79,9 +84,8 @@ class Play(commands.Cog):
         assert isinstance(ctx.author, discord.Member)
 
         if not ctx.voice_client:
-            vc: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player,  # type: ignore
-                                                                         self_deaf=True)
-        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
+            await ctx.author.voice.channel.connect(cls=wavelink.Player, self_deaf=True)
+        vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
         vc.autoplay = wavelink.AutoPlayMode.disabled
 
         if not query:
@@ -121,19 +125,21 @@ class Play(commands.Cog):
             self.bot.logger.error(f"[LAVALINK] Something went wrong while fetching {query}")
 
         if not vc.playing:
+            vc.filters.volume = 0.3
             await vc.play(track=vc.queue.get())
-            await vc.set_volume(30)
             return
 
     @play.autocomplete('query')
     async def play_autocomplete(self, ctx: discord.Interaction, query: str) -> list[Choice[str]]:
         assert ctx.guild is not None
-        if query == "":
-            return [Choice(name="Enter a song name or URL", value="https://youtu.be/dQw4w9WgXcQ")]
-        result = {"Search: " + query: query} if query else {}
         guild_id = ctx.guild.id
         if guild_id not in self._cache:
             await self._fill_cache(guild_id)
+        if query == "":
+            return [Choice(name="Enter a song name or URL", value="https://youtu.be/dQw4w9WgXcQ")]
+
+        result = {"Search: " + query: query} if query else {}
+
         cache_data = self._cache[guild_id]
         title_matches = process.extractBests(query, [title for title, _ in cache_data.items()], limit=24,
                                              score_cutoff=80)

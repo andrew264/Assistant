@@ -4,6 +4,7 @@ from pyyoutube import Api
 from wavelink import Playable
 
 from config import YT_API_KEY
+from .presence import remove_brackets
 
 api = Api(api_key=YT_API_KEY) if YT_API_KEY else None
 
@@ -23,4 +24,4 @@ def human_int(num) -> str:
 
 
 def clickable_song(song: Playable) -> str:
-    return f"[{song.title}]({song.uri})"
+    return f"[{remove_brackets(song.title)}]({song.uri})"
