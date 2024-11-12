@@ -8,5 +8,4 @@ thefuzz[speedup]
 wavelink
 python-youtube
 lyricsgenius
-libtorrent
 googletrans-py
