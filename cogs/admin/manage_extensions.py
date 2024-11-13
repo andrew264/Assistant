@@ -33,7 +33,7 @@ class ManageExtensions(commands.Cog):
         try:
             await self.bot.unload_extension(extension)
         except Exception as e:
-            await ctx.response.send_message(f"Failed to unload extension: {extension}\n```py```", ephemeral=True)
+            await ctx.response.send_message(f"Failed to unload extension: {extension}", ephemeral=True)
             self.bot.logger.error(f"Failed to unload extension: {extension}\n{e}")
         else:
             await ctx.response.send_message(f"Unloaded extension: {extension}", ephemeral=True)
@@ -45,7 +45,7 @@ class ManageExtensions(commands.Cog):
         try:
             await self.bot.reload_extension(extension)
         except Exception as e:
-            await ctx.response.send_message(f"Failed to reload extension: {extension}\n```py```", ephemeral=True)
+            await ctx.response.send_message(f"Failed to reload extension: {extension}", ephemeral=True)
             self.bot.logger.error(f"Failed to reload extension: {extension}\n{e}")
         else:
             await ctx.response.send_message(f"Reloaded extension: {extension}", ephemeral=True)

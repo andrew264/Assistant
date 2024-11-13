@@ -1,6 +1,6 @@
 import itertools
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import discord
 from discord import app_commands
@@ -9,14 +9,7 @@ from discord.ext import commands
 from assistant import AssistantBot
 
 class EloRatingSystem:
-    def __init__(self, candidates: List[str], creator: int, initial_rating=1000, k_factor=32):
-        """
-        Initialize the Elo rating system.
-
-        Parameters:
-        - initial_rating (int): The starting Elo rating for each candidate.
-        - k_factor (int): The K-factor used to adjust the Elo rating after each match.
-        """
+    def __init__(self, candidates: List[str], creator: int, title: str, initial_rating=1000, k_factor=32):
         self.ratings: Dict[str, float] = {}
         self.initial_rating = initial_rating
         self.k_factor = k_factor
@@ -24,6 +17,7 @@ class EloRatingSystem:
             self.add_candidate(c)
         self.voters: List[int] = []
         self.creator = creator
+        self.title = title
 
     def add_candidate(self, candidate: str) -> None:
         """Add a candidate with an initial rating if not already added."""
@@ -76,7 +70,7 @@ class EloRatingSystem:
         highest_rated_candidates = [name for name, rating in ratings.items() if rating == highest_rating]
         lowest_rated_candidates = [name for name, rating in ratings.items() if rating == lowest_rating]
 
-        summary_md = "# Voting Summary\n\n"
+        summary_md = f"# {self.title}\n\n"
 
         summary_md += "## Insights\n"
         summary_md += f"- **Highest Rating**: {highest_rating:.2f} ({', '.join(highest_rated_candidates)})\n"
@@ -143,14 +137,16 @@ class VotingSystem(commands.Cog):
 
     @app_commands.command(name='create-poll', description='Setup the candidates to vote for!')
     @app_commands.checks.has_permissions(create_polls=True)
-    @app_commands.describe(candidates="All Candidates separated by commas")
-    async def create_poll(self, ctx: discord.Interaction, candidates: str):
+    @app_commands.describe(title="Title for the Voting Poll", candidates="Candidates separated by commas")
+    async def create_poll(self, ctx: discord.Interaction, candidates: str, title: Optional[str] = None):
         if ctx.channel.id in self.global_rating_system:
             elo_rating = self.global_rating_system.get(ctx.channel.id)
             return await ctx.response.send_message(f'There is a Active Poll in this channel by <@{elo_rating.creator}>', ephemeral=True)
         candidates = [c.strip() for c in candidates.split(',')]
-        self.global_rating_system[ctx.channel.id] = EloRatingSystem(candidates=candidates, creator=ctx.user.id)
-        content = "# Created Pole for\n"
+        if title is None:
+            title = "Voting"
+        self.global_rating_system[ctx.channel.id] = EloRatingSystem(candidates=candidates, creator=ctx.user.id, title=title)
+        content = f"# {title}\n"
         for c in candidates:
             content += f"- **{c}**\n"
         content += "Use `/vote` to cast your Vote."
