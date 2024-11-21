@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from assistant import AssistantBot
 
+
 class EloRatingSystem:
     def __init__(self, candidates: List[str], creator: int, title: str, initial_rating=1000, k_factor=32):
         self.ratings: Dict[str, float] = {}
@@ -70,7 +71,7 @@ class EloRatingSystem:
         highest_rated_candidates = [name for name, rating in ratings.items() if rating == highest_rating]
         lowest_rated_candidates = [name for name, rating in ratings.items() if rating == lowest_rating]
 
-        summary_md = f"# {self.title}\n\n"
+        summary_md = f"# {self.title} by <@{self.creator}>\n\n"
 
         summary_md += "## Insights\n"
         summary_md += f"- **Highest Rating**: {highest_rating:.2f} ({', '.join(highest_rated_candidates)})\n"
@@ -82,6 +83,7 @@ class EloRatingSystem:
             summary_md += f"- **{candidate}**: {rating:.2f}\n"
 
         return summary_md
+
 
 class VoteButton(discord.ui.Button["VoteButton"], ):
     def __init__(self, winner: str, looser: str) -> None:
@@ -100,6 +102,22 @@ class VoteButton(discord.ui.Button["VoteButton"], ):
         else:
             await interaction.response.edit_message(view=view)
 
+
+class VoteSkipButton(discord.ui.Button["VoteSkipButton"], ):
+    def __init__(self) -> None:
+        super().__init__(label='Skip', emoji='⏩', style=discord.ButtonStyle.gray, )
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        assert self.view is not None and isinstance(self.view, VoteButtonView), "somthing is wrong, i can feel it"
+        view: VoteButtonView = self.view
+        view.add_next_vote_buttons()
+        if view.is_voting_complete:
+            await interaction.response.edit_message(content="Voting Complete", view=None)
+            view.stop()
+        else:
+            await interaction.response.edit_message(view=view)
+
+
 class VoteButtonView(discord.ui.View):
     def __init__(self, rating_system: EloRatingSystem, ):
         super().__init__()
@@ -114,11 +132,13 @@ class VoteButtonView(discord.ui.View):
             c1, c2 = self.candidate_pairs[self.next_page]
             self.add_item(VoteButton(c1, c2))
             self.add_item(VoteButton(c2, c1))
+            self.add_item(VoteSkipButton())
             self.next_page += 1
 
     @property
     def is_voting_complete(self) -> bool:
         return self.next_page == len(self.candidate_pairs)
+
 
 class VotingSystem(commands.Cog):
     def __init__(self, bot: AssistantBot):
@@ -133,18 +153,16 @@ class VotingSystem(commands.Cog):
         if elo_rating.has_voted_before(ctx.user):
             return await ctx.response.send_message('You have already cast your votes!', ephemeral=True)
         elo_rating.add_voter(ctx.user)
-        await ctx.response.send_message(f'Select your preferred Candidate {ctx.user.mention}!', view=VoteButtonView(elo_rating), ephemeral=True)
+        await ctx.response.send_message(f'{elo_rating.title} {ctx.user.mention}!', view=VoteButtonView(elo_rating), ephemeral=True)
 
     @app_commands.command(name='create-poll', description='Setup the candidates to vote for!')
     @app_commands.checks.has_permissions(create_polls=True)
-    @app_commands.describe(title="Title for the Voting Poll", candidates="Candidates separated by commas")
-    async def create_poll(self, ctx: discord.Interaction, candidates: str, title: Optional[str] = None):
+    @app_commands.describe(title="Title/Question for the Voting Poll", candidates="Candidates separated by commas")
+    async def create_poll(self, ctx: discord.Interaction, candidates: str, title: str):
         if ctx.channel.id in self.global_rating_system:
             elo_rating = self.global_rating_system.get(ctx.channel.id)
             return await ctx.response.send_message(f'There is a Active Poll in this channel by <@{elo_rating.creator}>', ephemeral=True)
         candidates = [c.strip() for c in candidates.split(',')]
-        if title is None:
-            title = "Voting"
         self.global_rating_system[ctx.channel.id] = EloRatingSystem(candidates=candidates, creator=ctx.user.id, title=title)
         content = f"# {title}\n"
         for c in candidates:
@@ -161,6 +179,7 @@ class VotingSystem(commands.Cog):
             return await ctx.response.send_message(f'Only <@{elo_rating.creator}> can STOP THE COUNT!', ephemeral=True)
         await ctx.response.send_message(elo_rating.summary())
         self.global_rating_system.pop(ctx.channel.id)
+
 
 async def setup(bot: AssistantBot):
     await bot.add_cog(VotingSystem(bot))
