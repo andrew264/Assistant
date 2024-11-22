@@ -175,10 +175,12 @@ class VotingSystem(commands.Cog):
         if ctx.channel.id not in self.global_rating_system:
             return await ctx.response.send_message('No Currently Active Polls in this channel', ephemeral=True)
         elo_rating = self.global_rating_system.get(ctx.channel.id)
-        if (elo_rating.creator != ctx.user.id) or (not ctx.user.guild_permissions.administrator):
-            return await ctx.response.send_message(f'Only <@{elo_rating.creator}> can STOP THE COUNT!', ephemeral=True)
-        await ctx.response.send_message(elo_rating.summary())
-        self.global_rating_system.pop(ctx.channel.id)
+        if elo_rating.creator == ctx.user.id or ctx.user.guild_permissions.administrator:
+            await ctx.response.send_message(elo_rating.summary())
+            self.global_rating_system.pop(ctx.channel.id)
+            return
+        await ctx.response.send_message(f'Only <@{elo_rating.creator}> can STOP THE COUNT!', ephemeral=True)
+
 
 
 async def setup(bot: AssistantBot):
