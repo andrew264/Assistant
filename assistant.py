@@ -48,9 +48,9 @@ class AssistantBot(commands.Bot):
                 wavelink.Node(uri=lconf.URI, password=lconf.PASSWORD, inactive_player_timeout=300, ),
             ]
             await wavelink.Pool.connect(nodes=nodes, client=self, cache_capacity=None)
-            self.logger.info("[CONNECTED] to LavaLink.")
+            self.logger.info("[LAVALINK] Connected.")
         else:
-            self.logger.warning("[FAILED] LavaLink is not configured.")
+            self.logger.warning("[LAVALINK] Configuration not found.")
 
     def connect_to_mongo(self) -> Optional[AsyncIOMotorClient]:
         """
