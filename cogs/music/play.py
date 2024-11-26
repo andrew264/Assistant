@@ -9,11 +9,12 @@ from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
 from thefuzz import process
-from wavelink import Playlist
+from wavelink import Playable, Playlist
 
 from assistant import AssistantBot
-from config import LavaConfig
+from config import HOME_GUILD_ID, LavaConfig
 from utils import check_vc, clickable_song, remove_brackets
+from utils.tenor import TenorObject
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
 
@@ -23,6 +24,7 @@ class Play(commands.Cog):
         self.bot = bot
         self._mongo_client: Optional[Any] = None  # type: ignore
         self._cache: Dict[int, Dict[str, str]] = defaultdict()
+        self._tenor = TenorObject()
 
     @property
     def mongo_client(self) -> Any:  # type: ignore
@@ -114,9 +116,16 @@ class Play(commands.Cog):
             if not tracks:
                 await ctx.send("No results found")
                 return
-            track = tracks[0]
+            track: Playable = tracks[0]
+            await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True,)
+
+            if ctx.guild.id == HOME_GUILD_ID:
+                if vc.current is None: delete_after = int(track.length / 1000)
+                else: delete_after = 900  # 15 minutes
+                a_gif = await self._tenor.search_async(track.title + ' ' + track.author.split(' ', 1)[0])
+                if a_gif: await ctx.channel.send(a_gif, delete_after=delete_after)
+
             await vc.queue.put_wait(track)
-            await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True)
         elif isinstance(tracks, Playlist):
             await vc.queue.put_wait(tracks)
             await ctx.send(f"Added {len(tracks)} songs to queue")
