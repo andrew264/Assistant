@@ -67,3 +67,6 @@ YT_API_KEY: Optional[str] = config["youtube"]["api_key"] or None
 
 # Genius
 GENIUS_TOKEN: Optional[str] = config["genius"]["token"] or None
+
+# YouTube
+TENOR_API_KEY: Optional[str] = config["tenor"]["api_key"] or None
