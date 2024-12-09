@@ -122,7 +122,7 @@ class Play(commands.Cog):
             if ctx.guild.id == HOME_GUILD_ID:
                 if vc.current is None: delete_after = int(track.length / 1000)
                 else: delete_after = 900  # 15 minutes
-                a_gif = await self._tenor.search_async(track.title + ' ' + track.author.split(' ', 1)[0])
+                a_gif = await self._tenor.search_async(track.author + " " + track.title)
                 if a_gif: await ctx.channel.send(a_gif, delete_after=delete_after)
 
             await vc.queue.put_wait(track)
