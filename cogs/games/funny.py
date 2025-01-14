@@ -63,7 +63,7 @@ class Funny(commands.Cog):
     async def flames(self, ctx: discord.Interaction, user1: str, user2: Optional[str] = None):
         if user2 is None:
             user2 = ctx.user.display_name
-        flames = ['Friends', 'Lovers', 'Angry', 'Married', 'Enemies', 'Siblings']
+        flames = ['Friends', 'Lovers', 'Angry', 'Married', 'Enemies', 'Soulmates']
         o_name1, o_name2 = user1, user2
         user1, user2 = user1.lower(), user2.lower()
         user1.replace(' ', '')
