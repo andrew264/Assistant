@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Optional, List
+from typing import List, Optional
 
 import discord
 from discord import app_commands
@@ -60,8 +60,7 @@ class Clips(commands.Cog):
                 assert interaction.guild is not None
                 assert last_clip is not None
                 if interaction.guild.voice_client is None:
-                    await interaction.response.edit_message(
-                        content="Disconnected form Voice. Use `/clip` to play clips.", view=None)
+                    await interaction.response.edit_message(content="Disconnected form Voice. Use `/clip` to play clips.", view=None)
                     self.stop()
                     return
                 play()
@@ -71,8 +70,7 @@ class Clips(commands.Cog):
             async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
                 assert interaction.guild is not None
                 if interaction.guild.voice_client is None:
-                    await interaction.response.edit_message(
-                        content="Disconnected form Voice. Use `/clip` to play clips.", view=None)
+                    await interaction.response.edit_message(content="Disconnected form Voice. Use `/clip` to play clips.", view=None)
                     self.stop()
                     return
                 voice.stop()

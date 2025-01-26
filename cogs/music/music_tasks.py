@@ -3,7 +3,7 @@ import wavelink
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import HOME_GUILD_ID, STATUS, ACTIVITY_TYPE, ACTIVITY_TEXT
+from config import ACTIVITY_TEXT, ACTIVITY_TYPE, HOME_GUILD_ID, STATUS
 from utils import remove_brackets
 
 SLEEP_TIME = 300
@@ -22,9 +22,7 @@ class MusicTasks(commands.Cog):
         if payload.player.guild.id != HOME_GUILD_ID:
             return
         track_name = remove_brackets(payload.track.title)
-        await self.bot.change_presence(status=STATUS,
-                                       activity=discord.Activity(type=discord.ActivityType.listening,
-                                                                 name=track_name), )
+        await self.bot.change_presence(status=STATUS, activity=discord.Activity(type=discord.ActivityType.listening, name=track_name), )
 
     @commands.Cog.listener('on_wavelink_track_end')
     async def _reset_bot_activity(self, payload: wavelink.TrackEndEventPayload) -> None:
@@ -32,9 +30,7 @@ class MusicTasks(commands.Cog):
             return
         if not payload.player.queue.is_empty or payload.player.current is not None:
             return
-        await self.bot.change_presence(status=STATUS,
-                                       activity=discord.Activity(type=ACTIVITY_TYPE,
-                                                                 name=ACTIVITY_TEXT), )
+        await self.bot.change_presence(status=STATUS, activity=discord.Activity(type=ACTIVITY_TYPE, name=ACTIVITY_TEXT), )
 
     @commands.Cog.listener('on_wavelink_inactive_player')
     async def _disconnect_if_no_listeners(self, player: wavelink.Player) -> None:

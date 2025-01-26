@@ -1,6 +1,6 @@
 import aiohttp
 import discord
-from discord import app_commands, Status, ActivityType
+from discord import ActivityType, app_commands, Status
 from discord.ext import commands
 
 from assistant import AssistantBot
@@ -16,10 +16,7 @@ class Utilities(commands.Cog):
     @commands.guild_only()
     async def echo(self, ctx: commands.Context, *, message: str):
         """Echos the message back to the user."""
-        await ctx.send(message,
-                       embeds=ctx.message.embeds,
-                       files=[await a.to_file() for a in ctx.message.attachments],
-                       reference=ctx.message.reference, )
+        await ctx.send(message, embeds=ctx.message.embeds, files=[await a.to_file() for a in ctx.message.attachments], reference=ctx.message.reference, )
         await ctx.message.delete()
 
     @commands.hybrid_command(name="ping")
@@ -41,9 +38,7 @@ class Utilities(commands.Cog):
     @app_commands.check(owner_only)
     async def set_status(self, inter: discord.Interaction, status: Status, activity_type: ActivityType, activity: str):
         await self.bot.change_presence(status=status, activity=discord.Activity(type=activity_type, name=activity))
-        await inter.response.send_message(
-            f"Status set to {str(status).capitalize()} {activity_type.name.capitalize()} {activity}",
-            ephemeral=True)
+        await inter.response.send_message(f"Status set to {str(status).capitalize()} {activity_type.name.capitalize()} {activity}", ephemeral=True)
 
 
 async def setup(bot: AssistantBot):

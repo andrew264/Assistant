@@ -21,11 +21,7 @@ class EvalCommand(commands.Cog):
 
         if (not variable) and (not isinstance(variable, bool)):
             return f"<an empty {type(variable).__name__} object>"
-        return (
-            variable
-            if (len(f"{variable}") <= 1000)
-            else f"<a long {type(variable).__name__} object with the length of {len(f'{variable}'):,}>"
-        )
+        return (variable if (len(f"{variable}") <= 1000) else f"<a long {type(variable).__name__} object with the length of {len(f'{variable}'):,}>")
 
     @staticmethod
     def prepare(string):
@@ -65,8 +61,7 @@ class EvalCommand(commands.Cog):
                 del args, code
                 return
 
-            await ctx.send(f"```py\n{self.resolve_variable(response)}```" +
-                           f"`{type(response).__name__} | {round((time() - a) * 1000, 3)} ms` ")
+            await ctx.send(f"```py\n{self.resolve_variable(response)}```" + f"`{type(response).__name__} | {round((time() - a) * 1000, 3)} ms` ")
         except Exception as e:
             await ctx.send(f"Error occurred:```\n{type(e).__name__}: {str(e)}```")
 

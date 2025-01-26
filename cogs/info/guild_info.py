@@ -31,8 +31,7 @@ class GuildInfo(commands.Cog):
         embed.add_field(name="No. of Emojis", value=f"{len(guild.emojis)}")
         if guild.premium_subscription_count:
             embed.add_field(name="Boosts", value=f"{guild.premium_subscription_count}")
-        embed.add_field(name="Total Admins",
-                        value=f"{len([member for member in guild.members if member.guild_permissions.administrator])}")
+        embed.add_field(name="Total Admins", value=f"{len([member for member in guild.members if member.guild_permissions.administrator])}")
         in_vc = [member for member in guild.members if member.voice]
         if in_vc:
             embed.add_field(name="Members in VC", value=f"{len(in_vc)}")

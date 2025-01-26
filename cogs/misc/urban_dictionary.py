@@ -93,8 +93,7 @@ class UrbanDictionary:
         """
         Fetch a definition from Urban Dictionary
         """
-        url = f"https://api.urbandictionary.com/v0/define?term={quote(self._word)}" \
-            if self._word else "https://api.urbandictionary.com/v0/random"
+        url = f"https://api.urbandictionary.com/v0/define?term={quote(self._word)}" if self._word else "https://api.urbandictionary.com/v0/random"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -149,10 +148,7 @@ class Dictionary(commands.Cog):
                     return
                 webhook = await self.get_webhook(ctx.channel)
                 for msg in msgs[1:]:
-                    await webhook.send(msg[:2000],
-                                       username=ctx.me.display_name,
-                                       avatar_url=ctx.me.display_avatar.url,
-                                       suppress_embeds=True)
+                    await webhook.send(msg[:2000], username=ctx.me.display_name, avatar_url=ctx.me.display_avatar.url, suppress_embeds=True)
             else:
                 await ctx.send(content=random_result.markdown, suppress_embeds=True)
 

@@ -18,12 +18,7 @@ class MessageDeleteCommands(commands.Cog):
             self.bot.tree.remove_command(command.name, type=command.type)
 
     def build_context_menus(self):
-        return [
-            app_commands.ContextMenu(
-                name="Delete till here",
-                callback=self.__delete_till_here,
-            ),
-        ]
+        return [app_commands.ContextMenu(name="Delete till here", callback=self.__delete_till_here, ), ]
 
     @app_commands.guild_only()
     @app_commands.checks.has_permissions(administrator=True)
@@ -32,11 +27,8 @@ class MessageDeleteCommands(commands.Cog):
         assert isinstance(message.channel, (discord.TextChannel, discord.Thread))
         await ctx.response.defer(ephemeral=True)
         msgs = await message.channel.purge(after=message)
-        await ctx.edit_original_response(
-            content=f"Deleted {len(msgs)} messages till {message.author.mention}'s message")
-        self.bot.logger.info(
-            f"[DELETE] {len(msgs)} messages in {message.guild}: #{message.channel.name} by {ctx.user.display_name}"
-        )
+        await ctx.edit_original_response(content=f"Deleted {len(msgs)} messages till {message.author.mention}'s message")
+        self.bot.logger.info(f"[DELETE] {len(msgs)} messages in {message.guild}: #{message.channel.name} by {ctx.user.display_name}")
 
     @app_commands.command(name="clear", description="Delete messages in a channel")
     @app_commands.guild_only()
@@ -48,9 +40,7 @@ class MessageDeleteCommands(commands.Cog):
         await ctx.response.defer(ephemeral=True)
         msgs = await ctx.channel.purge(limit=amount)
         await ctx.edit_original_response(content=f"Deleted {len(msgs)} messages in {ctx.channel.mention}")
-        self.bot.logger.info(
-            f"[DELETE] {len(msgs)} messages in {ctx.guild}: #{ctx.channel.name} by {ctx.user.display_name}"
-        )
+        self.bot.logger.info(f"[DELETE] {len(msgs)} messages in {ctx.guild}: #{ctx.channel.name} by {ctx.user.display_name}")
 
     @commands.command(aliases=["yeet"], description="Delete messages in a channel", hidden=True)
     @commands.guild_only()
@@ -68,14 +58,11 @@ class MessageDeleteCommands(commands.Cog):
         def _mass_purge_checker(msg: discord.Message) -> bool:
             if user_id and msg.author.id == user_id:
                 return True
-            if any(s in str(msg.author).lower() for s in stuff_to_delete) \
-                    or any(s in msg.content.lower() for s in stuff_to_delete):
+            if any(s in str(msg.author).lower() for s in stuff_to_delete) or any(s in msg.content.lower() for s in stuff_to_delete):
                 return True
             for e in msg.embeds:
-                if any(s in str(e.title).lower() for s in stuff_to_delete) \
-                        or any(s in str(e.description).lower() for s in stuff_to_delete) \
-                        or any(s in str(e.author.name).lower() for s in stuff_to_delete) \
-                        or any(s in str(e.footer.text).lower() for s in stuff_to_delete):
+                if any(s in str(e.title).lower() for s in stuff_to_delete) or any(s in str(e.description).lower() for s in stuff_to_delete) or any(
+                    s in str(e.author.name).lower() for s in stuff_to_delete) or any(s in str(e.footer.text).lower() for s in stuff_to_delete):
                     return True
                 for f in e.fields:
                     if f.value and any(s in f.value.lower() for s in stuff_to_delete):
@@ -91,9 +78,7 @@ class MessageDeleteCommands(commands.Cog):
             return False
 
         deleted_msgs = await ctx.channel.purge(limit=None, check=_mass_purge_checker)
-        self.bot.logger.info(
-            f"[DELETE] {len(deleted_msgs)} messages in {ctx.guild}: #{ctx.channel.name} by {ctx.author.display_name}"
-        )
+        self.bot.logger.info(f"[DELETE] {len(deleted_msgs)} messages in {ctx.guild}: #{ctx.channel.name} by {ctx.author.display_name}")
         await ctx.send(f"Deleted {len(deleted_msgs)} messages", delete_after=30)
 
 

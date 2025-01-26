@@ -1,11 +1,11 @@
-from typing import Optional, cast
+from typing import cast, Optional
 
 import discord
 import wavelink
 from discord.ext import commands
 
 from assistant import AssistantBot
-from utils import check_vc, check_same_vc
+from utils import check_same_vc, check_vc
 
 
 class Filters(commands.Cog):
@@ -155,40 +155,28 @@ class Filters(commands.Cog):
 
             @discord.ui.button(label="off", style=discord.ButtonStyle.gray)
             async def treble_off(self, interaction: discord.Interaction, button: discord.Button):
-                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.0},
-                                             {'band': 11, 'gain': 0.0},
-                                             {'band': 12, 'gain': 0.0},
-                                             {'band': 13, 'gain': 0.0}])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.0}, {'band': 11, 'gain': 0.0}, {'band': 12, 'gain': 0.0}, {'band': 13, 'gain': 0.0}])
                 await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost Disabled", colour=0x000000)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="low", style=discord.ButtonStyle.green)
             async def treble_low(self, interaction: discord.Interaction, button: discord.Button):
-                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.2},
-                                             {'band': 11, 'gain': 0.2},
-                                             {'band': 12, 'gain': 0.2},
-                                             {'band': 13, 'gain': 0.25}])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.2}, {'band': 11, 'gain': 0.2}, {'band': 12, 'gain': 0.2}, {'band': 13, 'gain': 0.25}])
                 await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost set to Low", colour=0x00FF00)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="medium", style=discord.ButtonStyle.blurple)
             async def treble_mid(self, interaction: discord.Interaction, button: discord.Button):
-                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.4},
-                                             {'band': 11, 'gain': 0.4},
-                                             {'band': 12, 'gain': 0.4},
-                                             {'band': 13, 'gain': 0.45}])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.4}, {'band': 11, 'gain': 0.4}, {'band': 12, 'gain': 0.4}, {'band': 13, 'gain': 0.45}])
                 await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost set to Medium", colour=0x0000FF)
                 await interaction.response.edit_message(embed=embed, view=self)
 
             @discord.ui.button(label="high", style=discord.ButtonStyle.danger)
             async def treble_hi(self, interaction: discord.Interaction, button: discord.Button):
-                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.6},
-                                             {'band': 11, 'gain': 0.6},
-                                             {'band': 12, 'gain': 0.6},
-                                             {'band': 13, 'gain': 0.65}])
+                filters.equalizer.set(bands=[{'band': 10, 'gain': 0.6}, {'band': 11, 'gain': 0.6}, {'band': 12, 'gain': 0.6}, {'band': 13, 'gain': 0.65}])
                 await vc.set_filters(filters)
                 embed = discord.Embed(title="Treble Boost set to High", colour=0xFF0000)
                 await interaction.response.edit_message(embed=embed, view=self)
@@ -228,8 +216,7 @@ class Filters(commands.Cog):
                 assert isinstance(interaction.user, discord.Member)
                 assert interaction.guild
                 if interaction.user.voice is None:
-                    await interaction.response.send_message("You are not connected to a voice channel.",
-                                                            ephemeral=True)
+                    await interaction.response.send_message("You are not connected to a voice channel.", ephemeral=True)
                     return False
                 if interaction.guild.voice_client is None:
                     await interaction.response.send_message("leave me alone")

@@ -2,12 +2,12 @@ import random
 from typing import Optional, Union
 
 import discord
-from discord import utils, app_commands
+from discord import app_commands, utils
 from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import AssistantBot
-from utils import available_clients, all_activities
+from utils import all_activities, available_clients
 
 
 class UserInfo(commands.Cog):
@@ -22,12 +22,7 @@ class UserInfo(commands.Cog):
             self.bot.tree.remove_command(command.name, type=command.type)
 
     def build_context_menus(self):
-        return [
-            app_commands.ContextMenu(
-                name="Who is this cute fella?",
-                callback=self.__get_userinfo,
-            ),
-        ]
+        return [app_commands.ContextMenu(name="Who is this cute fella?", callback=self.__get_userinfo, ), ]
 
     @staticmethod
     def _get_thumbnail(user: Union[discord.Member, discord.User]) -> str:
@@ -103,14 +98,12 @@ class UserInfo(commands.Cog):
             assert guild is not None
             fuser = guild.get_member(user.id)
             assert fuser is not None
-            is_owner: bool = (user.guild.owner == user) and (
-                    (user.joined_at - user.guild.created_at).total_seconds() < 2)
+            is_owner: bool = (user.guild.owner == user) and ((user.joined_at - user.guild.created_at).total_seconds() < 2)
             # Guild Join Date
             embed.add_field(name=f"Created {user.guild.name} on" if is_owner else f"Joined {user.guild.name} on",
                             value=f"{utils.format_dt(user.joined_at, 'F')}\n{utils.format_dt(user.joined_at, 'R')}", )
             # Account Creation Date
-            embed.add_field(name="Account created on",
-                            value=f"{utils.format_dt(user.created_at, 'F')}\n{utils.format_dt(user.created_at, 'R')}", )
+            embed.add_field(name="Account created on", value=f"{utils.format_dt(user.created_at, 'F')}\n{utils.format_dt(user.created_at, 'R')}", )
 
             if user.nick is not None:  # Nickname
                 embed.add_field(name="Nickname", value=user.nick)
@@ -119,11 +112,10 @@ class UserInfo(commands.Cog):
                 embed.add_field(name="Available Clients", value=available_clients(fuser))
 
             if is_admin and timestamp:  # Last Seen
-                embed.add_field(name="Last Seen" if fuser.raw_status == discord.Status.offline else "Online for",
-                                value=f"<t:{timestamp}:R>", )
+                embed.add_field(name="Last Seen" if fuser.raw_status == discord.Status.offline else "Online for", value=f"<t:{timestamp}:R>", )
 
             # Activities
-            for act_type, act_name in all_activities(fuser, with_time=True, with_url=True, include_all_activities=True):
+            for act_type, act_name in all_activities(fuser, with_time=True, with_url=True, include_all_activities=True).items():
                 if act_name:
                     embed.add_field(name=act_type, value=act_name)
 

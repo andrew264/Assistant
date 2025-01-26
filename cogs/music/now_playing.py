@@ -1,6 +1,6 @@
 import asyncio
 from logging import Logger
-from typing import cast, Dict, Tuple, Optional
+from typing import cast, Dict, Optional, Tuple
 
 import discord
 import wavelink
@@ -9,7 +9,7 @@ from wavelink import Playable
 
 from assistant import AssistantBot
 from config import LavaConfig
-from utils import check_vc, check_same_vc
+from utils import check_same_vc, check_vc
 
 
 class NowPlayingView(discord.ui.View):
@@ -61,8 +61,7 @@ class NowPlayingView(discord.ui.View):
                 _embed.set_footer(text=f"Looping through {vc.queue.count + 1} Songs")
             elif vc.queue.mode is wavelink.QueueMode.normal:
                 in_queue_track: Playable = vc.queue.peek(0)
-                _embed.set_footer(text=f"Next in Queue: {in_queue_track.title}",
-                                  icon_url=in_queue_track.artwork)
+                _embed.set_footer(text=f"Next in Queue: {in_queue_track.title}", icon_url=in_queue_track.artwork)
         else:
             if vc.queue.mode is wavelink.QueueMode.loop_all:
                 _embed.set_footer(text="Looping current Song")
@@ -74,11 +73,8 @@ class NowPlayingView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         assert isinstance(interaction.user, discord.Member)
         assert interaction.guild is not None
-        if (not interaction.user.voice or not interaction.guild.voice_client or
-                interaction.user.voice.channel != interaction.guild.voice_client.channel):
-            await interaction.response.send_message(
-                content="You must be in the same VC as the bot to use this.",
-                ephemeral=True)
+        if (not interaction.user.voice or not interaction.guild.voice_client or interaction.user.voice.channel != interaction.guild.voice_client.channel):
+            await interaction.response.send_message(content="You must be in the same VC as the bot to use this.", ephemeral=True)
             return False
         return True
 
@@ -88,8 +84,7 @@ class NowPlayingView(discord.ui.View):
         self.stop()
 
     # Previous Button
-    @discord.ui.button(custom_id="assistant:nowplaying:prev_button",
-                       style=discord.ButtonStyle.primary, emoji="⏮️", )
+    @discord.ui.button(custom_id="assistant:nowplaying:prev_button", style=discord.ButtonStyle.primary, emoji="⏮️", )
     async def prev_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         assert vc.current is not None
@@ -98,8 +93,7 @@ class NowPlayingView(discord.ui.View):
         self.logger.debug(f"{interaction.user} skipped to beginning of {vc.current.title} in {interaction.guild}")
 
     # Rewind Button
-    @discord.ui.button(custom_id="assistant:nowplaying:rewind_button",
-                       style=discord.ButtonStyle.primary, emoji="⏪", )
+    @discord.ui.button(custom_id="assistant:nowplaying:rewind_button", style=discord.ButtonStyle.primary, emoji="⏪", )
     async def rewind_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         assert vc.current is not None
@@ -111,8 +105,7 @@ class NowPlayingView(discord.ui.View):
         self.logger.debug(f"{interaction.user} rewound 10 seconds in {vc.current.title} in {interaction.guild}")
 
     # Play/Pause Button
-    @discord.ui.button(custom_id="assistant:nowplaying:pause_button",
-                       style=discord.ButtonStyle.primary, emoji="⏸️", )
+    @discord.ui.button(custom_id="assistant:nowplaying:pause_button", style=discord.ButtonStyle.primary, emoji="⏸️", )
     async def play_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         assert vc.current is not None
@@ -129,8 +122,7 @@ class NowPlayingView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
     # Fast Forward Button
-    @discord.ui.button(custom_id="assistant:nowplaying:forward_button",
-                       style=discord.ButtonStyle.primary, emoji="⏩", )
+    @discord.ui.button(custom_id="assistant:nowplaying:forward_button", style=discord.ButtonStyle.primary, emoji="⏩", )
     async def forward_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         assert vc.current is not None
@@ -139,12 +131,10 @@ class NowPlayingView(discord.ui.View):
         else:
             await vc.stop()
         await interaction.response.edit_message(embed=self.embed)
-        self.logger.debug(
-            f"{interaction.user} fast forwarded 10 seconds of {vc.current.title} in {interaction.guild}")
+        self.logger.debug(f"{interaction.user} fast forwarded 10 seconds of {vc.current.title} in {interaction.guild}")
 
     # Skip Button
-    @discord.ui.button(custom_id="assistant:nowplaying:skip_button",
-                       style=discord.ButtonStyle.primary, emoji="⏭️", )
+    @discord.ui.button(custom_id="assistant:nowplaying:skip_button", style=discord.ButtonStyle.primary, emoji="⏭️", )
     async def skip_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         assert vc.current is not None
@@ -153,8 +143,7 @@ class NowPlayingView(discord.ui.View):
         await interaction.response.edit_message(embed=self.embed)
 
     # Stop Button
-    @discord.ui.button(label="Stop", custom_id="assistant:nowplaying:stop_button",
-                       style=discord.ButtonStyle.danger, emoji="⏹️", row=1, )
+    @discord.ui.button(label="Stop", custom_id="assistant:nowplaying:stop_button", style=discord.ButtonStyle.danger, emoji="⏹️", row=1, )
     async def stop_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         vc.queue.clear()
@@ -165,8 +154,7 @@ class NowPlayingView(discord.ui.View):
         self.logger.debug(f"{interaction.user} stopped the music in {interaction.guild}")
 
     # Repeat Button
-    @discord.ui.button(label="Loop", custom_id="assistant:nowplaying:loop_button",
-                       style=discord.ButtonStyle.gray, emoji="🔁", row=1, )
+    @discord.ui.button(label="Loop", custom_id="assistant:nowplaying:loop_button", style=discord.ButtonStyle.gray, emoji="🔁", row=1, )
     async def loop_button(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         if vc.queue.mode.loop is wavelink.QueueMode.normal:
@@ -180,8 +168,7 @@ class NowPlayingView(discord.ui.View):
         await interaction.response.edit_message(embed=self.embed, view=self)
 
     # Volume-down Button
-    @discord.ui.button(custom_id="assistant:nowplaying:volume_down_button",
-                       style=discord.ButtonStyle.green, emoji="➖", row=2, )
+    @discord.ui.button(custom_id="assistant:nowplaying:volume_down_button", style=discord.ButtonStyle.green, emoji="➖", row=2, )
     async def volume_down(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         vol = vc.volume
@@ -196,14 +183,12 @@ class NowPlayingView(discord.ui.View):
         self.logger.debug(f"{interaction.user} set volume to {vol} % in {interaction.guild}")
 
     # Volume Button
-    @discord.ui.button(label=f"Volume", disabled=True,
-                       style=discord.ButtonStyle.gray, row=2)
+    @discord.ui.button(label=f"Volume", disabled=True, style=discord.ButtonStyle.gray, row=2)
     async def volume(self, interaction: discord.Interaction, button: discord.Button):
         pass
 
     # Volume-up Button
-    @discord.ui.button(custom_id="assistant:nowplaying:volume_up_button",
-                       style=discord.ButtonStyle.green, emoji="➕", row=2, )
+    @discord.ui.button(custom_id="assistant:nowplaying:volume_up_button", style=discord.ButtonStyle.green, emoji="➕", row=2, )
     async def volume_up(self, interaction: discord.Interaction, button: discord.Button):
         vc = self.vc
         vol = vc.volume
@@ -231,8 +216,7 @@ class NowPlayingView(discord.ui.View):
             return
         # Play Button
         self.play_button.emoji = "▶️" if vc.paused else "⏸️"
-        self.play_button.style = discord.ButtonStyle.success \
-            if vc.paused else discord.ButtonStyle.primary
+        self.play_button.style = discord.ButtonStyle.success if vc.paused else discord.ButtonStyle.primary
         # Loop Button
         self.loop_button.emoji = "🔁" if vc.queue.mode.loop_all else "➡"
         # Volume Buttons

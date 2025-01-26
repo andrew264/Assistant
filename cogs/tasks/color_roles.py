@@ -81,8 +81,7 @@ class ColorRoles(commands.Cog):
     @commands.is_owner()
     async def reaction_roles(self, ctx: commands.Context) -> None:
         await ctx.message.delete()
-        embed = discord.Embed(title="Reaction Roles", colour=0xFFFFFF,
-                              description="Claim a colour of your choice!", )
+        embed = discord.Embed(title="Reaction Roles", colour=0xFFFFFF, description="Claim a colour of your choice!", )
         await ctx.send(embed=embed, view=ColourButtons())
 
 

@@ -1,6 +1,6 @@
 import itertools
 import random
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import discord
 from discord import app_commands
@@ -156,7 +156,7 @@ class VotingSystem(commands.Cog):
         await ctx.response.send_message(f'{elo_rating.title} {ctx.user.mention}!', view=VoteButtonView(elo_rating), ephemeral=True)
 
     @app_commands.command(name='create-poll', description='Setup the candidates to vote for!')
-    @app_commands.checks.has_permissions(create_polls=True)
+    # @app_commands.checks.has_permissions(create_polls=True)
     @app_commands.describe(title="Title/Question for the Voting Poll", candidates="Candidates separated by commas")
     async def create_poll(self, ctx: discord.Interaction, candidates: str, title: str):
         if ctx.channel.id in self.global_rating_system:
@@ -180,7 +180,6 @@ class VotingSystem(commands.Cog):
             self.global_rating_system.pop(ctx.channel.id)
             return
         await ctx.response.send_message(f'Only <@{elo_rating.creator}> can STOP THE COUNT!', ephemeral=True)
-
 
 
 async def setup(bot: AssistantBot):

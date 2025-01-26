@@ -3,12 +3,12 @@ from datetime import datetime
 from typing import Optional
 
 import discord
-from discord import Embed
+from discord import Embed, Status
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import OWNER_ID, HOME_GUILD_ID, LOGGING_GUILDS
-from utils import available_clients, all_activities
+from config import HOME_GUILD_ID, LOGGING_GUILDS, OWNER_ID
+from utils import all_activities
 
 
 class Surveillance(commands.Cog):
@@ -17,14 +17,18 @@ class Surveillance(commands.Cog):
         self.logger = bot.logger.getChild("surveillance")
 
     async def get_webhook(self, _id: int) -> Optional[discord.Webhook]:
-        channel = self.bot.get_channel(_id)
-        assert isinstance(channel, (discord.TextChannel, discord.Thread))
-        webhooks = await channel.webhooks()
-        for w in webhooks:
-            if w.name == "Assistant":
-                return w
-        else:
-            return await channel.create_webhook(name="Assistant", avatar=await self.bot.user.display_avatar.read())
+        try:
+            channel = self.bot.get_channel(_id)
+            assert isinstance(channel, (discord.TextChannel, discord.Thread))
+            webhooks = await channel.webhooks()
+            for w in webhooks:
+                if w.name == "Assistant":
+                    return w
+            else:
+                return await channel.create_webhook(name="Assistant", avatar=await self.bot.user.display_avatar.read())
+        except discord.Forbidden as e:
+            self.logger.error(f"Failed to get webhook: {e}")
+            return None
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message) -> None:
@@ -50,7 +54,8 @@ class Surveillance(commands.Cog):
         embed.add_field(name="Original Message", value=before.clean_content, inline=False)
         embed.add_field(name="Altered Message", value=after.clean_content, inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await hook.send(embed=embed, username=author.display_name, avatar_url=author.display_avatar.url)
+        if hook:
+            await hook.send(embed=embed, username=author.display_name, avatar_url=author.display_avatar.url)
         self.logger.info(f"[MESSAGE EDIT] @{author.display_name} in #{before.channel.name}")
 
     @commands.Cog.listener()
@@ -63,17 +68,15 @@ class Surveillance(commands.Cog):
         if message.author.bot or message.author.id == OWNER_ID:
             return
         author = message.author
-        embed = Embed(title="Deleted Message", description=f"{message.channel.mention}",
-                      colour=discord.Colour.red())
+        embed = Embed(title="Deleted Message", description=f"{message.channel.mention}", colour=discord.Colour.red())
         embed.add_field(name="Message Content", value=message.clean_content, inline=False)
         if message.attachments:
-            embed.add_field(name="Attachments", value="\n".join([attachment.url for attachment in message.attachments]),
-                            inline=False)
+            embed.add_field(name="Attachments", value="\n".join([attachment.url for attachment in message.attachments]), inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
         hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
-        await hook.send(embed=embed, username=author.display_name, avatar_url=author.display_avatar.url)
-        self.logger.info(f"[MESSAGE DELETE] @{author.display_name} in #{message.channel.name}\n" +
-                         f"\tMessage: {message.clean_content}")
+        if hook:
+            await hook.send(embed=embed, username=author.display_name, avatar_url=author.display_avatar.url)
+        self.logger.info(f"[MESSAGE DELETE] @{author.display_name} in #{message.channel.name}\n" + f"\tMessage: {message.clean_content}")
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
@@ -123,7 +126,8 @@ class Surveillance(commands.Cog):
         embed.add_field(name="Old Username", value=str(before), inline=False, )
         embed.add_field(name="New Username", value=str(after), inline=False, )
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        await hook.send(embed=embed, username=member.display_name, avatar_url=member.display_avatar.url)
+        if hook:
+            await hook.send(embed=embed, username=member.display_name, avatar_url=member.display_avatar.url)
         self.logger.info(f"[UPDATE] Username {member.guild.name}: @{before} -> @{after}")
 
     @commands.Cog.listener()
@@ -131,51 +135,71 @@ class Surveillance(commands.Cog):
         """
         Logs when a member changes their status/activity.
         """
-        if before.guild is None:
-            return
         if before.bot:
+            return
+        if before.guild is None or before.guild.id != HOME_GUILD_ID:
             return
         if before.id == OWNER_ID:
             return
-        if before.guild.id != HOME_GUILD_ID:
-            return
         hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
         logger = self.logger
-        embed = Embed(title="Presence Update", colour=discord.Colour.red())
-        before_clients = available_clients(before)
-        after_clients = available_clients(after)
-        if before_clients != after_clients:
-            embed.add_field(name=f"Client/Status", value=f"{before_clients} ──> {after_clients}",
-                            inline=False, )
-            logger.info(f"[UPDATE] Presence {before.guild.name}: @{before} | {before_clients} -> {after_clients}")
-            if before.raw_status == "offline" or after.raw_status == "offline":
-                await hook.send(embed=embed, username=after.display_name, avatar_url=after.display_avatar.url)
-                return
+        msg_parts = []
+
+        def get_clients(m: discord.Member) -> list[str]:
+            c = []
+            if m.desktop_status != Status.offline: c.append("Desktop")
+            if m.mobile_status != Status.offline: c.append("Mobile")
+            if m.web_status != Status.offline: c.append("Web")
+            return c
+
+        b_clients, a_clients = get_clients(before), get_clients(after)
+        if b_clients != a_clients:
+            clients_str = f"{', '.join(b_clients)} -> {', '.join(a_clients)}"
+            msg_parts.append(clients_str)
+            logger.info(f"[UPDATE] Client device for @{before} in {before.guild.name} | {clients_str}")
+
+        b_status, a_status = before.raw_status, after.raw_status
+        if b_status != a_status:
+            status_str = f"{b_status} -> {a_status}"
+            msg_parts.append(status_str)
+            logger.info(f"[UPDATE] Client status for @{before} in {before.guild.name} | {status_str}")
+
+        if "offline" in (b_status, a_status):
+            msg = "\n".join(msg_parts)
+            if hook:
+                await hook.send(msg, username=after.display_name, avatar_url=after.display_avatar.url)
 
         # Activities
-        for b_key, b_value in all_activities(before, with_url=True):
-            if b_key == "Spotify":
+        b_activities = all_activities(before, with_url=True)
+        a_activities = all_activities(after, with_url=True)
+        all_keys = set(b_activities.keys()).union(a_activities.keys())
+        for key in all_keys:
+            if key == "Spotify":
                 continue
-            for a_key, a_value in all_activities(after, with_url=True):
-                if b_key != a_key or b_value == a_value:
-                    continue
-                if b_value and not a_value:
-                    embed.add_field(name=f"Stopped {b_key}:", value=f"{b_value}", inline=False, )
-                    logger.info(f"[UPDATE] Presence {before.guild.name}: @{before} stopped {b_key} {b_value}")
-                elif a_value and not b_value:
-                    embed.add_field(name=f"Started {b_key}:", value=f"{a_value}", inline=False, )
-                    logger.info(f"[UPDATE] Presence {before.guild.name}: @{before} started {b_key} {a_value}")
-                else:
-                    embed.add_field(name=f"Changed {b_key}:", value=f"{b_value} ──> {a_value}", inline=False, )
-                    logger.info(f"[UPDATE] Presence {before.guild.name}: @{before} changed "
-                                f"{b_key}: {b_value} -> {a_value}")
+            b_value = b_activities.get(key)
+            a_value = a_activities.get(key)
+            if b_value == a_value:
+                continue
+            change = ""
+            if key == 'Custom Status':
+                if b_value != a_value:
+                    change = f"Custom Status: {b_value} -> {a_value}"
+            elif not b_value:
+                change = f"Started {key}: {a_value}"
+            elif not a_value:
+                change = f"Stopped {key}: {b_value}"
+            else:
+                change = f"{key}: {b_value} -> {a_value}"
+            if change:
+                msg_parts.append(change)
+                logger.info(f"[UPDATE] Presence {before.guild.name}: @{before} {change}")
 
-        if len(embed.fields):
-            await hook.send(embed=embed, username=before.display_name, avatar_url=before.display_avatar.url)
+        msg = "\n".join(msg_parts).strip()
+        if msg and hook:
+            await hook.send(msg, username=before.display_name, avatar_url=before.display_avatar.url)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState,
-                                    after: discord.VoiceState) -> None:
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """
         Logs when a member joins/leaves a voice channel.
         """
@@ -199,7 +223,8 @@ class Surveillance(commands.Cog):
                 break
         else:
             return
-        await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url)
+        if hook:
+            await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url)
         self.logger.info(f"[UPDATE] Voice {member.guild.name}: @{member.display_name}: {log_msg}")
 
     @commands.Cog.listener()
@@ -224,9 +249,8 @@ class Surveillance(commands.Cog):
             return
         if payload.guild_id == HOME_GUILD_ID:
             hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
-            await hook.send(f"{payload.user.display_name} left the server.",
-                            username=payload.user.display_name,
-                            avatar_url=payload.user.display_avatar.url)
+            if hook:
+                await hook.send(f"{payload.user.display_name} left the server.", username=payload.user.display_name, avatar_url=payload.user.display_avatar.url)
         self.logger.info(f"[GUILD] Leave @{payload.user.name}: {self.bot.get_guild(payload.guild_id).name}")
 
     @commands.Cog.listener()
@@ -236,8 +260,8 @@ class Surveillance(commands.Cog):
             return
         if member.guild.id == HOME_GUILD_ID:
             hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
-            await hook.send(f"{member.display_name} joined the server",
-                            username=member.display_name, avatar_url=member.display_avatar.url)
+            if hook:
+                await hook.send(f"{member.display_name} joined the server", username=member.display_name, avatar_url=member.display_avatar.url)
         self.logger.info(f"[GUILD] Join @{member.name}: {member.guild.name}")
 
     @commands.Cog.listener()
@@ -247,8 +271,8 @@ class Surveillance(commands.Cog):
             return
         if guild.id == HOME_GUILD_ID:
             hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
-            await hook.send(f"{user.display_name} was banned from the server",
-                            username=user.display_name, avatar_url=user.display_avatar.url)
+            if hook:
+                await hook.send(f"{user.display_name} was banned from the server", username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"[GUILD] Ban @{user.name}: {guild.name}")
 
     @commands.Cog.listener()
@@ -258,8 +282,8 @@ class Surveillance(commands.Cog):
             return
         if guild.id == HOME_GUILD_ID:
             hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
-            await hook.send(f"{user.display_name} was unbanned from the server",
-                            username=user.display_name, avatar_url=user.display_avatar.url)
+            if hook:
+                await hook.send(f"{user.display_name} was unbanned from the server", username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"[GUILD] Unban @{user.name}: {guild.name}")
 
 

@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast, Optional
 
 import wavelink
 from discord import app_commands
@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from assistant import AssistantBot
 from config import LavaConfig, OWNER_ID
-from utils import check_vc, check_same_vc, clickable_song
+from utils import check_same_vc, check_vc, clickable_song
 
 
 class MusicCommands(commands.Cog):
@@ -77,8 +77,7 @@ class MusicCommands(commands.Cog):
         await vc.set_volume(volume)
         await ctx.send(f"Volume set to `{volume} %`")
 
-    @commands.hybrid_command(name="stop", aliases=["leave", "disconnect", "dc"],
-                             description="Stops the music and disconnects the bot from the voice channel")
+    @commands.hybrid_command(name="stop", aliases=["leave", "disconnect", "dc"], description="Stops the music and disconnects the bot from the voice channel")
     @commands.guild_only()
     @check_vc()
     @check_same_vc()

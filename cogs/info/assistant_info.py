@@ -37,12 +37,9 @@ class BotInfo(commands.Cog):
         embed.add_field(name="Python Version", value=f"v. {python_version()}")
         used_memory = psutil.Process(getpid()).memory_info().rss
         embed.add_field(name="Python Memory Usage", value=f"{human_bytes(used_memory)}")
-        embed.add_field(name=f"{discord.__title__.capitalize()} Version",
-                        value=f"v. {discord.__version__}", inline=False)
+        embed.add_field(name=f"{discord.__title__.capitalize()} Version", value=f"v. {discord.__version__}", inline=False)
         embed.add_field(name="System CPU Usage", value=f"{psutil.cpu_percent()}%", inline=False)
-        embed.add_field(name="System Memory Usage",
-                        value=f"{human_bytes(psutil.virtual_memory().used)}/" +
-                              f"{human_bytes(psutil.virtual_memory().total)}", inline=False)
+        embed.add_field(name="System Memory Usage", value=f"{human_bytes(psutil.virtual_memory().used)}/" + f"{human_bytes(psutil.virtual_memory().total)}", inline=False)
         await ctx.send(embed=embed)
 
 

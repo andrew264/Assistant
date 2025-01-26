@@ -22,9 +22,7 @@ class LastSeen(commands.Cog):
         db = self.mongo_db["assistant"]
         collection = db["allUsers"]
 
-        await collection.update_one({"_id": user_id},
-                                    {"$set": {"lastSeen": int(datetime.datetime.now().timestamp())}},
-                                    upsert=True)
+        await collection.update_one({"_id": user_id}, {"$set": {"lastSeen": int(datetime.datetime.now().timestamp())}}, upsert=True)
 
     @commands.Cog.listener('on_ready')
     async def reset_last_seen(self) -> None:
@@ -41,8 +39,7 @@ class LastSeen(commands.Cog):
     async def on_presence_update(self, before: discord.Member, after: discord.Member) -> None:
         if before.bot:
             return
-        if (before.raw_status == after.raw_status) or \
-                before.raw_status != 'offline' and after.raw_status != 'offline':
+        if (before.raw_status == after.raw_status) or before.raw_status != 'offline' and after.raw_status != 'offline':
             return
         await self.update_time(after.id)
 
@@ -68,8 +65,7 @@ class LastSeen(commands.Cog):
         await self.update_time(user.id)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member,
-                                    before: discord.VoiceState, after: discord.VoiceState) -> None:
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         if member.bot:
             return
         if member.raw_status != 'offline':

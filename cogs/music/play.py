@@ -1,7 +1,7 @@
 import asyncio
 import re
 from collections import defaultdict
-from typing import Optional, Dict, Any, cast
+from typing import Any, cast, Dict, Optional
 
 import discord
 import wavelink
@@ -48,17 +48,13 @@ class Play(commands.Cog):
         db = self.mongo_client["assistant"]
         collection = db["songHistory"]
         new_song = dict(title=title, uri=track.uri)
-        result = await collection.update_one(
-            {"_id": guild_id},
-            {
-                "$push": {
-                    "songs": {
-                        "$each": [new_song],
-                        "$slice": -100
-                    }
-                },
-            }
-        )
+        result = await collection.update_one({"_id": guild_id}, {
+            "$push": {
+                "songs": {
+                    "$each": [new_song], "$slice": -100
+                }
+            },
+        })
         if result.modified_count:
             self.bot.logger.debug(f"[MONGO] Added {title} to songHistory collection for GuildID: {guild_id}")
         else:
@@ -117,7 +113,7 @@ class Play(commands.Cog):
                 await ctx.send("No results found")
                 return
             track: Playable = tracks[0]
-            await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True,)
+            await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True, )
 
             if ctx.guild.id == HOME_GUILD_ID:
                 if vc.current is None: delete_after = int(track.length / 1000)
@@ -150,8 +146,7 @@ class Play(commands.Cog):
         result = {"Search: " + query: query} if query else {}
 
         cache_data = self._cache[guild_id]
-        title_matches = process.extractBests(query, [title for title, _ in cache_data.items()], limit=24,
-                                             score_cutoff=80)
+        title_matches = process.extractBests(query, [title for title, _ in cache_data.items()], limit=24, score_cutoff=80)
         url_matches = process.extractBests(query, [url for _, url in cache_data.items()], limit=24, score_cutoff=70)
 
         combined_matches = sorted(title_matches + url_matches, key=lambda x: x[1], reverse=True)

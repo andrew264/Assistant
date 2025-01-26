@@ -7,10 +7,7 @@ from config import HOME_GUILD_ID
 
 
 class ManageExtensions(commands.Cog):
-    extensions = app_commands.Group(name="extensions",
-                                    description="Manage extensions",
-                                    guild_ids=[HOME_GUILD_ID],
-                                    default_permissions=discord.Permissions.elevated())
+    extensions = app_commands.Group(name="extensions", description="Manage extensions", guild_ids=[HOME_GUILD_ID], default_permissions=discord.Permissions.elevated())
 
     def __init__(self, bot: AssistantBot):
         self.bot = bot

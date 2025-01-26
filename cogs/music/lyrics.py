@@ -64,9 +64,7 @@ class GLyrics:
             embeds.append(embed)
         return embeds
 
-    async def get_lyrics(self, author: discord.Member,
-                         title: Optional[str] = None, artist: Optional[str] = None,
-                         spotify: Optional[discord.Spotify] = None,
+    async def get_lyrics(self, author: discord.Member, title: Optional[str] = None, artist: Optional[str] = None, spotify: Optional[discord.Spotify] = None,
                          yt: Optional[wavelink.Playable] = None) -> list[discord.Embed]:
         if not any((title, spotify, yt)):
             return []
@@ -124,9 +122,7 @@ class Lyrics(commands.Cog):
     @commands.hybrid_command(name="lyrics", description="Get lyrics for a song you are listening to", )
     @app_commands.describe(title='Song Title', artist='Artist Name')
     @commands.guild_only()
-    async def lyrics(self, ctx: commands.Context,
-                     title: Optional[str] = None,
-                     artist: Optional[str] = None) -> None:
+    async def lyrics(self, ctx: commands.Context, title: Optional[str] = None, artist: Optional[str] = None) -> None:
         assert ctx.guild
         user = ctx.guild.get_member(ctx.author.id)
         assert user is not None

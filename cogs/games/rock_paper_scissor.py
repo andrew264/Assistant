@@ -45,21 +45,16 @@ class RPSButtons(discord.ui.View):
                         button.style = discord.ButtonStyle.red
             button.disabled = True
         winner = self._get_winner()
-        embed = discord.Embed(title=f"{winner.display_name} won!" if winner else "It's a tie!",
-                              color=discord.Color.random())
+        embed = discord.Embed(title=f"{winner.display_name} won!" if winner else "It's a tie!", color=discord.Color.random())
         embed.add_field(name=self.player_1.display_name, value=self.choices[self.player_1].name.capitalize())
         embed.add_field(name=self.player_2.display_name, value=self.choices[self.player_2].name.capitalize())
         await interaction.response.edit_message(content=None, embed=embed, view=self)
 
     def _get_winner(self) -> Union[discord.Member, discord.User, None]:
         match = self.choices[self.player_1], self.choices[self.player_2]
-        if match == (Choice.rock, Choice.scissors) or \
-                match == (Choice.paper, Choice.rock) or \
-                match == (Choice.scissors, Choice.paper):
+        if match == (Choice.rock, Choice.scissors) or match == (Choice.paper, Choice.rock) or match == (Choice.scissors, Choice.paper):
             return self.player_1
-        elif match == (Choice.scissors, Choice.rock) or \
-                match == (Choice.rock, Choice.paper) or \
-                match == (Choice.paper, Choice.scissors):
+        elif match == (Choice.scissors, Choice.rock) or match == (Choice.rock, Choice.paper) or match == (Choice.paper, Choice.scissors):
             return self.player_2
         return None
 
@@ -119,8 +114,7 @@ class RPS(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
 
-    @commands.hybrid_command(name='rps', description="Play rock paper scissors with another user",
-                             aliases=['rockpaperscissor'])
+    @commands.hybrid_command(name='rps', description="Play rock paper scissors with another user", aliases=['rockpaperscissor'])
     @app_commands.rename(player_2='opponent')
     @app_commands.describe(player_2="The user you want to play against")
     async def rockpaperscissor(self, ctx: commands.Context, player_2: Optional[discord.Member]):

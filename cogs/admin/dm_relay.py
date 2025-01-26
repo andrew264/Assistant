@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -28,8 +28,7 @@ class DMRelay(commands.Cog):
                     if webhook.user.id == self.bot.user.id:
                         return webhook
                 else:
-                    return await channel.create_webhook(name=f"Assistant",
-                                                        avatar=await self.bot.user.display_avatar.read())
+                    return await channel.create_webhook(name=f"Assistant", avatar=await self.bot.user.display_avatar.read())
         else:
             channel = await category.create_text_channel(name=f"{user.name}", topic=f"USERID:{user.id}")
             return await channel.create_webhook(name=f"Assistant", avatar=await self.bot.user.display_avatar.read())
@@ -58,8 +57,7 @@ class DMRelay(commands.Cog):
                 msg_content += f"URL: {url}\n"
         msg_content += "-" * 100 + "\n"
         files: List[discord.File] = [await attachment.to_file() for attachment in message.attachments]
-        await webhook.send(content=msg_content, files=files,
-                           username=message.author.display_name, avatar_url=message.author.display_avatar.url)
+        await webhook.send(content=msg_content, files=files, username=message.author.display_name, avatar_url=message.author.display_avatar.url)
         await message.add_reaction("✅")
 
     @commands.Cog.listener('on_message_edit')
@@ -88,8 +86,7 @@ class DMRelay(commands.Cog):
                 msg_content += f"URL: {url}\n"
         msg_content += "-" * 100 + "\n"
         files: List[discord.File] = [await attachment.to_file() for attachment in after.attachments]
-        await webhook.send(content=msg_content, files=files,
-                           username=after.author.display_name, avatar_url=after.author.display_avatar.url)
+        await webhook.send(content=msg_content, files=files, username=after.author.display_name, avatar_url=after.author.display_avatar.url)
         await after.add_reaction("✅")
 
     @commands.Cog.listener('on_message_delete')
@@ -102,8 +99,7 @@ class DMRelay(commands.Cog):
         webhook = await self.get_webhook(message.author)
         if not webhook:
             return
-        await webhook.send(content=f"- Deleted Message:\n```{message.content}```\n",
-                           username=message.author.display_name, avatar_url=message.author.display_avatar.url)
+        await webhook.send(content=f"- Deleted Message:\n```{message.content}```\n", username=message.author.display_name, avatar_url=message.author.display_avatar.url)
 
     @commands.Cog.listener('on_message')
     async def send_dm(self, message: discord.Message):
@@ -134,12 +130,8 @@ class DMRelay(commands.Cog):
             return
         try:
             channel = await user.create_dm()
-            await channel.send(content=message.content,
-                               reference=discord.MessageReference(message_id=reply_msg_id,
-                                                                  channel_id=channel.id) if reply_msg_id else None,
-                               # type: ignore
-                               files=[await attachment.to_file() for attachment in message.attachments],
-                               embeds=message.embeds)
+            await channel.send(content=message.content, reference=discord.MessageReference(message_id=reply_msg_id, channel_id=channel.id) if reply_msg_id else None, # type: ignore
+                               files=[await attachment.to_file() for attachment in message.attachments], embeds=message.embeds)
             self.bot.logger.info(f"[DM] to {user} ({user.id}): {message.content}")
             await message.add_reaction("✅")
         except discord.Forbidden as e:
@@ -174,8 +166,7 @@ class DMRelay(commands.Cog):
             url = urlmatch.group("url")
             content += f"URL: {url}\n"
         content += "-" * 100 + "\n"
-        await webhook.send(content=content, files=files,
-                           username=ctx.author.display_name, avatar_url=ctx.author.display_avatar.url)
+        await webhook.send(content=content, files=files, username=ctx.author.display_name, avatar_url=ctx.author.display_avatar.url)
         await ctx.message.delete()
 
 

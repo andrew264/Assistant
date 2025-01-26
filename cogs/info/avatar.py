@@ -19,22 +19,14 @@ class AvatarCommands(commands.Cog):
             self.bot.tree.remove_command(command.name, type=command.type)
 
     def build_context_menus(self):
-        return [
-            app_commands.ContextMenu(
-                name="View Avatar",
-                callback=self.__view_avatar,
-            ),
-        ]
+        return [app_commands.ContextMenu(name="View Avatar", callback=self.__view_avatar, ), ]
 
     @app_commands.command(name="avatar", description="Get the avatar of a user")
     @app_commands.describe(user="Select a user to get their avatar")
     async def avatar(self, ctx: discord.Interaction, user: Union[discord.User, discord.Member]):
         await ctx.response.defer()
-        image_file = discord.File(fp=io.BytesIO(await user.display_avatar.read()),
-                                  filename="avatar.png",
-                                  description=f"{user.display_name}'s Avatar")
-        await ctx.edit_original_response(content=f"# {user.display_name}'s Avatar",
-                                         attachments=[image_file])
+        image_file = discord.File(fp=io.BytesIO(await user.display_avatar.read()), filename="avatar.png", description=f"{user.display_name}'s Avatar")
+        await ctx.edit_original_response(content=f"# {user.display_name}'s Avatar", attachments=[image_file])
 
     async def __view_avatar(self, ctx: discord.Interaction, user: Union[discord.User, discord.Member]):
         embed = discord.Embed(title=f"{user.display_name}'s Avatar")

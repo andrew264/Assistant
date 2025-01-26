@@ -1,6 +1,6 @@
 import tomllib
 from pathlib import Path
-from typing import Optional, Mapping, List
+from typing import List, Mapping, Optional
 
 import discord
 
@@ -20,8 +20,7 @@ LOG_LEVEL: str = config["client"]["log_level"] or "DEBUG"
 
 # Status and activity
 STATUS: discord.Status = discord.Status[config["client"]["status"]] or discord.Status.online
-ACTIVITY_TYPE: discord.ActivityType = discord.ActivityType[config["client"]["activity_type"]] \
-                                      or discord.ActivityType.playing
+ACTIVITY_TYPE: discord.ActivityType = discord.ActivityType[config["client"]["activity_type"]] or discord.ActivityType.playing
 ACTIVITY_TEXT: Optional[str] = config["client"]["activity_text"] or None
 
 # Channels

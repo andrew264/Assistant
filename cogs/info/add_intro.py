@@ -21,9 +21,7 @@ class Introduction(commands.Cog):
     @app_commands.command(name="introduce", description="Introduce yourself to other members of the server")
     async def introduce(self, ctx: discord.Interaction):
         modal = discord.ui.Modal(title="Introduction", timeout=300, )
-        modal.add_item(discord.ui.TextInput(label="Introduce yourself", placeholder="I am a big pussy",
-                                            style=discord.TextStyle.paragraph,
-                                            min_length=8, max_length=1024))
+        modal.add_item(discord.ui.TextInput(label="Introduce yourself", placeholder="I am a big pussy", style=discord.TextStyle.paragraph, min_length=8, max_length=1024))
         modal.on_submit = self._on_submit
         await ctx.response.send_modal(modal)
 

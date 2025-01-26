@@ -8,7 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import RESOURCE_PATH, OWNER_ID
+from config import OWNER_ID, RESOURCE_PATH
 
 
 class Funny(commands.Cog):
@@ -48,8 +48,7 @@ class Funny(commands.Cog):
         embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
         special_characters = [OWNER_ID, ]
         if user.id in special_characters:
-            embed.description = f'[8{"=" * random.randint(7, 12)}D]' + \
-                                '(https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
+            embed.description = f'[8{"=" * random.randint(7, 12)}D]' + '(https://www.youtube.com/watch?v=dQw4w9WgXcQ "Ran out of Tape while measuring")'
         elif user.bot:
             embed.description = f'404 Not Found'
         else:

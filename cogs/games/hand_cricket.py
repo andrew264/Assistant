@@ -21,9 +21,7 @@ class HandCricket(commands.Cog):
     @app_commands.describe(user1="The first player", user2="The second player")
     @app_commands.rename(user1="player-1", user2="player-2")
     @commands.guild_only()
-    async def hand_cricket(self, ctx: commands.Context,
-                           user1: discord.Member,
-                           user2: Optional[discord.Member] = None) -> None:
+    async def hand_cricket(self, ctx: commands.Context, user1: discord.Member, user2: Optional[discord.Member] = None) -> None:
         assert isinstance(ctx.author, discord.Member)
         if not user2:
             user2 = ctx.author
@@ -48,8 +46,7 @@ class HandCricket(commands.Cog):
                 if interaction.user == user1 or interaction.user == user2:
                     return True
                 else:
-                    await interaction.response.send_message(content="Start your own game with `/handcricket`",
-                                                            ephemeral=True)
+                    await interaction.response.send_message(content="Start your own game with `/handcricket`", ephemeral=True)
                     return False
 
             def disable(self):
@@ -102,21 +99,16 @@ class HandCricket(commands.Cog):
                     if self.user1_choice is None:
                         return True
                     else:
-                        await interaction.response.send_message(
-                            content=f"You have already selected {self.user1_choice}",
-                            ephemeral=True)
+                        await interaction.response.send_message(content=f"You have already selected {self.user1_choice}", ephemeral=True)
                         return False
                 elif interaction.user == user2:
                     if self.user2_choice is None:
                         return True
                     else:
-                        await interaction.response.send_message(
-                            content=f"You have already selected {self.user2_choice}",
-                            ephemeral=True)
+                        await interaction.response.send_message(content=f"You have already selected {self.user2_choice}", ephemeral=True)
                         return False
                 else:
-                    await interaction.response.send_message(content="Start your own game with `/handcricket`",
-                                                            ephemeral=True)
+                    await interaction.response.send_message(content="Start your own game with `/handcricket`", ephemeral=True)
                     return False
 
             def disable(self):
@@ -127,8 +119,7 @@ class HandCricket(commands.Cog):
 
         class TossNumberButton(discord.ui.Button["TossNumberButton"]):
             def __init__(self, number: int, row: int):
-                super().__init__(label=str(number), style=discord.ButtonStyle.grey,
-                                 custom_id=f"number-{number}", row=row)
+                super().__init__(label=str(number), style=discord.ButtonStyle.grey, custom_id=f"number-{number}", row=row)
                 self.number = number
 
             async def callback(self, interaction: discord.Interaction):
@@ -145,13 +136,11 @@ class HandCricket(commands.Cog):
                     num_view.disable()
                     assert num_view.user1_choice is not None
                     assert num_view.user2_choice is not None
-                    msg: str = (
-                        f"{user1.mention} selected {num_view.user1_choice}\n"
-                        f"{user2.mention} selected {num_view.user2_choice}\n"
-                        f"Sum of the numbers is {num_view.user1_choice + num_view.user2_choice}\n"
-                        f"which is {'Even' if (num_view.user1_choice + num_view.user2_choice) % 2 == 0 else 'Odd'}.\n"
-                        f"{'-' * 40}\n"
-                    )
+                    msg: str = (f"{user1.mention} selected {num_view.user1_choice}\n"
+                                f"{user2.mention} selected {num_view.user2_choice}\n"
+                                f"Sum of the numbers is {num_view.user1_choice + num_view.user2_choice}\n"
+                                f"which is {'Even' if (num_view.user1_choice + num_view.user2_choice) % 2 == 0 else 'Odd'}.\n"
+                                f"{'-' * 40}\n")
 
                     if (num_view.user1_choice + num_view.user2_choice) % 2 == num_view.choices[user1].value:
                         msg += f"\n{user1.mention} won the toss."
@@ -172,8 +161,7 @@ class HandCricket(commands.Cog):
                     self.disable()
                     return True
                 else:
-                    await interaction.response.send_message(content="Start your own game with `/handcricket`",
-                                                            ephemeral=True)
+                    await interaction.response.send_message(content="Start your own game with `/handcricket`", ephemeral=True)
                     return False
 
             def disable(self):
@@ -224,19 +212,16 @@ class HandCricket(commands.Cog):
                 embed.add_field(name=f"{self.player2.display_name}", value=self.scores[self.player2], inline=True)
                 if self.last_score[self.player1] is not None and self.last_score[self.player2] is not None:
                     max_name_len = max(len(self.player1.display_name), len(self.player2.display_name))
-                    embed.set_footer(
-                        text=f"Last Selected:\n"
-                             f"{self.player1.display_name.ljust(max_name_len)} - {self.last_score[self.player1]}\n"
-                             f"{self.player2.display_name.ljust(max_name_len)} - {self.last_score[self.player2]}"
-                    )
+                    embed.set_footer(text=f"Last Selected:\n"
+                                          f"{self.player1.display_name.ljust(max_name_len)} - {self.last_score[self.player1]}\n"
+                                          f"{self.player2.display_name.ljust(max_name_len)} - {self.last_score[self.player2]}")
                 return embed
 
             async def interaction_check(self, interaction: discord.Interaction) -> bool:
                 if interaction.user == self.player1 or interaction.user == self.player2:
                     return True
                 else:
-                    await interaction.response.send_message(content="Start your own game with `/handcricket`",
-                                                            ephemeral=True)
+                    await interaction.response.send_message(content="Start your own game with `/handcricket`", ephemeral=True)
                     return False
 
             def disable(self):
@@ -249,8 +234,7 @@ class HandCricket(commands.Cog):
 
         class GameNumberButton(discord.ui.Button):
             def __init__(self, number: int, row: int):
-                super().__init__(label=str(number), style=discord.ButtonStyle.grey,
-                                 custom_id=f"number-{number}", row=row)
+                super().__init__(label=str(number), style=discord.ButtonStyle.grey, custom_id=f"number-{number}", row=row)
                 self.number = number
 
             def is_player_turn_valid(self, player: Union[discord.Member, discord.User], ) -> bool:
@@ -275,28 +259,22 @@ class HandCricket(commands.Cog):
 
             def is_inning_over(self) -> bool:
                 game_view: Game = self.view  # type: ignore
-                logger.debug(
-                    f"Called: is_inning_over(): "
-                    f"Last: - {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
-                return (game_view.innings == 0 and
-                        game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2]
-                        and self.both_selected())
+                logger.debug(f"Called: is_inning_over(): "
+                             f"Last: - {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
+                return (game_view.innings == 0 and game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2] and self.both_selected())
 
             def is_game_over(self) -> bool:
                 game_view: Game = self.view  # type: ignore
                 logger.debug(f"Called: is_game_over() - {game_view.innings} innings, ")
                 logger.debug(f"Scores: {game_view.scores[game_view.player1]} - {game_view.scores[game_view.player2]}")
-                logger.debug(
-                    f"Last: {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
+                logger.debug(f"Last: {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
                 if game_view.innings == 1:
-                    logger.debug(
-                        f"Game Over: "
-                        f"{game_view.scores[game_view.batting]} > "
-                        f"{game_view.scores[self.get_other_player(game_view.batting)]}")
+                    logger.debug(f"Game Over: "
+                                 f"{game_view.scores[game_view.batting]} > "
+                                 f"{game_view.scores[self.get_other_player(game_view.batting)]}")
                     if game_view.scores[game_view.batting] > game_view.scores[self.get_other_player(game_view.batting)]:
                         return True
-                    elif (game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2]
-                          and self.both_selected()):
+                    elif (game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2] and self.both_selected()):
                         return True
                 return False
 
@@ -310,8 +288,7 @@ class HandCricket(commands.Cog):
 
             def both_selected(self):
                 game_view: Game = self.view  # type: ignore
-                return (game_view.last_score[game_view.player1] is not None
-                        and game_view.last_score[game_view.player2] is not None)
+                return (game_view.last_score[game_view.player1] is not None and game_view.last_score[game_view.player2] is not None)
 
             async def update_score(self, interaction: discord.Interaction):
                 logger.debug("Updating score")
@@ -331,21 +308,16 @@ class HandCricket(commands.Cog):
                     await interaction.response.edit_message(embed=game_view.embed, view=game_view)
                     await self.update_score(interaction)
                 else:
-                    await interaction.response.send_message(
-                        content=f"Let {self.get_other_player(interaction.user).mention} Choose.",
-                        ephemeral=True)
+                    await interaction.response.send_message(content=f"Let {self.get_other_player(interaction.user).mention} Choose.", ephemeral=True)
                     return
                 if self.is_inning_over():
                     logger.debug("Inning Over")
                     game_view.innings += 1
-                    logger.debug(
-                        f"Switching batting player from {game_view.batting}"
-                        f" to {self.get_other_player(game_view.batting)}")
+                    logger.debug(f"Switching batting player from {game_view.batting}"
+                                 f" to {self.get_other_player(game_view.batting)}")
                     game_view.batting = self.get_other_player(game_view.batting)
                     self.reset_last_score()
-                    await interaction.edit_original_response(content=f"{game_view.batting.mention} is Batting",
-                                                             embed=game_view.embed,
-                                                             view=game_view)
+                    await interaction.edit_original_response(content=f"{game_view.batting.mention} is Batting", embed=game_view.embed, view=game_view)
                     return
                 if self.is_game_over():
                     logger.debug("Game Over")

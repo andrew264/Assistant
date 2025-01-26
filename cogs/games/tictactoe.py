@@ -58,9 +58,7 @@ class TicTacToe(discord.ui.View):
     def __init__(self, player_1: Union[discord.Member, discord.User], player_2: Union[discord.Member, discord.User]):
         super().__init__()
         self.current_player: Union[discord.Member, discord.User] = player_1
-        self.board: List[List[int]] = [[0, 0, 0],
-                                       [0, 0, 0],
-                                       [0, 0, 0]]
+        self.board: List[List[int]] = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
         self.player_1 = player_1
         self.player_2 = player_2
 
@@ -220,8 +218,7 @@ class TTT(commands.Cog):
     @commands.hybrid_command(name='tictactoe', aliases=['ttt'], description='Play a game of TicTacToe with someone', )
     @app_commands.rename(player_2="opponent")
     @app_commands.describe(player_2="The player you want to play against")
-    async def ttt(self, ctx: commands.Context,
-                  player_2: Optional[Union[discord.Member, discord.User]] = None):
+    async def ttt(self, ctx: commands.Context, player_2: Optional[Union[discord.Member, discord.User]] = None):
         if player_2 is None:
             assert isinstance(ctx.me, (discord.Member, discord.User))
             player_2 = ctx.me
@@ -237,12 +234,10 @@ class TTT(commands.Cog):
 
         # Create a new TicTacToe board
         view = TicTacToe(player_1, player_2)
-        msg = await ctx.send(content=f"It is now {view.current_player.mention}'s turn",
-                             view=view)
+        msg = await ctx.send(content=f"It is now {view.current_player.mention}'s turn", view=view)
         if view.current_player.bot:  # if player_1 is a bot, make the first move
             await view.make_a_move()
-            await msg.edit(content=f"It is now {view.current_player.mention}'s turn",
-                           view=view)
+            await msg.edit(content=f"It is now {view.current_player.mention}'s turn", view=view)
 
 
 async def setup(bot: AssistantBot):

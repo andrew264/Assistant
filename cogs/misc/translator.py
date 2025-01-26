@@ -48,12 +48,7 @@ class TranslatorProMax(commands.Cog):
         return translation.pronunciation if pronounce else translation.text
 
     def build_context_menus(self):
-        return [
-            app_commands.ContextMenu(
-                name="Translate to English",
-                callback=self.trans_msg_command,
-            ),
-        ]
+        return [app_commands.ContextMenu(name="Translate to English", callback=self.trans_msg_command, ), ]
 
     @app_commands.guild_only()
     async def trans_msg_command(self, ctx: discord.Interaction, message: discord.Message):
@@ -62,10 +57,8 @@ class TranslatorProMax(commands.Cog):
         await ctx.edit_original_response(content=translated)
 
     @app_commands.command(name='translate', description='Translate Text')
-    @app_commands.describe(sentence='The sentence to translate',
-                           language='The language to translate to', pronunciation='Pronounce the translation')
-    async def trans_command(self, ctx: discord.Interaction, sentence: str = '',
-                            language: Language = Language.ENGLISH, pronunciation: bool = True):
+    @app_commands.describe(sentence='The sentence to translate', language='The language to translate to', pronunciation='Pronounce the translation')
+    async def trans_command(self, ctx: discord.Interaction, sentence: str = '', language: Language = Language.ENGLISH, pronunciation: bool = True):
         await ctx.response.send_message(content="Translating...", ephemeral=True)
         translated = await self.trans_fn(sentence, language, pronunciation)
         webhook = await self.get_webhook(ctx.channel_id)

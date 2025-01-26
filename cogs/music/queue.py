@@ -1,5 +1,5 @@
 import math
-from typing import Optional, cast
+from typing import cast, Optional
 
 import discord
 import wavelink
@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from assistant import AssistantBot
 from config import LavaConfig
-from utils import check_vc, check_same_vc, clickable_song
+from utils import check_same_vc, check_vc, clickable_song
 
 
 class Queue(commands.Cog):
@@ -58,8 +58,7 @@ class Queue(commands.Cog):
                 song_index = [i for i in range(first, last)]
                 if not vc.current:
                     return discord.Embed(title="Queue is Empty", colour=0xFFA31A)
-                embed = discord.Embed(title="Now Playing", colour=0xFFA31A,
-                                      description=f"{clickable_song(vc.current)}")
+                embed = discord.Embed(title="Now Playing", colour=0xFFA31A, description=f"{clickable_song(vc.current)}")
                 if vc.queue.count > 0:
                     next_songs = "\u200b"
                     max_page = math.ceil(vc.queue.count / 4)
