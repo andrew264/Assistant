@@ -154,9 +154,18 @@ class Surveillance(commands.Cog):
 
         b_clients, a_clients = get_clients(before), get_clients(after)
         if b_clients != a_clients:
-            clients_str = f"{', '.join(b_clients)} -> {', '.join(a_clients)}"
-            msg_parts.append(clients_str)
-            logger.info(f"[UPDATE] Client device for @{before} in {before.guild.name} | {clients_str}")
+            if a_clients and b_clients:
+                clients_str = f"{', '.join(b_clients)} -> {', '.join(a_clients)}"
+                msg_parts.append(clients_str)
+                logger.info(f"[UPDATE] Client device for @{before} in {before.guild.name} | {clients_str}")
+            elif not a_clients:
+                clients_str = f"Went offline from {', '.join(b_clients)}"
+                msg_parts.append(clients_str)
+                logger.info(f"[UPDATE] @{before} went offline in {before.guild.name}")
+            else:
+                clients_str = f"Came online in {', '.join(a_clients)}"
+                msg_parts.append(clients_str)
+                logger.info(f"[UPDATE] @{before} is now online {before.guild.name} | {', '.join(a_clients)}")
 
         b_status, a_status = before.raw_status, after.raw_status
         if b_status != a_status:
@@ -168,6 +177,7 @@ class Surveillance(commands.Cog):
             msg = "\n".join(msg_parts)
             if hook:
                 await hook.send(msg, username=after.display_name, avatar_url=after.display_avatar.url)
+            return
 
         # Activities
         b_activities = all_activities(before, with_url=True)
@@ -183,7 +193,10 @@ class Surveillance(commands.Cog):
             change = ""
             if key == 'Custom Status':
                 if b_value != a_value:
-                    change = f"Custom Status: {b_value} -> {a_value}"
+                    if b_value:
+                        change = f"Custom Status: {b_value} -> {a_value}"
+                    else:
+                        change = f"Custom Status: {a_value}"
             elif not b_value:
                 change = f"Started {key}: {a_value}"
             elif not a_value:
@@ -196,7 +209,7 @@ class Surveillance(commands.Cog):
 
         msg = "\n".join(msg_parts).strip()
         if msg and hook:
-            await hook.send(msg, username=before.display_name, avatar_url=before.display_avatar.url)
+            await hook.send(msg, username=before.display_name, avatar_url=before.display_avatar.url, suppress_embeds=True)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
