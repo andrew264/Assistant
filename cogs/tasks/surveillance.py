@@ -10,6 +10,8 @@ from assistant import AssistantBot
 from config import HOME_GUILD_ID, LOGGING_GUILDS, OWNER_ID
 from utils import all_activities
 
+DELETE_DELAY = 24 * 3600.  # 1 day
+
 
 class Surveillance(commands.Cog):
     def __init__(self, bot: AssistantBot):
@@ -29,6 +31,8 @@ class Surveillance(commands.Cog):
         except discord.Forbidden as e:
             self.logger.error(f"Failed to get webhook: {e}")
             return None
+        except Exception as e:
+            self.logger.error(f"Unknown error while accessing webhook: {e}")
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message) -> None:
@@ -73,7 +77,7 @@ class Surveillance(commands.Cog):
         if message.attachments:
             embed.add_field(name="Attachments", value="\n".join([attachment.url for attachment in message.attachments]), inline=False)
         embed.set_footer(text=f"{datetime.now().strftime('%I:%M %p, %d %b')}")
-        hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+        hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
         if hook:
             await hook.send(embed=embed, username=author.display_name, avatar_url=author.display_avatar.url)
         self.logger.info(f"[MESSAGE DELETE] @{author.display_name} in #{message.channel.name}\n" + f"\tMessage: {message.clean_content}")
@@ -139,9 +143,7 @@ class Surveillance(commands.Cog):
             return
         if before.guild is None or before.guild.id != HOME_GUILD_ID:
             return
-        if before.id == OWNER_ID:
-            return
-        hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+
         logger = self.logger
         msg_parts = []
 
@@ -153,30 +155,19 @@ class Surveillance(commands.Cog):
             return c
 
         b_clients, a_clients = get_clients(before), get_clients(after)
-        if b_clients != a_clients:
-            if a_clients and b_clients:
-                clients_str = f"{', '.join(b_clients)} -> {', '.join(a_clients)}"
-                msg_parts.append(clients_str)
-                logger.info(f"[UPDATE] Client device for @{before} in {before.guild.name} | {clients_str}")
-            elif not a_clients:
-                clients_str = f"Went offline from {', '.join(b_clients)}"
-                msg_parts.append(clients_str)
-                logger.info(f"[UPDATE] @{before} went offline in {before.guild.name}")
-            else:
-                clients_str = f"Came online in {', '.join(a_clients)}"
-                msg_parts.append(clients_str)
-                logger.info(f"[UPDATE] @{before} is now online {before.guild.name} | {', '.join(a_clients)}")
+        if set(b_clients) == set(a_clients) and before.raw_status == after.raw_status:
+            return
+        summary = summarize_status_change(b_clients, before.raw_status, a_clients, after.raw_status)
+        msg_parts.append(summary)
+        logger.info(f"[UPDATE] @{after} from {after.guild.name} {summary}")
 
-        b_status, a_status = before.raw_status, after.raw_status
-        if b_status != a_status:
-            status_str = f"{b_status} -> {a_status}"
-            msg_parts.append(status_str)
-            logger.info(f"[UPDATE] Client status for @{before} in {before.guild.name} | {status_str}")
+        hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
 
-        if "offline" in (b_status, a_status):
+        if "offline" in (before.raw_status, after.raw_status):
             msg = "\n".join(msg_parts)
             if hook:
-                await hook.send(msg, username=after.display_name, avatar_url=after.display_avatar.url)
+                webhook_msg = await hook.send(msg, username=after.display_name, avatar_url=after.display_avatar.url, wait=True)
+                await webhook_msg.delete(delay=DELETE_DELAY)
             return
 
         # Activities
@@ -193,8 +184,10 @@ class Surveillance(commands.Cog):
             change = ""
             if key == 'Custom Status':
                 if b_value != a_value:
-                    if b_value:
+                    if b_value and a_value:
                         change = f"Custom Status: {b_value} -> {a_value}"
+                    elif a_value is None:
+                        change = f"Removed Custom Status: {b_value}"
                     else:
                         change = f"Custom Status: {a_value}"
             elif not b_value:
@@ -209,7 +202,8 @@ class Surveillance(commands.Cog):
 
         msg = "\n".join(msg_parts).strip()
         if msg and hook:
-            await hook.send(msg, username=before.display_name, avatar_url=before.display_avatar.url, suppress_embeds=True)
+            webhook_msg = await hook.send(msg, username=before.display_name, avatar_url=before.display_avatar.url, suppress_embeds=True, wait=True)
+            await webhook_msg.delete(delay=DELETE_DELAY)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
@@ -237,7 +231,8 @@ class Surveillance(commands.Cog):
         else:
             return
         if hook:
-            await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url)
+            webhook_msg = await hook.send(msg, username=member.display_name, avatar_url=member.display_avatar.url, wait=True)
+            await webhook_msg.delete(delay=DELETE_DELAY)
         self.logger.info(f"[UPDATE] Voice {member.guild.name}: @{member.display_name}: {log_msg}")
 
     @commands.Cog.listener()
@@ -249,7 +244,7 @@ class Surveillance(commands.Cog):
             return
         if user.bot or user.id == OWNER_ID:
             return
-        # hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+        # hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
         # await hook.send(f"Started typing in {channel.mention}",
         #                 username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"[UPDATE] Typing @{user.display_name} - #{channel.name} on "
@@ -261,7 +256,7 @@ class Surveillance(commands.Cog):
         if payload.user.bot:
             return
         if payload.guild_id == HOME_GUILD_ID:
-            hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+            hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
             if hook:
                 await hook.send(f"{payload.user.display_name} left the server.", username=payload.user.display_name, avatar_url=payload.user.display_avatar.url)
         self.logger.info(f"[GUILD] Leave @{payload.user.name}: {self.bot.get_guild(payload.guild_id).name}")
@@ -272,7 +267,7 @@ class Surveillance(commands.Cog):
         if member.bot:
             return
         if member.guild.id == HOME_GUILD_ID:
-            hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+            hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
             if hook:
                 await hook.send(f"{member.display_name} joined the server", username=member.display_name, avatar_url=member.display_avatar.url)
         self.logger.info(f"[GUILD] Join @{member.name}: {member.guild.name}")
@@ -283,7 +278,7 @@ class Surveillance(commands.Cog):
         if user.bot:
             return
         if guild.id == HOME_GUILD_ID:
-            hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+            hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
             if hook:
                 await hook.send(f"{user.display_name} was banned from the server", username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"[GUILD] Ban @{user.name}: {guild.name}")
@@ -294,10 +289,76 @@ class Surveillance(commands.Cog):
         if user.bot:
             return
         if guild.id == HOME_GUILD_ID:
-            hook = await self.get_webhook(LOGGING_GUILDS["homie"]["channel_id"])
+            hook = await self.get_webhook(LOGGING_GUILDS["homie"].channel_id)
             if hook:
                 await hook.send(f"{user.display_name} was unbanned from the server", username=user.display_name, avatar_url=user.display_avatar.url)
         self.logger.info(f"[GUILD] Unban @{user.name}: {guild.name}")
+
+
+def summarize_status_change(before_clients: list[str], before_status: str, after_clients: list[str], after_status: str) -> str:
+    """
+    Generates a summary string of the user's transition based on client and status changes.
+    """
+
+    def format_clients(clients):
+        return ', '.join(clients) if clients else ''
+
+    if before_status == 'offline':
+        if after_status == 'dnd':
+            return f"Now in Do Not Disturb on {format_clients(after_clients)}" if after_clients else "Entered Do Not Disturb mode"
+        elif after_status == 'idle':
+            return f"Now idling on {format_clients(after_clients)}"
+        else:
+            return f"Online on {format_clients(after_clients)}" if after_clients else "Back online!"
+
+    elif after_status == 'offline':
+        return f"Went offline from {', '.join(before_clients)}." if before_clients else "Signed off."
+
+    elif before_status == 'dnd' and after_status in ('online', 'idle'):
+        if after_clients == before_clients:
+            return "Disabled Do Not Disturb."
+        else:
+            return f"Disabled Do Not Disturb, now active on {format_clients(after_clients)}"
+
+    elif before_status in ('online', 'idle') and after_status == 'dnd':
+        if after_clients == before_clients:
+            return "Enabled Do Not Disturb."
+        else:
+            return f"Enabled Do Not Disturb, only active on {format_clients(after_clients)}"
+
+    elif before_status == after_status:
+        if before_status == 'idle':
+            if set(before_clients) == set(after_clients):
+                return "Still idling..."
+            else:
+                return f"Idling in {format_clients(after_clients)}"
+
+        elif before_status == 'dnd':
+            return f"Still in Do Not Disturb, active on {format_clients(after_clients)}"
+
+        elif before_status == 'online':
+            if set(before_clients) == set(after_clients):
+                return "Still online"
+            else:
+                return f"Online on {format_clients(after_clients)}"
+
+    elif before_status == 'online' and after_status == 'idle':
+        if after_clients == before_clients:
+            return "Is now Idling"
+        else:
+            return f"Idling on {format_clients(after_clients)}"
+
+    elif before_status == 'idle' and after_status == 'online':
+        if after_clients == before_clients:
+            return "No longer idling"
+        else:
+            return f"Now online on {format_clients(after_clients)}"
+
+    else:
+        if after_clients == before_clients:
+            return f"Changed status from {before_status} to {after_status}"
+        else:
+            return f"Changed status to {after_status}, active on {format_clients(after_clients)}"
 
 
 async def setup(bot: AssistantBot):
