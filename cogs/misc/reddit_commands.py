@@ -8,7 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import RedditConfig
+from config import REDDIT_CONFIG
 
 gif_sites = ("redgifs.com", "v.redd.it", "imgur.com")
 
@@ -90,9 +90,9 @@ class RedditCommands(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    r = RedditConfig()
-    if not r:
+    if not REDDIT_CONFIG:
         bot.logger.warning("Reddit config not found. Reddit commands will not work.")
         return
-    reddit = praw.Reddit(client_id=r.CLIENT_ID, client_secret=r.CLIENT_SECRET, username=r.USERNAME, password=r.PASSWORD, user_agent="discord:assistant:v1.0.0 (by u/andrew264)")
+    reddit = praw.Reddit(client_id=REDDIT_CONFIG.client_id, client_secret=REDDIT_CONFIG.client_secret, username=REDDIT_CONFIG.username, password=REDDIT_CONFIG.password,
+                         user_agent=f"discord:assistant:v1.0.0 (by u/{REDDIT_CONFIG.username})")
     await bot.add_cog(RedditCommands(bot, reddit))

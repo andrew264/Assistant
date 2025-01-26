@@ -1,0 +1,31 @@
+client:
+  token: null
+  prefix: null
+  owner_id: null
+  log_level: DEBUG
+  status: online
+  activity_type: playing
+  activity_text: null
+  home_guild_id: 0
+  test_guilds: null
+  dm_recipients_category: 0
+mongo:
+  username: null
+  password: null
+  url: null
+reddit:
+  client_id: null
+  client_secret: null
+  username: null
+  password: null
+lavalink:
+  uri: null
+  password: null
+youtube_api_key: null
+genius_token: null
+tenor_api_key: null
+logging_guilds:
+  guild_name1:
+    guild_id: 1234
+    channel_id: 1234
+resource_path: resources

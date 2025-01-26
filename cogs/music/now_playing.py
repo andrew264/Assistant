@@ -8,7 +8,7 @@ from discord.ext import commands
 from wavelink import Playable
 
 from assistant import AssistantBot
-from config import LavaConfig
+from config import LAVA_CONFIG
 from utils import check_same_vc, check_vc
 
 
@@ -278,5 +278,5 @@ class NowPlaying(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    if LavaConfig():
+    if LAVA_CONFIG:
         await bot.add_cog(NowPlaying(bot))

@@ -15,9 +15,6 @@ class Introduction(commands.Cog):
         self.bot = bot
         self.mongo: Optional[AsyncIOMotorClient] = None
 
-    async def setup_hook(self):
-        self.mongo = self.bot.connect_to_mongo()
-
     @app_commands.command(name="introduce", description="Introduce yourself to other members of the server")
     async def introduce(self, ctx: discord.Interaction):
         modal = discord.ui.Modal(title="Introduction", timeout=300, )
@@ -38,7 +35,7 @@ class Introduction(commands.Cog):
 
     async def _add_intro_to_db(self, user_id: int, intro: str):
         if not self.mongo:
-            self.mongo = self.bot.connect_to_mongo()
+            self.mongo = await self.bot.connect_to_mongo()
         db = self.mongo["assistant"]
         collection = db["allUsers"]
 

@@ -6,7 +6,7 @@ import wavelink
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import LavaConfig
+from config import LAVA_CONFIG
 from utils import check_same_vc, check_vc, clickable_song
 
 
@@ -76,5 +76,5 @@ class Queue(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    if LavaConfig():
+    if LAVA_CONFIG:
         await bot.add_cog(Queue(bot))

@@ -4,12 +4,8 @@ import sys
 
 import praw
 
-from config import RedditConfig
+from config import REDDIT_CONFIG
 
-cfg = RedditConfig()
-CLIENT_ID = cfg.CLIENT_ID
-CLIENT_SECRET = cfg.CLIENT_SECRET
-USERNAME = cfg.USERNAME
 REDIRECT_URI = 'http://localhost:8080/'
 DURATION = 'permanent'
 SCOPES = ["read"]
@@ -20,10 +16,10 @@ def main():
     """Provide the program's entry point when directly executed."""
 
     reddit = praw.Reddit(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
+        client_id=REDDIT_CONFIG.client_id,
+        client_secret=REDDIT_CONFIG.client_secret,
         redirect_uri=REDIRECT_URI,
-        user_agent=f"get refresh token/v0 by u/{USERNAME}",
+        user_agent=f"get refresh token/v0 by u/{REDDIT_CONFIG.username}",
     )
     url = reddit.auth.url(duration=DURATION, scopes=SCOPES, state=STATE)
     print(f"Now open this url in your browser: {url}")

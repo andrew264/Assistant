@@ -1,71 +1,55 @@
-import tomllib
+import os
 from pathlib import Path
-from typing import List, Mapping, Optional
 
 import discord
 
-# Path to the config file
-__config_file = Path(__file__).parent / "config.toml"
-if not __config_file.exists():
-    raise FileNotFoundError(f"Config file not found at {__config_file}")
+from .validator import Config
 
-with open(__config_file, 'rb') as f:
-    config = tomllib.load(f)
+# Path to the config file
+if 'CONFIG_PATH' in os.environ:
+    CONFIG_PATH = Path(os.environ.get('CONFIG_PATH'))
+else:
+    CONFIG_PATH = Path(__file__).parent / "config.yaml"
+
+print(f"Config: {CONFIG_PATH}")
+config = Config.load_config(CONFIG_PATH)
 
 # Client
-DISCORD_TOKEN: Optional[str] = config["client"]["token"] or None
-PREFIX: Optional[str] = config["client"]["prefix"] or None
-OWNER_ID: Optional[int] = config["client"]["owner_id"] or None
-LOG_LEVEL: str = config["client"]["log_level"] or "DEBUG"
+DISCORD_TOKEN = config.client.token
+PREFIX = config.client.prefix
+OWNER_ID = config.client.owner_id
+LOG_LEVEL = config.client.log_level
 
 # Status and activity
-STATUS: discord.Status = discord.Status[config["client"]["status"]] or discord.Status.online
-ACTIVITY_TYPE: discord.ActivityType = discord.ActivityType[config["client"]["activity_type"]] or discord.ActivityType.playing
-ACTIVITY_TEXT: Optional[str] = config["client"]["activity_text"] or None
+STATUS = discord.Status[config.client.status]
+ACTIVITY_TYPE = discord.ActivityType[config.client.activity_type]
+ACTIVITY_TEXT = config.client.activity_text
 
 # Channels
-HOME_GUILD_ID: int = config["client"]["home_guild_id"] or 0
-TEST_GUILDS: Optional[List[int]] = config["client"]["test_guilds"] or None
-DM_RECIPIENTS_CATEGORY: int = config["client"]["dm_recipients_category"] or 0
+HOME_GUILD_ID = config.client.home_guild_id
+TEST_GUILDS = config.client.test_guilds
+DM_RECIPIENTS_CATEGORY = config.client.dm_recipients_category
 
 # MongoDB
-_MONGO_USERNAME: Optional[str] = config["mongo"]["username"] or None
-_MONGO_PASSWORD: Optional[str] = config["mongo"]["password"] or None
-_MONGO_URL: Optional[str] = config["mongo"]["url"] or None
-MONGO_URI: Optional[str] = f"mongodb+srv://{_MONGO_USERNAME}:{_MONGO_PASSWORD}@{_MONGO_URL}" if _MONGO_URL else None
+MONGO_URI = config.mongo.uri
 
 # Resource Path
-RESOURCE_PATH: Path = Path(__file__).parent.parent / "resources"
+RESOURCE_PATH = Path(config.resource_path)
 
-
-# Reddit
-class RedditConfig:
-    CLIENT_ID: Optional[str] = config["reddit"]["client_id"] or None
-    CLIENT_SECRET: Optional[str] = config["reddit"]["client_secret"] or None
-    USERNAME: Optional[str] = config["reddit"]["username"] or None
-    PASSWORD: Optional[str] = config["reddit"]["password"] or None
-
-    def __bool__(self):
-        return bool(self.CLIENT_ID and self.CLIENT_SECRET and self.USERNAME and self.PASSWORD)
-
-
-LOGGING_GUILDS: Optional[Mapping[str, Mapping[str, int]]] = config["logging"] or None
-
+# Logging
+LOGGING_GUILDS = config.logging_guilds
 
 # Lavalink
-class LavaConfig:
-    URI: Optional[str] = config["lavalink"]["uri"] or None
-    PASSWORD: Optional[str] = config["lavalink"]["password"] or None
+LAVA_CONFIG = config.lavalink
 
-    def __bool__(self):
-        return bool(self.URI and self.PASSWORD)
-
+# Reddit
+REDDIT_CONFIG = config.reddit
 
 # YouTube
-YT_API_KEY: Optional[str] = config["youtube"]["api_key"] or None
+YT_API_KEY = config.youtube_api_key
 
 # Genius
-GENIUS_TOKEN: Optional[str] = config["genius"]["token"] or None
+GENIUS_TOKEN = config.genius_token
 
 # YouTube
-TENOR_API_KEY: Optional[str] = config["tenor"]["api_key"] or None
+TENOR_API_KEY = config.tenor_api_key

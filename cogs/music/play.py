@@ -8,11 +8,12 @@ import wavelink
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
+from motor.motor_asyncio import AsyncIOMotorClient
 from thefuzz import process
 from wavelink import Playable, Playlist
 
 from assistant import AssistantBot
-from config import HOME_GUILD_ID, LavaConfig
+from config import HOME_GUILD_ID, LAVA_CONFIG
 from utils import check_vc, clickable_song, remove_brackets
 from utils.tenor import TenorObject
 
@@ -22,14 +23,13 @@ url_rx = re.compile(r'https?://(?:www\.)?.+')
 class Play(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
-        self._mongo_client: Optional[Any] = None  # type: ignore
+        self._mongo_client: Optional[AsyncIOMotorClient] = None  # type: ignore
         self._cache: Dict[int, Dict[str, str]] = defaultdict()
         self._tenor = TenorObject()
 
-    @property
-    def mongo_client(self) -> Any:  # type: ignore
+    async def get_mongo_client(self) -> Optional[AsyncIOMotorClient]:
         if not self._mongo_client:
-            self._mongo_client = self.bot.connect_to_mongo()
+            self._mongo_client = await self.bot.connect_to_mongo()
         return self._mongo_client
 
     @commands.Cog.listener('on_wavelink_track_start')
@@ -45,7 +45,8 @@ class Play(commands.Cog):
         if guild_id not in self._cache:
             await self._fill_cache(guild_id)
         self._cache[guild_id] |= {title: track.uri}
-        db = self.mongo_client["assistant"]
+        mongo_client = await self.get_mongo_client()
+        db = mongo_client["assistant"]
         collection = db["songHistory"]
         new_song = dict(title=title, uri=track.uri)
         result = await collection.update_one({"_id": guild_id}, {
@@ -61,7 +62,8 @@ class Play(commands.Cog):
             self.bot.logger.debug(f"[MONGO] {title} already exists in GuildID: {guild_id}")
 
     async def _fill_cache(self, guild_id: int):
-        db = self.mongo_client["assistant"]
+        mongo_client = await self.get_mongo_client()
+        db = mongo_client["assistant"]
         collection = db["songHistory"]
         self._cache[guild_id] = {}
         if await collection.count_documents({"_id": guild_id}) == 0:
@@ -163,7 +165,5 @@ class Play(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    lc = LavaConfig()
-    if not lc:
-        return
-    await bot.add_cog(Play(bot))
+    if LAVA_CONFIG:
+        await bot.add_cog(Play(bot))

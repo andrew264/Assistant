@@ -48,7 +48,7 @@ class UserInfo(commands.Cog):
 
     async def _get_user_data(self, user: Union[discord.Member, discord.User]) -> dict:
         if self.mongo is None:
-            self.mongo = self.bot.connect_to_mongo()
+            self.mongo = await self.bot.connect_to_mongo()
             if self.mongo is None:
                 self.bot.logger.warning("Failed to fetch user data. MongoDB not connected.")
                 return {}

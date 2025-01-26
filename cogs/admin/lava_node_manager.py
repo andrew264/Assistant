@@ -4,7 +4,7 @@ import wavelink
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import LavaConfig
+from config import LAVA_CONFIG
 
 
 class LavaNodeManager(commands.Cog):
@@ -15,11 +15,10 @@ class LavaNodeManager(commands.Cog):
     @commands.is_owner()
     async def update_node(self, ctx: commands.Context, uri: Optional[str] = None, password: Optional[str] = None, force: bool = False):
         if uri is None and password is None:
-            lconf = LavaConfig()
-            if lconf:
-                self.bot.logger.info(f'[LAVALINK] Using {lconf.URI} as URI.')
-                self.bot.logger.debug(f'[LAVALINK] Connecting to {lconf.URI} with password {lconf.PASSWORD}')
-                nodes = [wavelink.Node(uri=lconf.URI, password=lconf.PASSWORD, inactive_player_timeout=300, ), ]
+            if LAVA_CONFIG:
+                self.bot.logger.info(f'[LAVALINK] Using {LAVA_CONFIG.URI} as URI.')
+                self.bot.logger.debug(f'[LAVALINK] Connecting to {LAVA_CONFIG.URI} with password {LAVA_CONFIG.PASSWORD}')
+                nodes = [wavelink.Node(uri=LAVA_CONFIG.URI, password=LAVA_CONFIG.PASSWORD, inactive_player_timeout=300, ), ]
             else:
                 return await ctx.reply('No default Lavalink config')
         else:

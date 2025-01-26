@@ -16,7 +16,7 @@ class LastSeen(commands.Cog):
 
     async def update_time(self, user_id: int) -> None:
         if not self.mongo_db:
-            self.mongo_db = self.bot.connect_to_mongo()
+            self.mongo_db = await self.bot.connect_to_mongo()
         assert self.mongo_db is not None
 
         db = self.mongo_db["assistant"]
@@ -27,7 +27,7 @@ class LastSeen(commands.Cog):
     @commands.Cog.listener('on_ready')
     async def reset_last_seen(self) -> None:
         if not self.mongo_db:
-            self.mongo_db = self.bot.connect_to_mongo()
+            self.mongo_db = await self.bot.connect_to_mongo()
         assert self.mongo_db is not None
 
         db = self.mongo_db["assistant"]

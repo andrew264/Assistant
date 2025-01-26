@@ -5,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from assistant import AssistantBot
-from config import LavaConfig, OWNER_ID
+from config import LAVA_CONFIG, OWNER_ID
 from utils import check_same_vc, check_vc, clickable_song
 
 
@@ -147,5 +147,5 @@ class MusicCommands(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    if LavaConfig():
+    if LAVA_CONFIG:
         await bot.add_cog(MusicCommands(bot))

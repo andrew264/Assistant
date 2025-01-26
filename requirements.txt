@@ -9,3 +9,5 @@ wavelink
 python-youtube
 lyricsgenius
 googletrans-py
+pydantic
+pyyaml
