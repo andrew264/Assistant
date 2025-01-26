@@ -11,3 +11,4 @@ lyricsgenius
 googletrans-py
 pydantic
 pyyaml
+cachetools

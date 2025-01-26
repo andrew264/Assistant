@@ -1,116 +1,131 @@
 import random
 import re
-from typing import List, Self
+from typing import Any, Dict, List, Self
 from urllib.parse import quote
 
 import aiohttp
 import discord
+from cachetools import TTLCache
 from discord import app_commands
 from discord.ext import commands
 
 from assistant import AssistantBot
 
+urban_cache = TTLCache(maxsize=500, ttl=10800)
+LINK_PATTERN = re.compile(r"\[([^\]]+)\]")
+UD_API_RANDOM = "https://api.urbandictionary.com/v0/random"
+UD_BASE_URL = "https://www.urbandictionary.com/define.php?term={}"
+
 
 class UrbanDictionaryEntry:
-    pattern = r"\[([^\]]+)\]"
+    """Represents an Urban Dictionary entry with formatted output capabilities."""
 
-    def __init__(self, entry_dict: dict):
-        self.definition = str(entry_dict.get('definition', 'No definition found.'))
-        self.permalink = str(entry_dict.get('permalink', ''))
-        self.thumbs_up = int(entry_dict.get('thumbs_up', 0))
-        self.author = str(entry_dict.get('author', 'Unknown'))
-        self.word = str(entry_dict.get('word', ''))
-        self.defid = int(entry_dict.get('defid', 0))
-        self.current_vote = str(entry_dict.get('current_vote', ''))
-        self.written_on = str(entry_dict.get('written_on', ''))
-        self.example = str(entry_dict.get('example', ''))
-        self.thumbs_down = int(entry_dict.get('thumbs_down', 0))
+    def __init__(self, entry_data: Dict[str, Any]):
+        self.definition = str(entry_data.get("definition", "No definition found."))
+        self.example = str(entry_data.get("example", ""))
+        self.word = str(entry_data.get("word", ""))
+        self.author = str(entry_data.get("author", "Unknown"))
+        self.permalink = str(entry_data.get("permalink", ""))
+        self.thumbs_up = int(entry_data.get("thumbs_up", 0))
+        self.thumbs_down = int(entry_data.get("thumbs_down", 0))
+        self.defid = int(entry_data.get("defid", 0))
+        self.written_on = str(entry_data.get("written_on", ""))
 
-    def __lt__(self, other: Self):
-        return self.thumbs_up < other.thumbs_up
+    def __repr__(self) -> str:
+        return f"<UrbanDictionaryEntry defid={self.defid} word='{self.word}'>"
 
-    def __eq__(self, other: Self):
+    def __str__(self) -> str:
+        return (f"{self.word} - {self.author} "
+                f"({self.thumbs_up} 👍 / {self.thumbs_down} 👎)\n"
+                f"{self.definition}\n\n"
+                f"Example: {self.example}")
+
+    def __eq__(self, other: Self) -> bool:
         return self.defid == other.defid
 
-    def __gt__(self, other: Self):
-        return self.thumbs_up > other.thumbs_up
+    def __lt__(self, other: Self) -> bool:
+        return self.thumbs_up < other.thumbs_up
 
-    def __le__(self, other: Self):
+    def __le__(self, other: Self) -> bool:
         return self.thumbs_up <= other.thumbs_up
 
-    def __ge__(self, other: Self):
+    def __gt__(self, other: Self) -> bool:
+        return self.thumbs_up > other.thumbs_up
+
+    def __ge__(self, other: Self) -> bool:
         return self.thumbs_up >= other.thumbs_up
 
-    def __ne__(self, other: Self):
-        return self.defid != other.defid
-
-    def __repr__(self):
-        return f"<UrbanDictionaryEntry defid={self.defid} word={self.word} author={self.author}>"
-
-    def __str__(self):
-        return f"{self.word} - {self.author} ({self.thumbs_up} 👍 {self.thumbs_down} 👎)\n{self.definition}\n{self.example}"
-
     @staticmethod
-    def get_url_for(word: str):
-        return f"[{word}](https://www.urbandictionary.com/define.php?term={quote(word)})"
+    def _format_links(text: str) -> str:
+        """Convert [terms] in text to Urban Dictionary markdown links."""
+        return LINK_PATTERN.sub(lambda m: f"[{m.group(1)}]({UD_BASE_URL.format(quote(m.group(1)))})", text)
 
     @property
-    def get_formatted_definition(self) -> str:
-        matches = re.findall(self.pattern, self.definition)
-        defn = self.definition
-        for match in matches:
-            defn = defn.replace(f"[{match}]", self.get_url_for(match))
-        return defn
+    def formatted_definition(self) -> str:
+        """Definition with embedded markdown links."""
+        return self._format_links(self.definition)
 
     @property
-    def get_formatted_example(self) -> str:
-        matches = re.findall(self.pattern, self.example)
-        example = self.example
-        for match in matches:
-            example = example.replace(f"[{match}]", self.get_url_for(match))
-        return example
+    def formatted_example(self) -> str:
+        """Example text with embedded markdown links."""
+        return self._format_links(self.example)
 
     @property
-    def markdown(self):
-        return f"# Define: {self.get_url_for(self.word)}\n{self.get_formatted_definition}\n\n## Example:\n_{self.get_formatted_example}_\n\n_{self.thumbs_up}_ 👍 \u2022 _{self.thumbs_down}_ 👎"
+    def markdown(self) -> str:
+        """Complete entry formatted in markdown."""
+        return (f"# Define: [{self.word}]({self.permalink})\n\n"
+                f"{self.formatted_definition}\n\n"
+                f"*Example:*\n{self.formatted_example}\n\n"
+                f"{self.thumbs_up} 👍  \u2022  {self.thumbs_down} 👎\n")
 
 
-class UrbanDictionary:
-    def __init__(self, word: str = ''):
-        self._word: str = word
-        self.response: bool = False
-        self.result: List[UrbanDictionaryEntry] = []
+class UrbanDictionaryClient:
+    """Client for fetching Urban Dictionary entries with caching support."""
+
+    def __init__(self, word: str = ""):
+        self.search_term = word.strip()
+        self.results: List[UrbanDictionaryEntry] = []
 
     @property
-    def url(self):
-        return f"https://www.urbandictionary.com/define.php?term={quote(self._word)}"
+    def _cache_key(self) -> str:
+        return f"urban:{self.search_term}"
 
     @property
-    def word(self):
-        return self._word.title() if self._word else None
+    def _api_url(self) -> str:
+        if self.search_term:
+            return f"https://api.urbandictionary.com/v0/define?term={quote(self.search_term)}"
+        return UD_API_RANDOM
 
-    async def get(self):
+    async def fetch(self) -> bool:
+        """Fetch entries from API or cache. Returns success status."""
+        if self.search_term:
+            if cached := urban_cache.get(self._cache_key):
+                self.results = cached
+                return True
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self._api_url) as response:
+                    data = await response.json()
+        except (aiohttp.ClientError, ValueError):
+            return False
+
+        if not isinstance(data.get("list"), list) or len(data["list"]) == 0:
+            return False
+
+        entries = [UrbanDictionaryEntry(entry) for entry in data["list"]]
+        self.results = sorted(entries, reverse=True)
+
+        if self.search_term:
+            urban_cache[self._cache_key] = self.results
+
+        return True
+
+    def top_results(self, count: int = 5) -> List[UrbanDictionaryEntry]:
         """
-        Fetch a definition from Urban Dictionary
+        Get top N entries sorted by thumbs up votes.
         """
-        url = f"https://api.urbandictionary.com/v0/define?term={quote(self._word)}" if self._word else "https://api.urbandictionary.com/v0/random"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                data = await response.json()
-            await session.close()
-        if data is None or any(e in data for e in ('error', 'errors')):
-            return
-        if len(data['list']) == 0:
-            return
-        data = [UrbanDictionaryEntry(data) for data in data['list']]
-        data.sort(reverse=True)
-        self.result = data
-        self.response = True
-
-    async def get_results(self):
-        await self.get()
-        return self.result
+        return self.results[:count]
 
 
 class Dictionary(commands.Cog):
@@ -134,13 +149,14 @@ class Dictionary(commands.Cog):
     @app_commands.describe(word='The word to define')
     async def define(self, ctx: commands.Context, *, word: str = ''):
         await ctx.defer()
-        urban = UrbanDictionary(word)
-        results = await urban.get_results()
-        if not urban.response:
+        client = UrbanDictionaryClient("yeet")
+        await client.fetch()
+        results = client.top_results()
+        if not results:
             await ctx.send(f"No definition found for {word}.")
             return
         else:
-            random_result = random.choice(results[:5])
+            random_result = random.choice(results)
             if len(random_result.markdown) > 2000:
                 msgs = random_result.markdown.split('\n\n')
                 await ctx.send(content=msgs[0][:2000], suppress_embeds=True)

@@ -1,9 +1,11 @@
 import asyncio
 import re
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 import discord
 import wavelink
+from cachetools import TTLCache
 from discord import app_commands
 from discord.ext import commands
 from lyricsgenius import Genius
@@ -13,173 +15,173 @@ from assistant import AssistantBot
 from config import GENIUS_TOKEN
 from utils import remove_brackets
 
-genius = Genius(GENIUS_TOKEN, verbose=False, skip_non_songs=True, timeout=10) if GENIUS_TOKEN else None
+genius = None
+if GENIUS_TOKEN:
+    genius = Genius(GENIUS_TOKEN, verbose=False, skip_non_songs=True, timeout=15)
+    genius.remove_section_headers = True
+
+lyrics_cache = TTLCache(maxsize=200, ttl=7200)
 
 
-class GLyrics:
-    def __init__(self):
-        self.title: Optional[str] = None
-        self.artist: Optional[str] = None
-        self.lyrics: Optional[list[str]] = None
-        self.url: Optional[str] = None
-        self.icon: Optional[str] = None
-        self.album_art: Optional[str] = None
-        self.colour: Optional[discord.Colour] = None
+@dataclass
+class LyricsData:
+    title: Optional[str] = None
+    artist: Optional[str] = None
+    lyrics: Optional[list[str]] = None
+    url: Optional[str] = None
+    icon: Optional[str] = None
+    album_art: Optional[str] = None
+    color: Optional[discord.Color] = None
+
+
+class LyricsManager:
+    @staticmethod
+    def _get_cache_key(title: str, artist: Optional[str]) -> Tuple[str, Optional[str]]:
+        return title.lower(), artist.lower() if artist else None
 
     @staticmethod
-    def _get_lyrics(title, artist) -> Optional[Song]:
-        assert genius is not None
-        if not title:
+    def _search_genius(title: str, artist: Optional[str]) -> Optional[Song]:
+        """Search for lyrics using Genius API"""
+        if not genius or not title:
             return None
-        song: Optional[Song] = genius.search_song(title, artist)
-        return song if (song and song.lyrics) else None
+
+        cache_key = LyricsManager._get_cache_key(title, artist)
+        if cache_key in lyrics_cache:
+            return lyrics_cache[cache_key]
+
+        try:
+            song = genius.search_song(title, artist)
+            if song and song.lyrics:
+                lyrics_cache[cache_key] = song
+                return song
+        except Exception as e:
+            print(f"Genius API error: {e}")
+        return None
 
     @staticmethod
-    def _lyrics_list(lyrics: str) -> list[str]:
-        lyrics = lyrics.replace("[", "\n\n[").replace("You might also like", '')  # i hate doing this
-        lyrics = re.sub(r"[0-9]*Embed*", "", lyrics)
-        lyrics = re.sub(r"URLCopyEmbedCopy", "", lyrics)
-        if len(lyrics.splitlines()) > 1 and "lyrics" in lyrics.splitlines()[0].lower():
-            lyrics = lyrics.split("\n", 1)[1]
-        _lyrics = [lyric for lyric in lyrics.split("\n\n") if lyric.strip() != ""]
+    def _process_lyrics(raw_lyrics: str) -> list[str]:
+        """Process raw lyrics into formatted chunks"""
+        cleaned = re.sub(r"(URLCopyEmbedCopy|You might also like|\d*Embed)|\[.*?\]", "", raw_lyrics)
 
-        # break up lyrics into chunks of 2048 characters
-        lyrics_list = []
-        for lyric in _lyrics:
-            if len(lyric) > 2048:
-                for i in range(0, len(lyric), 2048):
-                    lyrics_list.append(lyric[i:i + 2048])
-            else:
-                lyrics_list.append(lyric)
+        if len(cleaned.splitlines()) > 1 and "lyrics" in cleaned.splitlines()[0].lower():
+            cleaned = cleaned.split("\n", 1)[1]
 
-        return lyrics_list
+        sections = [s.strip() for s in cleaned.split("\n\n") if s.strip()]
+        chunks = []
+        for section in sections:
+            while len(section) > 2048:
+                split_pos = section.rfind('\n', 0, 2048)
+                if split_pos == -1:
+                    split_pos = 2048
+                chunks.append(section[:split_pos])
+                section = section[split_pos:]
+            chunks.append(section)
+        return chunks
 
-    def _embeds_list(self) -> list[discord.Embed]:
-        embeds = []
-        assert self.lyrics is not None
-        for i, lines in enumerate(self.lyrics):
-            embed = discord.Embed(title=self.title, description=lines, color=self.colour, url=self.url)
-            embed.set_thumbnail(url=self.album_art)
-            embed.set_footer(text=f"{i + 1}/{len(self.lyrics)}", icon_url=self.icon)
-            embeds.append(embed)
-        return embeds
+    @classmethod
+    async def fetch_lyrics(cls, *, title: Optional[str] = None, artist: Optional[str] = None, spotify: Optional[discord.Spotify] = None,
+                           track: Optional[wavelink.Playable] = None) -> Optional[LyricsData]:
+        """Fetch lyrics from various sources"""
+        data = LyricsData()
 
-    async def get_lyrics(self, author: discord.Member, title: Optional[str] = None, artist: Optional[str] = None, spotify: Optional[discord.Spotify] = None,
-                         yt: Optional[wavelink.Playable] = None) -> list[discord.Embed]:
-        if not any((title, spotify, yt)):
-            return []
-        loop = asyncio.get_event_loop()
         if spotify:
-            title, artist = remove_brackets(spotify.title), spotify.artists[0]
-            self.url = spotify.track_url
-            self.icon = "https://open.spotifycdn.com/cdn/images/favicon32.8e66b099.png"
-            self.album_art = spotify.album_cover_url
-            self.colour = spotify.color
-        elif yt:
-            if hasattr(yt, "thumbnail"):
-                self.album_art = yt.thumbnail
-            else:
-                self.album_art = None
-
-            # split title into artist and title
-            _title = remove_brackets(yt.title).split("-")
-
-            # Title
-            title = _title[-1].strip()
-            # if 'ft.' in title remove everything after it
-            if 'ft.' in title:
-                title = title.split('ft.')[0].strip()
-            elif 'feat.' in title:
-                title = title.split('feat.')[0].strip()
-
-            # Artist
-            artist = _title[0].split(',')[0].strip() if len(_title) > 1 else ""
-            if '&' in artist:
-                artist = artist.split('&')[0].strip()
-
-            self.url = yt.uri
-            self.icon = "https://www.gstatic.com/images/branding/product/1x/youtube_64dp.png"
-            self.colour = discord.Colour.red()
+            data.title = remove_brackets(spotify.title)
+            data.artist = spotify.artists[0]
+            data.url = spotify.track_url
+            data.icon = "https://open.spotifycdn.com/cdn/images/favicon32.8e66b099.png"
+            data.album_art = spotify.album_cover_url
+            data.color = spotify.color
+        elif track:
+            data.title = remove_brackets(track.title)
+            data.artist = track.author
+            data.url = track.uri
+            data.album_art = track.thumbnail if hasattr(track, "thumbnail") else None
+            data.icon = "https://www.gstatic.com/images/branding/product/1x/youtube_64dp.png"
+            data.color = discord.Color.red()
+        elif title:
+            data.title = title
+            data.artist = artist
+            data.color = discord.Color.random()
         else:
-            self.icon = author.display_avatar.url
-            self.colour = discord.Colour.random()
+            return None
 
-        song: Optional[Song] = await loop.run_in_executor(None, self._get_lyrics, title, artist)
-        if song is None:
-            return []
-        self.title = song.title
-        self.artist = song.artist
-        self.lyrics = self._lyrics_list(song.lyrics)
-        self.url = self.url if self.url else song.url
-        self.album_art = self.album_art if self.album_art else song.song_art_image_url
-        return self._embeds_list()
+        loop = asyncio.get_event_loop()
+        song = await loop.run_in_executor(None, cls._search_genius, data.title, data.artist)
+        if not song or not song.lyrics:
+            return None
+
+        data.lyrics = cls._process_lyrics(song.lyrics)
+        data.url = data.url or song.url
+        data.album_art = data.album_art or song.song_art_image_url
+        return data
 
 
-class Lyrics(commands.Cog):
+class LyricsView(discord.ui.View):
+    def __init__(self, embeds: list[discord.Embed]):
+        super().__init__(timeout=120)
+        self.embeds = embeds
+        self.page = 0
+        self._update_buttons()
+
+    def _update_buttons(self):
+        self.prev_button.disabled = self.page == 0
+        self.next_button.disabled = self.page == len(self.embeds) - 1
+
+    @discord.ui.button(emoji="◀", style=discord.ButtonStyle.blurple)
+    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page = max(0, self.page - 1)
+        self._update_buttons()
+        await interaction.response.edit_message(embed=self.embeds[self.page], view=self)
+
+    @discord.ui.button(emoji="▶", style=discord.ButtonStyle.blurple)
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page = min(len(self.embeds) - 1, self.page + 1)
+        self._update_buttons()
+        await interaction.response.edit_message(embed=self.embeds[self.page], view=self)
+
+    @discord.ui.button(emoji="❌", style=discord.ButtonStyle.grey)
+    async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await interaction.delete_original_response()
+        self.stop()
+
+
+class LyricsCog(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
 
-    @commands.hybrid_command(name="lyrics", description="Get lyrics for a song you are listening to", )
-    @app_commands.describe(title='Song Title', artist='Artist Name')
+    @commands.hybrid_command(name="lyrics", description="Get lyrics for the current song or specified track")
+    @app_commands.describe(title="Song title", artist="Artist name")
     @commands.guild_only()
-    async def lyrics(self, ctx: commands.Context, title: Optional[str] = None, artist: Optional[str] = None) -> None:
-        assert ctx.guild
-        user = ctx.guild.get_member(ctx.author.id)
-        assert user is not None
+    async def lyrics_command(self, ctx: commands.Context, title: Optional[str] = None, artist: Optional[str] = None) -> None:
+        """Get lyrics for the current playing song or specified track"""
         await ctx.defer()
-        spotify = [act for act in user.activities if isinstance(act, discord.Spotify)]
-        embeds = []
-        if title:
-            embeds = await GLyrics().get_lyrics(user, title, artist)
-        elif spotify:
-            embeds = await GLyrics().get_lyrics(user, spotify=spotify[0])
-        else:
-            if ctx.voice_client is not None and user.voice is not None:
-                vc: wavelink.Player = ctx.voice_client  # type: ignore
-                if vc.channel == user.voice.channel and vc.current:
-                    embeds = await GLyrics().get_lyrics(user, yt=vc.current)
 
-        if not embeds:
-            await ctx.send(content="Lyrics not found.")
+        user = ctx.guild.get_member(ctx.author.id)
+        spotify = next((act for act in user.activities if isinstance(act, discord.Spotify)), None)
+        track = None
+        if ctx.voice_client and user.voice and ctx.voice_client.channel == user.voice.channel:
+            track = ctx.voice_client.current
+
+        data = await LyricsManager.fetch_lyrics(title=title, artist=artist, spotify=spotify, track=track)
+
+        if not data or not data.lyrics:
+            await ctx.send("❌ Couldn't find lyrics for this track", delete_after=15)
             return
-        else:
-            class Pages(discord.ui.View):
-                def __init__(self):
-                    super().__init__(timeout=120.0)
-                    self.page_no = 0
-                    self.message: Optional[discord.Message] = None
 
-                async def on_timeout(self):
-                    self.stop()
-                    await self.message.edit(view=None)
+        embeds = []
+        for i, chunk in enumerate(data.lyrics):
+            embed = discord.Embed(title=data.title, description=chunk, color=data.color, url=data.url)
+            embed.set_thumbnail(url=data.album_art)
+            embed.set_footer(text=f"Lyrics provided by Genius • Page {i + 1}/{len(data.lyrics)}", icon_url=data.icon)
+            embeds.append(embed)
 
-                @discord.ui.button(emoji="◀", style=discord.ButtonStyle.blurple)
-                async def prev_page(self, interaction: discord.Interaction, button: discord.Button) -> None:
-                    if self.page_no > 0:
-                        self.page_no -= 1
-                    else:
-                        self.page_no = len(embeds) - 1
-                    await interaction.response.edit_message(embed=embeds[self.page_no], view=self, )
-
-                @discord.ui.button(emoji="▶", style=discord.ButtonStyle.blurple)
-                async def next_page(self, interaction: discord.Interaction, button: discord.Button) -> None:
-                    if self.page_no < len(embeds) - 1:
-                        self.page_no += 1
-                    else:
-                        self.page_no = 0
-                    await interaction.response.edit_message(embed=embeds[self.page_no], view=self, )
-
-                @discord.ui.button(emoji="❌", style=discord.ButtonStyle.gray)
-                async def remove_buttons(self, interaction: discord.Interaction, button: discord.Button) -> None:
-                    await interaction.response.edit_message(view=None)
-                    self.stop()
-
-            view = Pages()
-            view.message = await ctx.send(embed=embeds[0], view=view)
+        view = LyricsView(embeds) if len(embeds) > 1 else None
+        await ctx.send(embed=embeds[0], view=view)
 
 
 async def setup(bot: AssistantBot):
     if not GENIUS_TOKEN:
-        bot.logger.warning("Genius Token not found. Lyrics command will not be loaded.")
+        bot.logger.warning("Genius token not found - lyrics command disabled")
         return
-    await bot.add_cog(Lyrics(bot))
+    await bot.add_cog(LyricsCog(bot))
