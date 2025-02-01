@@ -112,7 +112,7 @@ class UserInfo(commands.Cog):
                 embed.add_field(name="Available Clients", value=available_clients(fuser))
 
             if is_admin and timestamp:  # Last Seen
-                embed.add_field(name="Last Seen" if fuser.raw_status == discord.Status.offline else "Online for", value=f"<t:{timestamp}:R>", )
+                embed.add_field(name="Last Seen" if fuser.raw_status == str(discord.Status.offline) else "Online for", value=f"<t:{timestamp}:R>", )
 
             # Activities
             for act_type, act_name in all_activities(fuser, with_time=True, with_url=True, include_all_activities=True).items():
