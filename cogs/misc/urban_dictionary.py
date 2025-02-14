@@ -149,7 +149,7 @@ class Dictionary(commands.Cog):
     @app_commands.describe(word='The word to define')
     async def define(self, ctx: commands.Context, *, word: str = ''):
         await ctx.defer()
-        client = UrbanDictionaryClient("yeet")
+        client = UrbanDictionaryClient(word)
         await client.fetch()
         results = client.top_results()
         if not results:
