@@ -199,6 +199,9 @@ class Play(commands.Cog):
         else:  # should not reach here
             await ctx.send("Something went wrong")
             self.bot.logger.error(f"[LAVALINK] Something went wrong while fetching {query}")
+        if not vc.playing:
+            vc.filters.volume = 0.3
+            await vc.play(track=vc.queue.get())
 
     @play.autocomplete('query')
     async def play_autocomplete(self, ctx: discord.Interaction, query: str) -> list[Choice[str]]:
