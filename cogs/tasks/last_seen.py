@@ -1,36 +1,25 @@
 import datetime
-from typing import Optional
 
 import discord
 from discord.ext import commands
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import AssistantBot
-from config import MONGO_URI
+from config import DATABASE_NAME, MONGO_URI
 
 
 class LastSeen(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
-        self.mongo_db: Optional[AsyncIOMotorClient] = None  # type: ignore
 
     async def update_time(self, user_id: int) -> None:
-        if not self.mongo_db:
-            self.mongo_db = await self.bot.connect_to_mongo()
-        assert self.mongo_db is not None
-
-        db = self.mongo_db["assistant"]
+        db = self.bot.database[DATABASE_NAME]
         collection = db["allUsers"]
 
         await collection.update_one({"_id": user_id}, {"$set": {"lastSeen": int(datetime.datetime.now().timestamp())}}, upsert=True)
 
     @commands.Cog.listener('on_ready')
     async def reset_last_seen(self) -> None:
-        if not self.mongo_db:
-            self.mongo_db = await self.bot.connect_to_mongo()
-        assert self.mongo_db is not None
-
-        db = self.mongo_db["assistant"]
+        db = self.bot.database[DATABASE_NAME]
         collection = db["allUsers"]
         await collection.update_many({}, {"$unset": {"lastSeen": ""}})
         self.bot.logger.info("[RESET] lastSeen times from DB.")

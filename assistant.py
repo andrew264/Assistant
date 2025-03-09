@@ -9,7 +9,7 @@ from discord.ext import commands
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
-from config import TEST_GUILDS, MONGO_URI, LAVA_CONFIG, LOG_LEVEL
+from config import DATABASE_NAME, TEST_GUILDS, MONGO_URI, LAVA_CONFIG, LOG_LEVEL
 from utils import get_logger
 
 
@@ -21,6 +21,7 @@ class AssistantBot(commands.Bot):
         self._mongo_db: Optional[AsyncIOMotorClient] = None
 
     async def setup_hook(self) -> None:
+        await self.connect_to_mongo()
         for folder in Path("cogs").iterdir():
             if folder.is_dir():
                 # Skip tasks folder. it's annoying to debug with it.
@@ -52,6 +53,11 @@ class AssistantBot(commands.Bot):
         else:
             self.logger.warning("[LAVALINK] Configuration not found.")
 
+    @property
+    def database(self) -> AsyncIOMotorClient:
+        assert self._mongo_db
+        return self._mongo_db
+
     async def connect_to_mongo(self) -> Optional[AsyncIOMotorClient]:
         """
         Connects to MongoDB
@@ -63,8 +69,8 @@ class AssistantBot(commands.Bot):
 
         for attempt in range(RETRY_ATTEMPTS):
             try:
-                self.logger.info(f"[CONNECTING] to MongoDB... (Attempt {attempt + 1})")
-                self._mongo_db = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+                self.logger.info(f"[CONNECTING] to MongoDB Database: {DATABASE_NAME}... (Attempt {attempt + 1})")
+                self._mongo_db = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=20000)
                 await self._mongo_db.admin.command('ping')
                 self.logger.info("[CONNECTED] to MongoDB.")
                 return self._mongo_db

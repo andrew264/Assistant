@@ -13,7 +13,7 @@ from thefuzz import process
 from wavelink import Playable, Playlist
 
 from assistant import AssistantBot
-from config import HOME_GUILD_ID, LAVA_CONFIG
+from config import DATABASE_NAME, HOME_GUILD_ID, LAVA_CONFIG
 from utils import check_vc, clickable_song, remove_brackets
 from utils.tenor import TenorObject
 
@@ -81,13 +81,7 @@ class TrackButton(discord.ui.Button["SearchResultsView"]):
 class Play(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
-        self._mongo_client: Optional[AsyncIOMotorClient] = None  # type: ignore
         self._cache: Dict[int, Dict[str, str]] = defaultdict()
-
-    async def get_mongo_client(self) -> Optional[AsyncIOMotorClient]:
-        if not self._mongo_client:
-            self._mongo_client = await self.bot.connect_to_mongo()
-        return self._mongo_client
 
     @commands.Cog.listener('on_wavelink_track_start')
     async def _add_track_to_db(self, payload: wavelink.TrackStartEventPayload) -> None:
@@ -102,8 +96,7 @@ class Play(commands.Cog):
         if guild_id not in self._cache:
             await self._fill_cache(guild_id)
         self._cache[guild_id] |= {title: track.uri}
-        mongo_client = await self.get_mongo_client()
-        db = mongo_client["assistant"]
+        db = self.bot.database[DATABASE_NAME]
         collection = db["songHistory"]
         new_song = dict(title=title, uri=track.uri)
         result = await collection.update_one({"_id": guild_id}, {
@@ -119,8 +112,7 @@ class Play(commands.Cog):
             self.bot.logger.debug(f"[MONGO] {title} already exists in GuildID: {guild_id}")
 
     async def _fill_cache(self, guild_id: int):
-        mongo_client = await self.get_mongo_client()
-        db = mongo_client["assistant"]
+        db = self.bot.database[DATABASE_NAME]
         collection = db["songHistory"]
         self._cache[guild_id] = {}
         if await collection.count_documents({"_id": guild_id}) == 0:

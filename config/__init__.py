@@ -32,6 +32,7 @@ DM_RECIPIENTS_CATEGORY = config.client.dm_recipients_category
 
 # MongoDB
 MONGO_URI = config.mongo.uri
+DATABASE_NAME = config.mongo.database_name
 
 # Resource Path
 RESOURCE_PATH = Path(config.resource_path)

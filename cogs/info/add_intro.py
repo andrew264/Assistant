@@ -1,19 +1,16 @@
 import traceback
-from typing import Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import AssistantBot
-from config import MONGO_URI
+from config import DATABASE_NAME, MONGO_URI
 
 
 class Introduction(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
-        self.mongo: Optional[AsyncIOMotorClient] = None
 
     @app_commands.command(name="introduce", description="Introduce yourself to other members of the server")
     async def introduce(self, ctx: discord.Interaction):
@@ -34,9 +31,7 @@ class Introduction(commands.Cog):
             await interaction.response.send_message("Error while adding introduction", ephemeral=True)
 
     async def _add_intro_to_db(self, user_id: int, intro: str):
-        if not self.mongo:
-            self.mongo = await self.bot.connect_to_mongo()
-        db = self.mongo["assistant"]
+        db = self.bot.database[DATABASE_NAME]
         collection = db["allUsers"]
 
         await collection.update_one({"_id": user_id}, {"$set": {"about": intro}}, upsert=True)

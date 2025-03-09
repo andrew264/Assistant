@@ -4,16 +4,15 @@ from typing import Optional, Union
 import discord
 from discord import app_commands, utils
 from discord.ext import commands
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import AssistantBot
+from config import DATABASE_NAME
 from utils import all_activities, available_clients
 
 
 class UserInfo(commands.Cog):
     def __init__(self, bot: AssistantBot):
         self.bot = bot
-        self.mongo: Optional[AsyncIOMotorClient] = None  # type: ignore
         for command in self.build_context_menus():
             self.bot.tree.add_command(command)
 
@@ -47,12 +46,7 @@ class UserInfo(commands.Cog):
         return random.choice(_url)
 
     async def _get_user_data(self, user: Union[discord.Member, discord.User]) -> dict:
-        if self.mongo is None:
-            self.mongo = await self.bot.connect_to_mongo()
-            if self.mongo is None:
-                self.bot.logger.warning("Failed to fetch user data. MongoDB not connected.")
-                return {}
-        db = self.mongo['assistant']
+        db = self.bot.database[DATABASE_NAME]
         collection = db['allUsers']
         result = await collection.find_one({'_id': user.id})
         return result if result else {}

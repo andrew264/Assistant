@@ -27,6 +27,7 @@ class MongoConfig(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     url: Optional[str] = None
+    database_name: str = "assistant"
 
     @property
     def uri(self) -> Optional[str]:
