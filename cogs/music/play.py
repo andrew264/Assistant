@@ -18,6 +18,64 @@ from utils import check_vc, clickable_song, remove_brackets
 from utils.tenor import TenorObject
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
+tenor_client = TenorObject()
+
+
+class SearchResultsView(discord.ui.View):
+    def __init__(self, tracks: list[Playable], ctx: commands.Context):
+        super().__init__(timeout=60)
+        self.tracks = tracks
+        self.ctx = ctx
+        self.vc: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
+        self.message: Optional[discord.Message] = None
+        self.add_buttons()
+
+    def add_buttons(self):
+        for idx, track in enumerate(self.tracks):
+            self.add_item(TrackButton(track, label=f"{idx + 1}. {track.title[:50]}", row=idx // 3))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        assert isinstance(interaction.user, discord.Member)
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message("Only the person who initiated the search can select a track.", ephemeral=True)
+            return False
+
+        if not interaction.user.voice or interaction.user.voice.channel != self.vc.channel:
+            await interaction.response.send_message("You must be in the same voice channel as the bot to select a track.", ephemeral=True)
+            return False
+
+        return True
+
+    async def on_timeout(self):
+        if self.message:
+            await self.message.edit(content="Search timed out.", view=None)
+            self.stop()
+
+
+class TrackButton(discord.ui.Button["SearchResultsView"]):
+    def __init__(self, track: Playable, label: str, row: int):
+        super().__init__(style=discord.ButtonStyle.secondary, label=label, row=row)
+        self.track = track
+
+    async def callback(self, interaction: discord.Interaction):
+        assert self.view is not None
+        view: SearchResultsView = self.view
+
+        await interaction.response.defer()
+        await view.vc.queue.put_wait(self.track)
+        if not view.vc.playing:
+            await view.vc.play(view.vc.queue.get())
+
+        await interaction.edit_original_response(content=f"Added {clickable_song(self.track)} to queue", view=None)
+
+        view.stop()
+
+        if view.ctx.guild.id == HOME_GUILD_ID:
+            if view.vc.current is None: delete_after = int(self.track.length / 1000)
+            else: delete_after = 900  # 15 minutes
+
+            a_gif = await tenor_client.search_async(self.track.author + " " + self.track.title)
+            if a_gif: await view.ctx.channel.send(a_gif, delete_after=delete_after)
 
 
 class Play(commands.Cog):
@@ -25,7 +83,6 @@ class Play(commands.Cog):
         self.bot = bot
         self._mongo_client: Optional[AsyncIOMotorClient] = None  # type: ignore
         self._cache: Dict[int, Dict[str, str]] = defaultdict()
-        self._tenor = TenorObject()
 
     async def get_mongo_client(self) -> Optional[AsyncIOMotorClient]:
         if not self._mongo_client:
@@ -110,31 +167,38 @@ class Play(commands.Cog):
         except wavelink.LavalinkLoadException as e:
             await ctx.send(f"Something went wrong!\n{e.error}")
             raise commands.CommandError(f"Something went wrong while fetching the song: {e}")
-        if isinstance(tracks, list):
+
+        if isinstance(tracks, Playlist):
+            await vc.queue.put_wait(tracks)
+            await ctx.send(f"Added {len(tracks)} songs from playlist to queue")
+
+        elif isinstance(tracks, list):
             if not tracks:
                 await ctx.send("No results found")
                 return
-            track: Playable = tracks[0]
-            await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True, )
 
-            if ctx.guild.id == HOME_GUILD_ID:
-                if vc.current is None: delete_after = int(track.length / 1000)
-                else: delete_after = 900  # 15 minutes
-                a_gif = await self._tenor.search_async(track.author + " " + track.title)
-                if a_gif: await ctx.channel.send(a_gif, delete_after=delete_after)
+            if query.startswith("ytsearch:"):
+                view = SearchResultsView(tracks[:5], ctx)  # top 5
+                view.message = await ctx.send("Select a song to play:", view=view, suppress_embeds=True)
 
-            await vc.queue.put_wait(track)
-        elif isinstance(tracks, Playlist):
-            await vc.queue.put_wait(tracks)
-            await ctx.send(f"Added {len(tracks)} songs to queue")
-        else:
+            else:  # direct URL
+                track: Playable = tracks[0]
+                await vc.queue.put_wait(track)
+                await ctx.send(f"Added {clickable_song(track)} to queue", suppress_embeds=True)
+
+                if ctx.guild.id == HOME_GUILD_ID:
+                    if vc.current is None: delete_after = int(track.length / 1000)
+                    else: delete_after = 900  # 15 minutes
+                    a_gif = await tenor_client.search_async(track.author + " " + track.title)
+                    if a_gif: await ctx.channel.send(a_gif, delete_after=delete_after)
+
+                if not vc.playing:
+                    vc.filters.volume = 0.3
+                    await vc.play(track=vc.queue.get())
+
+        else:  # should not reach here
             await ctx.send("Something went wrong")
             self.bot.logger.error(f"[LAVALINK] Something went wrong while fetching {query}")
-
-        if not vc.playing:
-            vc.filters.volume = 0.3
-            await vc.play(track=vc.queue.get())
-            return
 
     @play.autocomplete('query')
     async def play_autocomplete(self, ctx: discord.Interaction, query: str) -> list[Choice[str]]:
