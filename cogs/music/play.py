@@ -43,7 +43,6 @@ class SearchResultsView(discord.ui.View):
         if not interaction.user.voice or interaction.user.voice.channel != self.vc.channel:
             await interaction.response.send_message("You must be in the same voice channel as the bot to select a track.", ephemeral=True)
             return False
-
         return True
 
     async def on_timeout(self):
@@ -62,7 +61,7 @@ class TrackButton(discord.ui.Button["SearchResultsView"]):
         view: SearchResultsView = self.view
 
         await interaction.response.defer()
-        await view.vc.queue.put_wait(self.track)
+        view.vc.queue.put(self.track)
         if not view.vc.playing:
             await view.vc.play(view.vc.queue.get())
 
@@ -131,6 +130,7 @@ class Play(commands.Cog):
     @check_vc()
     async def play(self, ctx: commands.Context, *, query: Optional[str] = None):
         assert isinstance(ctx.author, discord.Member)
+        await ctx.defer()
 
         if not ctx.voice_client:
             await ctx.author.voice.channel.connect(cls=wavelink.Player, self_deaf=True)
@@ -150,7 +150,6 @@ class Play(commands.Cog):
             await ctx.send(message, suppress_embeds=True)
             return
 
-        await ctx.defer()
         if not re.match(url_rx, query):
             query = f"ytsearch:{query}"
 
@@ -172,6 +171,7 @@ class Play(commands.Cog):
             if query.startswith("ytsearch:"):
                 view = SearchResultsView(tracks[:5], ctx)  # top 5
                 view.message = await ctx.send("Select a song to play:", view=view, suppress_embeds=True)
+                return
 
             else:  # direct URL
                 track: Playable = tracks[0]
