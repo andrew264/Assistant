@@ -12,3 +12,5 @@ googletrans-py
 pydantic
 pyyaml
 cachetools
+python-dateutil
+dateparser

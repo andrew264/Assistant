@@ -41,6 +41,7 @@ A multipurpose Discord bot built using the `discord.py` library. It includes a v
 *   **Translator:** Translates text using Google Translate, including inline translation within messages.
 *   **Urban Dictionary:** Looks up word definitions from Urban Dictionary.
 *   **Utilities:** General utility commands like `echo` and `ping`.
+*  **Reminders:** Set, list, cancel, and edit reminders for yourself or others, with support for recurring reminders.
 
 ### Music
 
@@ -72,24 +73,33 @@ The bot uses the following main Python libraries:
 *   `pyyaml`: For YAML parsing.
 *   `pydantic`: For data validation and settings management.
 *   `psutil`: For retrieving system and process information.
+*   `dateparser`: For parsing human-readable dates and times.
+*   `python-dateutil`:  Provides powerful extensions to the standard datetime module.
 
 All dependencies are listed in `requirements.txt`.
 
 ---
 ## Setup
 
-1. **Clone the repository:**
+1.  **Clone the repository:**
+
     ```bash
     git clone https://github.com/andrew264/Assistant
     cd Assistant
     ```
-2. **Install dependencies:**
+
+2.  **Install dependencies:**
+
     ```bash
     pip install -r requirements.txt
     ```
-3. **Create a config file:**
+
+3.  **Create a config file:**
+
     *   Create a `config.yaml` file in the `config` directory. You can use `config/example.yaml` as a template.
-4. **Configure settings:**
+
+4.  **Configure settings:**
+
     *   Fill in the required values in `config.yaml`:
         *   `DISCORD_TOKEN`: Your Discord bot token.
         *   `OWNER_ID`: Your Discord user ID.
@@ -101,16 +111,21 @@ All dependencies are listed in `requirements.txt`.
         *   `GENIUS_TOKEN`: Genius API token (if you're using the lyrics command).
         *   `LOGGING_GUILDS`: Guilds and channels for logging (required for surveillance).
     *   Set other optional configuration values as needed.
-5. **Configure Audio Clips (optional):**
+
+5.  **Configure Audio Clips (optional):**
+
     *   Place audio clip files (`.mp3`) inside the `resources/audio_clips` directory, organized in subfolders named after guild IDs where the clips will be available.
-6. **Run the bot:**
+
+6.  **Run the bot:**
+
     ```bash
     python main.py
     ```
+
 ### Notes:
 
 *   **Permissions:** Make sure the bot has the necessary permissions in your Discord server to perform its functions (e.g., manage messages, manage roles, connect to voice channels, create webhooks, etc.).
-*   **MongoDB:** Some features, like user introductions and last seen tracking, require a MongoDB database. If you don't configure `MONGO_URI`, those features will be disabled.
+*   **MongoDB:** Some features, like user introductions, last seen tracking, and reminders, require a MongoDB database. If you don't configure `MONGO_URI`, those features will be disabled.
 *   **Lavalink:** For music features to work, you need a running Lavalink server and have to configure its details in `config.yaml`.
 *   **API Keys:** Certain features like Reddit integration, Genius lyrics, and Tenor GIFs require API keys. You need to obtain those keys and add them to the `config.yaml`.
 *   **Owner-only Commands:** Some commands are restricted to the bot owner (specified by `OWNER_ID`).
