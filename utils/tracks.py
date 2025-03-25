@@ -24,4 +24,4 @@ def human_int(num) -> str:
 
 
 def clickable_song(song: Playable) -> str:
-    return f"[{remove_brackets(song.title)}]({song.uri})"
+    return f"[{remove_brackets(song.title)}](<{song.uri}>)"

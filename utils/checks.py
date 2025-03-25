@@ -17,6 +17,21 @@ def check_vc():
     return commands.check(predicate)
 
 
+def check_vc_interaction():
+    async def predicate(ctx: discord.Interaction) -> bool:
+        assert isinstance(ctx.user, discord.Member)
+        assert ctx.guild is not None
+        if ctx.user.voice is None:
+            raise discord.app_commands.CheckFailure("You must be in a voice channel.")
+        assert ctx.user.voice.channel is not None
+        permissions = ctx.user.voice.channel.permissions_for(ctx.guild.me)
+        if not permissions.connect or not permissions.speak:
+            raise discord.app_commands.CheckFailure("I do not have the required permissions to join your voice channel.")
+        return True
+
+    return discord.app_commands.check(predicate)
+
+
 def check_same_vc():
     async def predicate(ctx: commands.Context) -> bool:
         assert isinstance(ctx.author, discord.Member)
