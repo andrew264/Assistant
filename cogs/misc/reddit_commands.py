@@ -113,6 +113,7 @@ class RedditCommands(commands.Cog):
         return random.sample(valid_posts, min(limit, len(valid_posts)))
 
     @commands.hybrid_command(name="meme", description="Get fresh memes from popular subreddits")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.describe(count="Number of memes to fetch (max 5)")
     async def meme_command(self, ctx: commands.Context, count: app_commands.Range[int, 1, MAX_POSTS] = 1):
         """Fetch memes from popular subreddits"""
@@ -133,6 +134,7 @@ class RedditCommands(commands.Cog):
             await ctx.send("❌ Failed to fetch memes. Try again later.", delete_after=15)
 
     @commands.hybrid_command(name="nsfw", description="Fetch NSFW content from Reddit")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.describe(count="Number of posts to fetch (max 5)")
     @commands.is_nsfw()
     async def nsfw_command(self, ctx: commands.Context, count: app_commands.Range[int, 1, MAX_POSTS] = 1):

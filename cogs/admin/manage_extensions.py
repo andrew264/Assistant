@@ -18,7 +18,7 @@ class ManageExtensions(commands.Cog):
         try:
             await self.bot.load_extension(f"cogs.{extension}")
         except Exception as e:
-            await ctx.response.send_message(f"Failed to load extension: {extension}\n```py```", ephemeral=True)
+            await ctx.response.send_message(f"Failed to load extension: {extension}\n```py\n{e}```", ephemeral=True)
             self.bot.logger.error(f"Failed to load extension: {extension}\n{e}")
         else:
             await ctx.response.send_message(f"Loaded extension: {extension}", ephemeral=True)

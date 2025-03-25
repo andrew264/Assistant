@@ -41,8 +41,9 @@ class Reminder(BaseModel):
     last_triggered: Optional[datetime.datetime] = None
     is_active: bool = True  # For pausing/activating reminders
 
+    @classmethod
     @field_validator("trigger_time", "creation_time", mode="before")
-    def ensure_utc(self, v: datetime.datetime) -> datetime.datetime:
+    def ensure_utc(cls, v: datetime.datetime) -> datetime.datetime:
         if v.tzinfo is None:  # Assume naive times are in UTC
             return v.replace(tzinfo=datetime.timezone.utc)
         return v.astimezone(datetime.timezone.utc)
