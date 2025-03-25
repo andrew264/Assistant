@@ -5,15 +5,19 @@ from typing import List, Optional, Union
 import discord
 from discord import app_commands
 from discord.ext import commands
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import AssistantBot
+from config import MONGO_URI
+from utils.stats import record_game_result
 
 
 class TicTacToeButton(discord.ui.Button["TicTacToe"]):
-    def __init__(self, x: int, y: int):
+    def __init__(self, x: int, y: int, db: Optional[AsyncIOMotorClient]):
         super().__init__(style=discord.ButtonStyle.secondary, label="\u200b", row=y)
         self.x = x
         self.y = y
+        self.db = db
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -36,12 +40,18 @@ class TicTacToeButton(discord.ui.Button["TicTacToe"]):
             case view.X:
                 content = f"{player_1.mention} won! against {player_2.mention}"
                 view.stop()
+                if self.db is not None and not player_1.bot and not player_2.bot:
+                    await record_game_result(self.db, player_1.id, player_2.id, interaction.guild_id, "tictactoe")
             case view.O:
                 content = f"{player_2.mention} won! against {player_1.mention}"
                 view.stop()
+                if self.db is not None and not player_1.bot and not player_2.bot:
+                    await record_game_result(self.db, player_2.id, player_1.id, interaction.guild_id, "tictactoe")
             case view.Tie:
                 content = f"{player_1.mention} and {player_2.mention} tied!"
                 view.stop()
+                if self.db is not None and not player_1.bot and not player_2.bot:
+                    await record_game_result(self.db, player_1.id, player_2.id, interaction.guild_id, "tictactoe", is_tie=True)
             case _:
                 content = f"It is now {view.current_player.mention}'s turn"
 
@@ -55,7 +65,7 @@ class TicTacToe(discord.ui.View):
     O: int = 1
     Tie: int = 2
 
-    def __init__(self, player_1: Union[discord.Member, discord.User], player_2: Union[discord.Member, discord.User]):
+    def __init__(self, player_1: Union[discord.Member, discord.User], player_2: Union[discord.Member, discord.User], db: Optional[AsyncIOMotorClient]):
         super().__init__()
         self.current_player: Union[discord.Member, discord.User] = player_1
         self.board: List[List[int]] = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
@@ -65,7 +75,7 @@ class TicTacToe(discord.ui.View):
         # Our board is made up of 3 by 3 TicTacToeButtons
         for x in range(3):
             for y in range(3):
-                self.add_item(TicTacToeButton(x, y))
+                self.add_item(TicTacToeButton(x, y, db))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user == self.player_1 or interaction.user == self.player_2:
@@ -212,8 +222,9 @@ class TicTacToe(discord.ui.View):
 
 
 class TTT(commands.Cog):
-    def __init__(self, bot: AssistantBot):
+    def __init__(self, bot: AssistantBot, save_stats: bool = False):
         self.bot = bot
+        self.save_stats = save_stats
 
     @commands.hybrid_command(name='tictactoe', aliases=['ttt'], description='Play a game of TicTacToe with someone', )
     @app_commands.rename(player_2="opponent")
@@ -233,7 +244,7 @@ class TTT(commands.Cog):
             player_1, player_2 = player_2, player_1
 
         # Create a new TicTacToe board
-        view = TicTacToe(player_1, player_2)
+        view = TicTacToe(player_1, player_2, self.bot.database if self.save_stats else None)
         msg = await ctx.send(content=f"It is now {view.current_player.mention}'s turn", view=view)
         if view.current_player.bot:  # if player_1 is a bot, make the first move
             await view.make_a_move()
@@ -241,4 +252,4 @@ class TTT(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    await bot.add_cog(TTT(bot))
+    await bot.add_cog(TTT(bot, True if MONGO_URI else False))

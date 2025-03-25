@@ -25,6 +25,9 @@ A multipurpose Discord bot built using the `discord.py` library. It includes a v
 *   **TicTacToe:** Play TicTacToe with another user or an AI opponent.
 *   **Voting System:** Set up and manage polls/voting using an Elo rating system.
 
+#### Game Stats:
+- View game statistics and leaderboards for TicTacToe, Rock Paper Scissors, and Hand Cricket. Statistics are tracked on a *per-server* basis.
+
 ### Information
 
 *   **Add Intro:** Allows users to add a short introduction about themselves.
@@ -41,7 +44,7 @@ A multipurpose Discord bot built using the `discord.py` library. It includes a v
 *   **Translator:** Translates text using Google Translate, including inline translation within messages.
 *   **Urban Dictionary:** Looks up word definitions from Urban Dictionary.
 *   **Utilities:** General utility commands like `echo` and `ping`.
-*  **Reminders:** Set, list, cancel, and edit reminders for yourself or others, with support for recurring reminders.
+*   **Reminders:** Set, list, cancel, and edit reminders for yourself or others, with support for recurring reminders.
 
 ### Music
 
@@ -125,7 +128,7 @@ All dependencies are listed in `requirements.txt`.
 ### Notes:
 
 *   **Permissions:** Make sure the bot has the necessary permissions in your Discord server to perform its functions (e.g., manage messages, manage roles, connect to voice channels, create webhooks, etc.).
-*   **MongoDB:** Some features, like user introductions, last seen tracking, and reminders, require a MongoDB database. If you don't configure `MONGO_URI`, those features will be disabled.
+*   **MongoDB:** Some features, like user introductions, last seen tracking, reminders, and **game statistics**, require a MongoDB database. If you don't configure `MONGO_URI`, those features will be disabled.
 *   **Lavalink:** For music features to work, you need a running Lavalink server and have to configure its details in `config.yaml`.
 *   **API Keys:** Certain features like Reddit integration, Genius lyrics, and Tenor GIFs require API keys. You need to obtain those keys and add them to the `config.yaml`.
 *   **Owner-only Commands:** Some commands are restricted to the bot owner (specified by `OWNER_ID`).

@@ -6,6 +6,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from assistant import AssistantBot
+from config import MONGO_URI
+from utils.stats import record_game_result
 
 
 class EvenOdd(enum.Enum):
@@ -14,8 +16,9 @@ class EvenOdd(enum.Enum):
 
 
 class HandCricket(commands.Cog):
-    def __init__(self, bot: AssistantBot):
+    def __init__(self, bot: AssistantBot, save_stats: bool = False):
         self.bot = bot
+        self.save_stats = save_stats
 
     @commands.hybrid_command(name="handcricket", description="Play a game of hand cricket", aliases=["hc"])
     @app_commands.describe(user1="The first player", user2="The second player")
@@ -32,6 +35,7 @@ class HandCricket(commands.Cog):
             await ctx.send(content="You can't play against a bot.")
             return
         logger = self.bot.logger
+        database = self.bot.database if self.save_stats else None
 
         class SelectEvenOdd(discord.ui.View):
             def __init__(self):
@@ -261,7 +265,7 @@ class HandCricket(commands.Cog):
                 game_view: Game = self.view  # type: ignore
                 logger.debug(f"Called: is_inning_over(): "
                              f"Last: - {game_view.last_score[game_view.player1]} - {game_view.last_score[game_view.player2]}")
-                return (game_view.innings == 0 and game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2] and self.both_selected())
+                return game_view.innings == 0 and game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2] and self.both_selected()
 
             def is_game_over(self) -> bool:
                 game_view: Game = self.view  # type: ignore
@@ -274,7 +278,7 @@ class HandCricket(commands.Cog):
                                  f"{game_view.scores[self.get_other_player(game_view.batting)]}")
                     if game_view.scores[game_view.batting] > game_view.scores[self.get_other_player(game_view.batting)]:
                         return True
-                    elif (game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2] and self.both_selected()):
+                    elif game_view.last_score[game_view.player1] == game_view.last_score[game_view.player2] and self.both_selected():
                         return True
                 return False
 
@@ -322,13 +326,24 @@ class HandCricket(commands.Cog):
                 if self.is_game_over():
                     logger.debug("Game Over")
                     game_view.disable()
+                    is_tie = False
                     if game_view.scores[game_view.player1] > game_view.scores[game_view.player2]:
                         msg = f"{game_view.player1.mention} won! against {game_view.player2.mention}"
+                        winner = game_view.player1
+                        loser = game_view.player2
                     elif game_view.scores[game_view.player2] > game_view.scores[game_view.player1]:
                         msg = f"{game_view.player2.mention} won! against {game_view.player1.mention}"
+                        winner = game_view.player2
+                        loser = game_view.player1
                     else:
                         msg = f"{game_view.player1.mention} and {game_view.player2.mention} tied!"
+                        winner = game_view.player1
+                        loser = game_view.player2
+                        is_tie = True
                     await interaction.edit_original_response(content=msg, embed=game_view.embed, view=None)
+                    if database is not None and not winner.bot and not loser.bot:
+                        await record_game_result(database, winner.id, loser.id, interaction.guild_id, "handcricket", is_tie=is_tie)
+
                     return
                 self.reset_last_score()
 
@@ -337,4 +352,4 @@ class HandCricket(commands.Cog):
 
 
 async def setup(bot: AssistantBot):
-    await bot.add_cog(HandCricket(bot))
+    await bot.add_cog(HandCricket(bot, True if MONGO_URI else False))

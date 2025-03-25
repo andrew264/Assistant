@@ -5,8 +5,11 @@ from typing import Optional, Union
 import discord
 from discord import app_commands
 from discord.ext import commands
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from assistant import AssistantBot
+from config import MONGO_URI
+from utils.stats import record_game_result
 
 
 class Choice(enum.Enum):
@@ -17,7 +20,7 @@ class Choice(enum.Enum):
 
 
 class RPSButtons(discord.ui.View):
-    def __init__(self, player_1: Union[discord.Member, discord.User], player_2: Union[discord.Member, discord.User]):
+    def __init__(self, player_1: Union[discord.Member, discord.User], player_2: Union[discord.Member, discord.User], db: Optional[AsyncIOMotorClient]):
         super().__init__(timeout=30)
         self.choices: dict[Union[discord.Member, discord.User], Choice] = {player_1: Choice.NONE, player_2: Choice.NONE}
         self.player_1 = player_1
@@ -26,6 +29,7 @@ class RPSButtons(discord.ui.View):
             self.choices[player_1] = random.choice([Choice.rock, Choice.paper, Choice.scissors])
         if player_2.bot:
             self.choices[player_2] = random.choice([Choice.rock, Choice.paper, Choice.scissors])
+        self.db = db
 
     @property
     def both_selected(self) -> bool:
@@ -48,6 +52,15 @@ class RPSButtons(discord.ui.View):
         embed = discord.Embed(title=f"{winner.display_name} won!" if winner else "It's a tie!", color=discord.Color.random())
         embed.add_field(name=self.player_1.display_name, value=self.choices[self.player_1].name.capitalize())
         embed.add_field(name=self.player_2.display_name, value=self.choices[self.player_2].name.capitalize())
+
+        if self.db is not None and not self.player_1.bot and not self.player_2.bot:
+            if winner == self.player_1:
+                await record_game_result(self.db, self.player_1.id, self.player_2.id, interaction.guild_id, "rps")
+            elif winner == self.player_2:
+                await record_game_result(self.db, self.player_2.id, self.player_1.id, interaction.guild_id, "rps")
+            else:  # Tie
+                await record_game_result(self.db, self.player_1.id, self.player_2.id, interaction.guild_id, "rps", is_tie=True)
+        self.stop()
         await interaction.response.edit_message(content=None, embed=embed, view=self)
 
     def _get_winner(self) -> Union[discord.Member, discord.User, None]:
@@ -111,8 +124,9 @@ class RPSButtons(discord.ui.View):
 
 
 class RPS(commands.Cog):
-    def __init__(self, bot: AssistantBot):
+    def __init__(self, bot: AssistantBot, save_stats: bool = False):
         self.bot = bot
+        self.save_stats = save_stats
 
     @commands.hybrid_command(name='rps', description="Play rock paper scissors with another user", aliases=['rockpaperscissor'])
     @app_commands.rename(player_2='opponent')
@@ -127,9 +141,9 @@ class RPS(commands.Cog):
             await ctx.send(content="You can't play against yourself")
             return
 
-        host_view = RPSButtons(player_1, player_2)
+        host_view = RPSButtons(player_1, player_2, self.bot.database if self.save_stats else None)
         await ctx.send(content=f"{player_1.mention}/{player_2.mention} choose your weapon", view=host_view)
 
 
 async def setup(bot: AssistantBot):
-    await bot.add_cog(RPS(bot))
+    await bot.add_cog(RPS(bot, True if MONGO_URI else False))
