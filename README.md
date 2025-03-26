@@ -59,6 +59,7 @@ A multipurpose Discord bot built using the `discord.py` library. It includes a v
 *   **Color Roles:** Manages color roles using button-based UI.
 *   **Last Seen:** Tracks when users were last seen online, typing, or in voice channels.
 *   **Surveillance:** Logs edited/deleted messages, nickname changes, status updates, voice channel activity, and more.
+*   **Starboard:** Allows users to "star" messages using a specific reaction (default ⭐).  Messages that reach a configurable threshold are posted to a designated starboard channel.
 ___
 ## Dependencies
 
@@ -128,11 +129,12 @@ All dependencies are listed in `requirements.txt`.
 ### Notes:
 
 *   **Permissions:** Make sure the bot has the necessary permissions in your Discord server to perform its functions (e.g., manage messages, manage roles, connect to voice channels, create webhooks, etc.).
-*   **MongoDB:** Some features, like user introductions, last seen tracking, reminders, and **game statistics**, require a MongoDB database. If you don't configure `MONGO_URI`, those features will be disabled.
+*   **MongoDB:** Some features, like **user introductions, last seen tracking, reminders, game statistics, and the Starboard**, require a MongoDB database. If you don't configure `MONGO_URI`, those features will be disabled.
 *   **Lavalink:** For music features to work, you need a running Lavalink server and have to configure its details in `config.yaml`.
 *   **API Keys:** Certain features like Reddit integration, Genius lyrics, and Tenor GIFs require API keys. You need to obtain those keys and add them to the `config.yaml`.
 *   **Owner-only Commands:** Some commands are restricted to the bot owner (specified by `OWNER_ID`).
 *   **DM Relay:** DMs sent to the bot will be relayed to channels under the category specified by `DM_RECIPIENTS_CATEGORY`. The channels must have a topic with format `USERID:user_id` for it to work correctly.
+*   **MongoDB Indexes:** The Starboard feature requires specific MongoDB indexes for optimal performance.  These indexes are created automatically on bot startup, but ensure your bot has the necessary permissions to create indexes in your MongoDB database.
 
 ---
 ## Contributing
