@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from assistant import AssistantBot
 from config import DATABASE_NAME, MONGO_URI
-from models.starboard_models import StarboardConfig, DEFAULT_STAR_EMOJI, DEFAULT_THRESHOLD
+from models.starboard_models import DEFAULT_STAR_EMOJI, DEFAULT_THRESHOLD, StarboardConfig
 
 CONFIG_CACHE_TTL = 3600  # Cache configs for 1 hour
 CONFIG_CACHE_SIZE = 1000

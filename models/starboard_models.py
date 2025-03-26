@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import discord
-from pydantic import BaseModel, Field, field_validator, validator
+from pydantic import BaseModel, Field, field_validator
 
 DEFAULT_STAR_EMOJI = "⭐"
 DEFAULT_THRESHOLD = 3
@@ -56,6 +56,7 @@ class StarredMessage(BaseModel):
     star_count: int = 0
     is_posted: bool = False
     last_updated: datetime = Field(default_factory=discord.utils.utcnow)
+
     # **MongoDB Index Required:** createIndex({ guild_id: 1, original_message_id: 1 }, { unique: true })
     # Optional Index: createIndex({ guild_id: 1, starboard_message_id: 1 })
 

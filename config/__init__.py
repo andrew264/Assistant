@@ -3,7 +3,7 @@ from pathlib import Path
 
 import discord
 
-from .validator import Config
+from models.config_models import Config
 
 # Path to the config file
 if 'CONFIG_PATH' in os.environ:

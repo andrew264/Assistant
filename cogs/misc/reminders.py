@@ -1,16 +1,15 @@
 import datetime
-import uuid
 from typing import Optional
 
 import discord
-from discord import app_commands
-from discord.ext import commands, tasks
-from pydantic import BaseModel, Field, field_validator
 from dateparser import parse
 from dateutil.relativedelta import relativedelta
+from discord import app_commands
+from discord.ext import commands, tasks
 
 from assistant import AssistantBot
 from config import DATABASE_NAME, MONGO_URI
+from models.reminder_models import Reminder
 
 
 def get_time_string(trigger_time: datetime.datetime, now: datetime.datetime) -> str:
@@ -24,29 +23,6 @@ def get_time_string(trigger_time: datetime.datetime, now: datetime.datetime) -> 
         return f"in {int(delta.total_seconds() / 3600)} hours"
     else:
         return f"in {int(delta.total_seconds() / 86400)} days"
-
-
-class Reminder(BaseModel):
-    user_id: int
-    target_user_id: Optional[int] = None
-    channel_id: int
-    guild_id: int
-    message: str
-    trigger_time: datetime.datetime
-    creation_time: datetime.datetime
-    reminder_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    is_dm: bool = True
-    title: Optional[str] = None
-    recurrence: Optional[str] = None  # "daily", "weekly", "monthly", None
-    last_triggered: Optional[datetime.datetime] = None
-    is_active: bool = True  # For pausing/activating reminders
-
-    @classmethod
-    @field_validator("trigger_time", "creation_time", mode="before")
-    def ensure_utc(cls, v: datetime.datetime) -> datetime.datetime:
-        if v.tzinfo is None:  # Assume naive times are in UTC
-            return v.replace(tzinfo=datetime.timezone.utc)
-        return v.astimezone(datetime.timezone.utc)
 
 
 class Reminders(commands.Cog):

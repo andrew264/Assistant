@@ -1,55 +1,19 @@
-import re
 import random
-from datetime import datetime
+import re
 from typing import List, Optional
 
 import discord
 import wavelink
 from discord import app_commands
 from discord.ext import commands
-from pydantic import BaseModel, Field, field_validator
 
 from assistant import AssistantBot
 from config import DATABASE_NAME, LAVA_CONFIG
+from models.playlist_models import PlaylistModel, Song
 from utils import clickable_song
 from utils.checks import check_vc_interaction
 from utils.tracks import url_rx
 
-
-# -------------------- Pydantic Models --------------------
-
-class Song(BaseModel):
-    title: str
-    artist: str
-    uri: str
-    duration: float
-    thumbnail: Optional[str] = None
-    source: str
-
-    @classmethod
-    @field_validator("source", mode="before")
-    def set_source(cls, v, values):
-        # Simple logic: if YouTube in URI, mark as youtube
-        return 'youtube' if 'youtube' in values.get('uri', '') else v or 'other'
-
-
-class PlaylistModel(BaseModel):
-    user_id: int
-    guild_id: int
-    name: str = Field(..., max_length=32)
-    songs: List[Song] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=discord.utils.utcnow)
-    updated_at: datetime = Field(default_factory=discord.utils.utcnow)
-
-    @classmethod
-    @field_validator("name")
-    def validate_name(cls, v):
-        if len(v) > 32:
-            raise ValueError("Playlist name is too long (max 32 characters)")
-        return v
-
-
-# -------------------- Cog Implementation --------------------
 
 class PlaylistCog(commands.Cog):
     def __init__(self, bot: AssistantBot):
@@ -166,45 +130,27 @@ class PlaylistCog(commands.Cog):
                 if len(playlist['songs']) + len(new_songs) >= 200:
                     break
                 try:
-                    song = Song(
-                        title=track.title,
-                        artist=track.author,
-                        uri=track.uri,
-                        duration=track.length,
-                        thumbnail=track.artwork,
-                        source='youtube' if 'youtube' in track.uri else 'other'
-                    )
+                    song = Song(title=track.title, artist=track.author, uri=track.uri, duration=track.length, thumbnail=track.artwork,
+                                source='youtube' if 'youtube' in track.uri else 'other')
                     new_songs.append(song.model_dump())
                 except Exception as e:
                     self.bot.logger.error(f"Song data error: {e}")
                     continue
             if not new_songs:
                 return await ctx.edit_original_response(content="No songs could be added (playlist might be full).")
-            result = await collection.update_one(
-                {"_id": playlist["_id"]},
-                {"$push": {"songs": {"$each": new_songs}}, "$set": {"updated_at": discord.utils.utcnow()}}
-            )
+            result = await collection.update_one({"_id": playlist["_id"]}, {"$push": {"songs": {"$each": new_songs}}, "$set": {"updated_at": discord.utils.utcnow()}})
             await ctx.edit_original_response(content=f"Added {len(new_songs)} songs from the playlist to '{playlist_name}'.")
         else:
             # Assume a single track (if a list is returned, take the first)
             track = tracks[0] if isinstance(tracks, list) else tracks
             try:
-                new_song = Song(
-                    title=track.title,
-                    artist=track.author,
-                    uri=track.uri,
-                    duration=track.length,
-                    thumbnail=track.artwork,
-                    source='youtube' if 'youtube' in track.uri else 'other'
-                )
+                new_song = Song(title=track.title, artist=track.author, uri=track.uri, duration=track.length, thumbnail=track.artwork,
+                                source='youtube' if 'youtube' in track.uri else 'other')
             except Exception as e:
                 self.bot.logger.error(f"Song data error: {e}")
                 return await ctx.edit_original_response(content="Error processing song data.")
 
-            result = await collection.update_one(
-                {"_id": playlist["_id"]},
-                {"$push": {"songs": new_song.model_dump()}, "$set": {"updated_at": discord.utils.utcnow()}}
-            )
+            result = await collection.update_one({"_id": playlist["_id"]}, {"$push": {"songs": new_song.model_dump()}, "$set": {"updated_at": discord.utils.utcnow()}})
             if result.modified_count:
                 await ctx.edit_original_response(content=f"Added {clickable_song(track)} to playlist '{playlist_name}'.")
             else:
@@ -226,10 +172,7 @@ class PlaylistCog(commands.Cog):
             return await ctx.edit_original_response(content="Invalid song index.")
 
         removed_song = playlist["songs"][index - 1]
-        await collection.update_one(
-            {"_id": playlist["_id"]},
-            {"$pull": {"songs": removed_song}, "$set": {"updated_at": discord.utils.utcnow()}}
-        )
+        await collection.update_one({"_id": playlist["_id"]}, {"$pull": {"songs": removed_song}, "$set": {"updated_at": discord.utils.utcnow()}})
         await ctx.edit_original_response(content=f"Removed '{removed_song['title']}' from playlist '{playlist_name}'.")
 
     @playlist_group.command(name="list", description="Show your playlists")
@@ -372,10 +315,7 @@ class PlaylistCog(commands.Cog):
         if await collection.count_documents({"user_id": user_id, "guild_id": guild_id, "name": new_name}) > 0:
             return await ctx.edit_original_response(content="You already have a playlist with that name.")
 
-        result = await collection.update_one(
-            {"user_id": user_id, "guild_id": guild_id, "name": old_name},
-            {"$set": {"name": new_name, "updated_at": discord.utils.utcnow()}}
-        )
+        result = await collection.update_one({"user_id": user_id, "guild_id": guild_id, "name": old_name}, {"$set": {"name": new_name, "updated_at": discord.utils.utcnow()}})
         if result.modified_count:
             await ctx.edit_original_response(content=f"Renamed '{old_name}' to '{new_name}'.")
         else:
@@ -396,10 +336,7 @@ class PlaylistCog(commands.Cog):
             return await ctx.edit_original_response(content="This playlist is empty.")
 
         random.shuffle(playlist["songs"])
-        await collection.update_one(
-            {"_id": playlist["_id"]},
-            {"$set": {"songs": playlist["songs"], "updated_at": discord.utils.utcnow()}}
-        )
+        await collection.update_one({"_id": playlist["_id"]}, {"$set": {"songs": playlist["songs"], "updated_at": discord.utils.utcnow()}})
         await ctx.edit_original_response(content=f"Shuffled playlist '{playlist_name}'.")
 
     @playlist_group.command(name="share", description="Share one of your playlists with another user.")
@@ -451,8 +388,7 @@ class PlaylistCog(commands.Cog):
         collection = self.bot.database[DATABASE_NAME]['playlists']
         cursor = collection.find({"user_id": ctx.user.id, "guild_id": ctx.guild_id}, projection={"name": 1, "_id": 0})
         playlists = await cursor.to_list(length=25)
-        return [app_commands.Choice(name=playlist['name'], value=playlist['name'])
-                for playlist in playlists if current.lower() in playlist['name'].lower()]
+        return [app_commands.Choice(name=playlist['name'], value=playlist['name']) for playlist in playlists if current.lower() in playlist['name'].lower()]
 
 
 async def setup(bot: AssistantBot):
